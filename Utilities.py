@@ -44,6 +44,11 @@ def InTolerance(topic, actual, expected, tolerance):
     message = "Check %s (%s) = %s (+/-)%s" % (topic, GetFormat(actual), GetFormat(expected), GetFormat(tolerance))
     return Result(message, actual >= (expected - tolerance) and actual <= (expected + tolerance))        
     
+def Header(message):
+    print("*********************************************")
+    print("* %s" % message)
+    print("*********************************************")
+    
 def Log(message):
     _Log("     - %s" % message)
 
