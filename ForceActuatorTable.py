@@ -166,3 +166,7 @@ forceActuatorTableTypeIndex = 5
 forceActuatorTableSubnetIndex = 6
 forceActuatorTableAddressIndex = 7
 forceActuatorTableOrientationIndex = 8
+
+forceActuatorZIndexFromXIndex = [11, 27, 34, 48, 62, 69, 89, 105, 112, 126, 140, 147]
+forceActuatorZIndexFromYIndex = [1  , 2  , 3  , 4  , 7  , 8  , 9  , 10 , 12 , 13 , 14 , 15 , 16 , 17 , 19 , 20 , 21 , 22 , 23 , 25 , 26 , 28 , 29 , 31 , 32 , 33 , 36 , 37 , 44 , 45 , 46 , 47 , 49 , 50 , 52 , 53 , 54 , 55 , 56 , 57 , 58 , 59 , 61 , 63 , 64 , 66 , 67 , 68 , 71 , 72 , 79 , 80 , 81 , 82 , 85 , 86 , 87 , 88 , 90 , 91 , 92 , 93 , 94 , 95 , 97 , 98 , 99 , 100, 101, 103, 104, 106, 107, 109, 110, 111, 114, 115, 122, 123, 124, 125, 127, 128, 129, 130, 131, 133, 134, 135, 136, 137, 139, 141, 142, 144, 145, 146, 149, 150]
+

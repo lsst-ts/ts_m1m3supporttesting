@@ -46,8 +46,11 @@ def InTolerance(topic, actual, expected, tolerance):
     
 def Header(message):
     print("*********************************************")
-    print("* %s" % message)
+    print("***** %s" % message)
     print("*********************************************")
+    
+def SubHeader(message):
+    print("***** %s" % message)
     
 def Log(message):
     _Log("     - %s" % message)
