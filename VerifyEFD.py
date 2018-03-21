@@ -2,6 +2,13 @@ from Utilities import *
 from SALPY_m1m3 import *
 import MySQLdb
 
+########################################################################
+# Test Numbers: M13T-001
+# Author:       CContaxis
+# Description:  Verify commands, events, and telemetry are pushed into 
+#               the EFD  
+########################################################################
+
 class VerifyEFD:
     def Run(self, m1m3, sim):
         Header("Verify EFD")

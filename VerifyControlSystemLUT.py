@@ -4,6 +4,15 @@ import CalculateBendingModeForces
 import CalculateDistributionForces
 import ForceActuatorTable
 
+########################################################################
+# Test Numbers: M13T-025, M13T-026, M13T-017
+# Author:       CContaxis
+# Description:  Verify the various force components are applied properly
+#               the Active and ActiveEngineering states
+#               Verify force components are overwritten when applied, not
+#               accumulated
+########################################################################
+
 class VerifyControlSystemLUT:
     def Run(self, m1m3, sim):
         Header("Verify Control System LUT")

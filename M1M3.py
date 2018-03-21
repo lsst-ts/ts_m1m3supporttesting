@@ -2,6 +2,7 @@ import time
 from SALPY_m1m3 import *
 from Utilities import *
 
+COMMAND_TIME = 0.5
 COMMAND_TIMEOUT = 10
 
 class M1M3:
@@ -58,6 +59,7 @@ class M1M3:
         self.sal.salEvent("m1m3_logevent_RejectedThermalForces")
         self.sal.salEvent("m1m3_logevent_RejectedVelocityForces")
         self.sal.salEvent("m1m3_logevent_SummaryState")
+        self.sal.salTelemetrySub("m1m3_IMSData")
         self.sal.salTelemetrySub("m1m3_InclinometerData")
         
     def __del__(self):
@@ -71,6 +73,7 @@ class M1M3:
         data.AbortRaiseM1M3 = run
         cmdId = self.sal.issueCommand_AbortRaiseM1M3(data)
         self.sal.waitForCompletion_AbortRaiseM1M3(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ApplyAberrationForces(self, zForces):
         Log("M1M3: ApplyAberrationForces([%s])" % (','.join(zForces)))
@@ -79,6 +82,7 @@ class M1M3:
             data.ZForces[i] = zForces[i]
         cmdId = self.sal.issueCommand_ApplyAberrationForces(data)
         self.sal.waitForCompletion_ApplyAberrationForces(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ApplyAberrationForcesByBendingModes(self, coefficients):
         Log("M1M3: ApplyAberrationForcesByBendingModes([%s])" % (','.join(coefficients)))
@@ -87,6 +91,7 @@ class M1M3:
             data.Coefficients[i] = coefficients[i]
         cmdId = self.sal.issueCommand_ApplyAberrationForcesByBendingModes(data)
         self.sal.waitForCompletion_ApplyAberrationForcesByBendingModes(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ApplyActiveOpticForces(self, zForces):
         Log("M1M3: ApplyActiveOpticForces([%s])" % (','.join(zForces)))
@@ -95,6 +100,7 @@ class M1M3:
             data.ZForces[i] = zForces[i]
         cmdId = self.sal.issueCommand_ApplyActiveOpticForces(data)
         self.sal.waitForCompletion_ApplyActiveOpticForces(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ApplyActiveOpticForcesByBendingModes(self, coefficients):
         Log("M1M3: ApplyActiveOpticForcesByBendingModes([%s])" % (','.join(coefficients)))
@@ -103,6 +109,7 @@ class M1M3:
             data.Coefficients[i] = coefficients[i]
         cmdId = self.sal.issueCommand_ApplyActiveOpticForcesByBendingModes(data)
         self.sal.waitForCompletion_ApplyActiveOpticForcesByBendingModes(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ApplyOffsetForces(self, xForces, yForces, zForces):
         Log("M1M3: ApplyOffsetForces([%s], [%s], [%s])" % (','.join(xForces), ','.join(yForces), ','.join(zForces)))
@@ -115,6 +122,7 @@ class M1M3:
             data.ZForces[i] = zForces[i]
         cmdId = self.sal.issueCommand_ApplyOffsetForces(data)
         self.sal.waitForCompletion_ApplyOffsetForces(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ApplyOffsetForcesByMirrorForce(self, fx, fy, fz, mx, my, mz):
         Log("M1M3: ApplyOffsetForcesByMirrorForce(%s, %s, %s, %s, %s, %s)" % (fx, fy, fz, mx, my, mz))
@@ -127,6 +135,7 @@ class M1M3:
         data.ZMoment = mz
         cmdId = self.sal.issueCommand_ApplyOffsetForcesByMirrorForce(data)
         self.sal.waitForCompletion_ApplyOffsetForcesByMirrorForce(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ClearAberrationForces(self, run = True):
         Log("M1M3: ClearAberrationForces(%s)" % (run))
@@ -134,6 +143,7 @@ class M1M3:
         data.ClearAberrationForces = run
         cmdId = self.sal.issueCommand_ClearAberrationForces(data)
         self.sal.waitForCompletion_ClearAberrationForces(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ClearActiveOpticForces(self, run = True):
         Log("M1M3: ClearActiveOpticForces(%s)" % (run))
@@ -141,6 +151,7 @@ class M1M3:
         data.ClearActiveOpticForces = run
         cmdId = self.sal.issueCommand_ClearActiveOpticForces(data)
         self.sal.waitForCompletion_ClearActiveOpticForces(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ClearOffsetForces(self, run = True):
         Log("M1M3: ClearOffsetForces(%s)" % (run))
@@ -148,6 +159,7 @@ class M1M3:
         data.ClearOffsetForces = run
         cmdId = self.sal.issueCommand_ClearOffsetForces(data)
         self.sal.waitForCompletion_ClearOffsetForces(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def Disable(self, run = True):
         Log("M1M3: Disable(%s)" % (run))
@@ -155,6 +167,7 @@ class M1M3:
         data.Disable = run
         cmdId = self.sal.issueCommand_Disable(data)
         self.sal.waitForCompletion_Disable(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def Enable(self, run = True):
         Log("M1M3: Enable(%s)" % (run))
@@ -162,6 +175,7 @@ class M1M3:
         data.Enable = run
         cmdId = self.sal.issueCommand_Enable(data)
         self.sal.waitForCompletion_Enable(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def EnterEngineering(self, run = True):
         Log("M1M3: EnterEngineering(%s)" % (run))
@@ -169,6 +183,7 @@ class M1M3:
         data.EnterEngineering = run
         cmdId = self.sal.issueCommand_EnterEngineering(data)
         self.sal.waitForCompletion_EnterEngineering(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def ExitEngineering(self, run = True):
         Log("M1M3: ExitEngineering(%s)" % (run))
@@ -176,6 +191,7 @@ class M1M3:
         data.ExitEngineering = run
         cmdId = self.sal.issueCommand_ExitEngineering(data)
         self.sal.waitForCompletion_ExitEngineering(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def LowerM1M3(self, run = True):
         Log("M1M3: LowerM1M3(%s)" % (run))
@@ -183,6 +199,7 @@ class M1M3:
         data.LowerM1M3 = run
         cmdId = self.sal.issueCommand_LowerM1M3(data)
         self.sal.waitForCompletion_LowerM1M3(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def RaiseM1M3(self, bypassReferencePosition, run = True):
         Log("M1M3: RaiseM1M3(%s, %s)" % (run, bypassReferencePosition))
@@ -191,6 +208,7 @@ class M1M3:
         data.BypassReferencePosition = bypassReferencePosition
         cmdId = self.sal.issueCommand_RaiseM1M3(data)
         self.sal.waitForCompletion_RaiseM1M3(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def Shutdown(self, run = True):
         Log("M1M3: Shutdown(%s)" % (run))
@@ -198,6 +216,7 @@ class M1M3:
         data.Shutdown = run
         cmdId = self.sal.issueCommand_Shutdown(data)
         self.sal.waitForCompletion_Shutdown(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
     
     def Standby(self, run = True):
         Log("M1M3: Standby(%s)" % (run))
@@ -205,6 +224,7 @@ class M1M3:
         data.Standby = run
         cmdId = self.sal.issueCommand_Standby(data)
         self.sal.waitForCompletion_Standby(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
         
     def Start(self, settingsToApply, run = True):
         Log("M1M3: Start(%s, %s)" % (run, settingsToApply))
@@ -213,6 +233,7 @@ class M1M3:
         data.SettingsToApply = settingsToApply
         cmdId = self.sal.issueCommand_Start(data)
         self.sal.waitForCompletion_Start(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
 
     def GetEventAppliedAberrationForces(self):
         data = m1m3_logevent_AppliedAberrationForcesC()
@@ -352,6 +373,11 @@ class M1M3:
     def GetEventSummaryState(self):
         data = m1m3_logevent_SummaryStateC()
         result = self.sal.getEvent_SummaryState(data)
+        return result, data
+        
+    def GetSampleIMSData(self):
+        data = m1m3_IMSDataC()
+        result = self.sal.getSample_IMSData(data)
         return result, data
                 
     def GetSampleInclinometerData(self):

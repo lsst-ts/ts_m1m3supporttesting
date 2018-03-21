@@ -4,10 +4,14 @@ import DisplaceSimulator
 import AccelSimulator
 import DigitalInputSimulator
 import DigitalOutputSimulator
+import GyroSimulator
 import time
 import UDP    
 import socket
 from Utilities import Log
+from HardpointActuatorTable import *
+from HardpointMonitorTable import *
+from ForceActuatorTable import *
     
 class CellSimulator:
     AccelerometerVoltsToMetersPerSecondSqrd = 4.9035
@@ -15,7 +19,7 @@ class CellSimulator:
     AccelerometerYDistance = 1.0
     AccelerometerZDistance = 1.0
   
-    def __init__(self, ipAddress, dbg = False, ignore = True):
+    def __init__(self, ipAddress, dbg = False, ignore = False):
         self.Print = dbg
         self.Ignore = ignore
         self._ilcSim = ILCSimulator.ILCSimulator()
@@ -24,6 +28,7 @@ class CellSimulator:
         self._accelSim = AccelSimulator.AccelSimulator()
         self._diSim = DigitalInputSimulator.DigitalInputSimulator()
         self._doSim = DigitalOutputSimulator.DigitalOutputSimulator()
+        self._gyroSim = GyroSimulator.GyroSimulator()
 
         self._udpClientSubnetA = UDP.UDP(ipAddress, 5006)
         self._udpClientSubnetB = UDP.UDP(ipAddress, 5007)
@@ -35,6 +40,7 @@ class CellSimulator:
         self._udpClientAccel = UDP.UDP(ipAddress, 5012)
         self._udpClientDI = UDP.UDP(ipAddress, 5013)
         self._udpClientDO = UDP.UDP(ipAddress, 5014)
+        self._udpClientGyro = UDP.UDP(ipAddress, 5015)
         self._udpResponse = UDP.UDP(socket.gethostbyname(socket.gethostname()), 4999, True)
         
     def setDisplacement(self, d1:float, d2:float, d3:float, d4:float, d5:float, d6:float, d7:float, d8:float):
@@ -86,11 +92,11 @@ class CellSimulator:
             a4 = 0.0
             self.setAccelerometer(a1, a2, a3, a4, a5, a6, a7, a8)
         
-    def setAngularVelocity(self, vx:float, vy:float, vz:float):
+    def setAngularVelocity(self, vx:float, vy:float, vz:float, valid:bool, temperature:int):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting gyro angular velocity to (%0.3f, %0.3f, %0.3f)" % (vx, vy, vz))
-            
+                Log("CellSimulator: Setting gyro angular velocity to (%0.3f, %0.3f, %0.3f, %s, %d)" % (vx, vy, vz, valid, temperature))                
+            self._udpClientGyro.send(self._gyroSim.loadData(vx, vy, vz, valid, temperature))   
         
     def setAUXPowerNetworksOff(self, off):
         if not self.Ignore:
@@ -232,101 +238,101 @@ class CellSimulator:
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting ILC ID for %d to (%d, %d, %d, %d, %d, %d, %d, %s)" % (id, uniqueId, ilcAppType, networkNodeType, ilcSelectedOptions, networkNodeOptions, majorRev, minorRev, firmwareName))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.reportServerId(address, uniqueId, ilcAppType, networkNodeType, ilcSelectedOptions, networkNodeOptions, majorRev, minorRev, firmwareName))
         
     def setILCStatus(self, id:int, mode:int, status:int, faults:int):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting ILC status for %d to (%d, %d, %d)" % (id, mode, status, faults))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.reportServerStatus(address, mode, status, faults))
         
     def setILCMode(self, id:int, ilcMode:int):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting ILC mode for %d to (%d)" % (id, ilcMode))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.ilcMode(address, ilcMode))
         
     def setHPForceAndStatus(self, id:int, statusByte:int, ssiEncoderValue:int, loadCellForce:float):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting HP force and status for %d to (%d, %d, %0.3f)" % (id, statusBy, ssiEncoderValue, loadCellForce))
-            subnet, address = getSubnetAndAddress(id)
+                Log("CellSimulator: Setting HP force and status for %d to (%d, %d, %0.3f)" % (id, statusByte, ssiEncoderValue, loadCellForce))
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.forceAndStatusRequest(address, statusByte, ssiEncoderValue, float(loadCellForce)))
 
     def setBoostValveGains(self, id:int, primaryCylinderGain:float, secondaryCylinderGain:float):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting boost valve gains for %d to (%0.3f, %0.3f)" % (id, primaryCylinderGain, secondaryCylinderGain))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.readBoostValueDcaGains(address, float(primaryCylinderGain), float(secondaryCylinderGain)))
         
     def setFAForceAndStatus(self, id:int, statusByte:int, primaryCylinderForce:float, secondaryCylinderForce:float = 0):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting FA force and status for %d to (%d, %0.3f, %0.3f)" % (id, statusByte, primaryCylinderForce, secondaryCylinderForce))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             if address <= 16:
                 subnet.send(self._ilcSim.singlePneumaticAxisForce(statusByte, address, float(primaryCylinderForce)))
                 subnet.send(self._ilcSim.singlePneumaticForceAndStatus(statusByte, address, float(primaryCylinderForce)))
             else:
                 subnet.send(self._ilcSim.dualPneumaticAxisForce(address, statusByte, float(primaryCylinderForce), float(secondaryCylinderForce)))
-                subnet.send(self._ilcSim.singlePneumaticForceAndStatus(address, statusByte, float(primaryCylinderForce), float(secondaryCylinderForce)))
+                subnet.send(self._ilcSim.dualPneumaticForceAndStatus(address, statusByte, float(primaryCylinderForce), float(secondaryCylinderForce)))
             
     def setADCSampleRate(self, id:int, scanRateCode:int):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting ADC sample rate for %d to (%d)" % (id, scanRateCode))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.setAdcSampleRate(address, scanRateCode))
         
     def setCalibrationData(self, id:int, mainAdcCalibration1:float, mainAdcCalibration2:float, mainAdcCalibration3:float, mainAdcCalibration4:float, mainSensorOffset1:float, mainSensorOffset2:float, mainSensorOffset3:float, mainSensorOffset4:float, mainSensorSensitivity1:float, mainSensorSensitivity2:float, mainSensorSensitivity3:float, mainSensorSensitivity4:float, backupAdcCalibration1:float, backupAdcCalibration2:float, backupAdcCalibration3:float, backupAdcCalibration4:float, backupSensorOffset1:float, backupSensorOffset2:float, backupSensorOffset3:float, backupSensorOffset4:float, backupSensorSensitivity1:float, backupSensorSensitivity2:float, backupSensorSensitivity3:float, backupSensorSensitivity4:float):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting calibration data for %d to ()" % (id))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.readCalibrationData(address, mainAdcCalibration1, mainAdcCalibration2, mainAdcCalibration3, mainAdcCalibration4, mainSensorOffset1, mainSensorOffset2, mainSensorOffset3, mainSensorOffset4, mainSensorSensitivity1, mainSensorSensitivity2, mainSensorSensitivity3, mainSensorSensitivity4, backupAdcCalibration1, backupAdcCalibration2, backupAdcCalibration3, backupAdcCalibration4, backupSensorOffset1, backupSensorOffset2, backupSensorOffset3, backupSensorOffset4, backupSensorSensitivity1, backupSensorSensitivity2, backupSensorSensitivity3, backupSensorSensitivity4))
         
     def setPressure(self, id:int, p1:float, p2:float, p3:float, p4:float):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting pressure for %d to (%0.3f, %0.3f, %0.3f, %0.3f)" % (id, p1, p2, p3, p4))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.readDcaPressureValues(address, p1, p2, p3, p4))
         
     def setMezzanineID(self, id:int, uniqueId:int, firmwareType:int, firmwareVersion:int):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting mezzanine ID for %d to (%d, %d, %d)" % (id, uniqueId, firmwareType, firmwareVersion))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.reportDcaId(address, uniqueId, firmwareType, firmwareVersion))
         
     def setMezzanineStatus(self, id:int, status:int):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting mezzanine status for %d to (%d)" % (id, status))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.reportDcaStatus(address, status))
         
     def setLVDT(self, id:int, lvdt1:float, lvdt2:float):
         if not self.Ignore:
             if self.Print:
                 Log("CellSimulator: Setting LVDT for %d to (%0.3f, %0.3f)" % (id, lvdt1, lvdt2))
-            subnet, address = getSubnetAndAddress(id)
+            subnet, address = self.getSubnetAndAddress(id)
             subnet.send(self._ilcSim.readLVDT(address, lvdt1, lvdt2))
                 
     def getSubnetAndAddress(self, id:int):
         for row in hardpointActuatorTable:
             if row[hardpointActuatorTableIDIndex] == id:
-                return getSubnet(row[hardpointActuatorTableSubnetIndex]), row[hardpointActuatorTableAddressIndex]
+                return self.getSubnet(row[hardpointActuatorTableSubnetIndex]), row[hardpointActuatorTableAddressIndex]
         for row in hardpointMonitorTable:
             if row[hardpointMonitorTableIDIndex] == id:
-                return getSubnet(row[hardpointMonitorTableSubnetIndex]), row[hardpointMonitorTableAddressIndex]
+                return self.getSubnet(row[hardpointMonitorTableSubnetIndex]), row[hardpointMonitorTableAddressIndex]
         for row in forceActuatorTable:
             if row[forceActuatorTableIDIndex] == id:
-                return getSubnet(row[forceActuatorTableSubnetIndex]), row[forceActuatorTableAddressIndex]
+                return self.getSubnet(row[forceActuatorTableSubnetIndex]), row[forceActuatorTableAddressIndex]
         
     def getSubnet(self, subnet:int):
         if subnet == 1:
