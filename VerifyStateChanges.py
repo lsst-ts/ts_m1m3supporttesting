@@ -7,7 +7,7 @@ class VerifyStateChanges:
         self.CheckParameterValidation(m1m3, sim)
         self.CheckStandbyState(m1m3, sim)
         self.CheckDisabledState(m1m3, sim)
-        #self.CheckParkState(m1m3, sim)
+        self.CheckParkState(m1m3, sim)
         #self.CheckRaisingState(m1m3, sim)
         #self.CheckActiveState(m1m3, sim)
         #self.CheckLoweringState(m1m3, sim)

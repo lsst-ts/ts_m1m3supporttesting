@@ -59,6 +59,7 @@ class M1M3:
         self.sal.salEvent("m1m3_logevent_RejectedThermalForces")
         self.sal.salEvent("m1m3_logevent_RejectedVelocityForces")
         self.sal.salEvent("m1m3_logevent_SummaryState")
+        self.sal.salTelemetrySub("m1m3_AccelerometerData")
         self.sal.salTelemetrySub("m1m3_IMSData")
         self.sal.salTelemetrySub("m1m3_InclinometerData")
         
@@ -373,6 +374,11 @@ class M1M3:
     def GetEventSummaryState(self):
         data = m1m3_logevent_SummaryStateC()
         result = self.sal.getEvent_SummaryState(data)
+        return result, data
+        
+    def GetSampleAccelerometerData(self):
+        data = m1m3_AccelerometerDataC()
+        result = self.sal.getSample_AccelerometerData(data)
         return result, data
         
     def GetSampleIMSData(self):
