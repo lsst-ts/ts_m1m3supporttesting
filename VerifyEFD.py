@@ -26,6 +26,8 @@ class VerifyEFD:
         result, data = m1m3.GetEventDetailedState()
         eventTimestamp = data.Timestamp
         Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+        result, data = m1m3.GetEventSummaryState()
+        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
         
         # Check EFD Command
         count = cur.execute("SELECT Start, SettingsToApply FROM m1m3_command_Start ORDER BY date_time DESC LIMIT 1")
@@ -57,6 +59,8 @@ class VerifyEFD:
         m1m3.Standby()
         result, data = m1m3.GetEventDetailedState()
         Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
+        result, data = m1m3.GetEventSummaryState()
+        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
         
         db.close()
         
