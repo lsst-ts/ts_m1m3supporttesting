@@ -26,8 +26,6 @@ class VerifyEFD:
         result, data = m1m3.GetEventDetailedState()
         eventTimestamp = data.Timestamp
         Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
         
         # Check EFD Command
         count = cur.execute("SELECT Start, SettingsToApply FROM m1m3_command_Start ORDER BY date_time DESC LIMIT 1")
@@ -55,12 +53,15 @@ class VerifyEFD:
             InTolerance("EFD m1m3_InclinometerData.Timestamp", float(row[0]), data.Timestamp, 0.001)
             InTolerance("EFD m1m3_InclinometerData.InclinometerAngle", float(row[1]), data.InclinometerAngle, 0.001)
         
+        result, data = m1m3.GetEventSummaryState()
+        Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+        
         # Get back into StandbyState
         m1m3.Standby()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
+        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
+        Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
         
         db.close()
         
