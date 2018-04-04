@@ -1,7 +1,7 @@
 import M1M3
 import CellSimulator
-#import VerifyStateChanges
 import VerifyEFD
+import VerifyStateChanges
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
 from ForceActuatorTable import *
@@ -54,6 +54,7 @@ for row in forceActuatorTable:
     sim.setMezzanineStatus(id, 0)
     sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
 
-#VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
 VerifyEFD.VerifyEFD().Run(m1m3, sim)
+VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
+
        
