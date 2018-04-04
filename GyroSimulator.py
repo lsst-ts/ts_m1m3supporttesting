@@ -13,17 +13,18 @@ class GyroSimulator(Simulator):
     def __init__(self):
         pass
 
-    def loadData(self, xValue:float, yValue:float, zValue:float, isValid:bool, gyroTemperature:int):
+    def loadData(self, xValue:float, yValue:float, zValue:float, status:int, gyroTemperature:int):
         response = bytearray()
-
-        self.dataCheck(xValue, 'X Value', response, 4)
-        self.dataCheck(yValue, 'Y Value', response, 4)
-        self.dataCheck(zValue, 'Z Value', response, 4)
-        if isValid:
-            # binary 00000111 - all valid, DSP 1760 manual, pg. 15 & Rev. B DSP 1760 External Electrical Signaling ICD pg.19
-            self.dataCheck(7, 'Is Valid', response, 1, False) 
-        else:
-            self.dataCheck(0, 'Is Valid', response, 1, False) # binary 00000000 - all invalid, DSP 1760 manual, pg.15
+    
+        self.dataCheck(0xFE81FF55, 'Header', response, 4, False)
+        self.dataCheck(float(xValue), 'X Value', response, 4)
+        self.dataCheck(float(yValue), 'Y Value', response, 4)
+        self.dataCheck(float(zValue), 'Z Value', response, 4)
+        self.dataCheck(0x80000000, "Reserved", response, 4, False)
+        self.dataCheck(0x80000000, "Reserved", response, 4, False)
+        self.dataCheck(0x80000000, "Reserved", response, 4, False)
+        self.dataCheck(status, "Status", response, 1, False)
+        self.dataCheck(0x00, "Sequence", response, 1, False)
         self.dataCheck(gyroTemperature, 'Gyro Temperature', response, 2)
 
         response[:0] = bytes([len(response)])
@@ -37,9 +38,9 @@ def main():
     gyros = GyroSimulator()
 
     # test loadData
-    response = gyros.loadData(12.34, 23.34, 34.45, 1, 24)
+    response = gyros.loadData(1, 2, 3, 4, 5)
     ordArray = [c for c in response]
     print(ordArray)
-    assert (bytes([15, 65, 69, 112, 164, 65, 186, 184, 82, 66, 9, 204, 205, 1, 0, 24]) == response)
+    assert (bytes([32, 255, 129, 255, 85, 63, 128, 0, 0, 64, 0, 0, 0, 64, 64, 0, 0, 128, 0, 0, 0, 128, 0, 0, 0, 128, 0, 0, 0, 4, 0, 0, 5]) == response)
     print("loadData: " + str(binascii.hexlify(response)))
 #main()

@@ -15,9 +15,9 @@ from ForceActuatorTable import *
     
 class CellSimulator:
     AccelerometerVoltsToMetersPerSecondSqrd = 4.9035
-    AccelerometerXDistance = 1.0
-    AccelerometerYDistance = 1.0
-    AccelerometerZDistance = 1.0
+    AccelerometerXDistance = 0.9478
+    AccelerometerYDistance = 0.7648
+    AccelerometerZDistance = 4.2500
   
     def __init__(self, ipAddress, dbg = False, ignore = False):
         self.Print = dbg
