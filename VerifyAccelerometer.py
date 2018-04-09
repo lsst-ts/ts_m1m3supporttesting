@@ -95,7 +95,7 @@ class VerifyAccelerometer:
         for row in accelerometers:
             sim.setAccelerometerVoltage(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
             time.sleep(1)
-            result, data = GetSampleAccelerometerData()
+            result, data = m1m3.GetSampleAccelerometerData()
             InTolerance("AccelerometerData.RawAccelerometer[0]", data.RawAccelerometer[0], row[0], 0.001)
             InTolerance("AccelerometerData.RawAccelerometer[1]", data.RawAccelerometer[1], row[1], 0.001)
             InTolerance("AccelerometerData.RawAccelerometer[2]", data.RawAccelerometer[2], row[2], 0.001)
@@ -108,13 +108,13 @@ class VerifyAccelerometer:
     def CheckNoAccelerometer(self, m1m3, sim, state):
         SubHeader("Verify No Accelerometer: %s State Validation" % (state))
         # Clear any existing sample in the queue
-        result, data = GetSampleAccelerometerData() 
+        result, data = m1m3.GetSampleAccelerometerData() 
         time.sleep(1)
         # See if new data came in
-        result, data = GetSampleAccelerometerData()
+        result, data = m1m3.GetSampleAccelerometerData()
         Equal("No AccelerometerData", result, 0)
         time.sleep(1)
         # Check one last time to see if new data came in
-        result, data = GetSampleAccelerometerData()
+        result, data = m1m3.GetSampleAccelerometerData()
         Equal("Still No AccelerometerData", result, 0)
         
