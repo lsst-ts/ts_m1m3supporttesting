@@ -167,7 +167,7 @@ class ILCSimulator(Simulator):
     def setAdcSampleRate(self, serverAddr, scanRateCode):
         response = bytearray()
         
-        self.dataCheck(scanRateCode, 'Scan Rate Code', response, 2)
+        self.dataCheck(scanRateCode, 'Scan Rate Code', response, 1)
         
         return self.finalizeResponse(serverAddr, 80, response)
 

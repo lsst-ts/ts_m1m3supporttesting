@@ -7,14 +7,14 @@ class VerifyStateChanges:
         self.CheckParameterValidation(m1m3, sim)
         self.CheckStandbyState(m1m3, sim)
         self.CheckDisabledState(m1m3, sim)
-        self.CheckParkState(m1m3, sim)
-        #self.CheckRaisingState(m1m3, sim)
-        #self.CheckActiveState(m1m3, sim)
-        #self.CheckLoweringState(m1m3, sim)
-        #self.CheckParkEngineeringState(m1m3, sim)
-        #self.CheckRaisingEngineeringState(m1m3, sim)
-        #self.CheckActiveEngineeringState(m1m3, sim)
-        #self.CheckLoweringEngineeringState(m1m3, sim)
+        self.CheckParkState(m1m3, sim) # Passes
+        self.CheckRaisingState(m1m3, sim)
+        self.CheckActiveState(m1m3, sim)
+        self.CheckLoweringState(m1m3, sim)
+        self.CheckParkEngineeringState(m1m3, sim)
+        self.CheckRaisingEngineeringState(m1m3, sim)
+        self.CheckActiveEngineeringState(m1m3, sim)
+        self.CheckLoweringEngineeringState(m1m3, sim)
         
     def CheckParameterValidation(self, m1m3, sim):
         SubHeader("Verify State Changes: State Command Parameter Validation")
