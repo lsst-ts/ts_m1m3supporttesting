@@ -3,6 +3,7 @@ import CellSimulator
 import VerifyAccelerometer
 import VerifyEFD
 import VerifyStateChanges
+import VerifyTiming
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
 from ForceActuatorTable import *
@@ -58,4 +59,5 @@ for row in forceActuatorTable:
 VerifyEFD.VerifyEFD().Run(m1m3, sim)
 VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
 VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
+VerifyTiming.VerifyTiming().Run(m1m3, sim)
        
