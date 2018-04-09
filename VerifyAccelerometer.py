@@ -96,14 +96,14 @@ class VerifyAccelerometer:
             sim.setAccelerometerVoltage(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
             time.sleep(1)
             result, data = m1m3.GetSampleAccelerometerData()
-            InTolerance("AccelerometerData.RawAccelerometer[0]", data.RawAccelerometer[0], row[0], 0.001)
-            InTolerance("AccelerometerData.RawAccelerometer[1]", data.RawAccelerometer[1], row[1], 0.001)
-            InTolerance("AccelerometerData.RawAccelerometer[2]", data.RawAccelerometer[2], row[2], 0.001)
-            InTolerance("AccelerometerData.RawAccelerometer[3]", data.RawAccelerometer[3], row[3], 0.001)
-            InTolerance("AccelerometerData.RawAccelerometer[4]", data.RawAccelerometer[4], row[4], 0.001)
-            InTolerance("AccelerometerData.RawAccelerometer[5]", data.RawAccelerometer[5], row[5], 0.001)
-            InTolerance("AccelerometerData.RawAccelerometer[6]", data.RawAccelerometer[6], row[6], 0.001)
-            InTolerance("AccelerometerData.RawAccelerometer[7]", data.RawAccelerometer[7], row[7], 0.001)
+            InTolerance("AccelerometerData.RawAccelerometer[0]", data.RawAccelerometer[0], row[0], 0.01)
+            InTolerance("AccelerometerData.RawAccelerometer[1]", data.RawAccelerometer[1], row[1], 0.01)
+            InTolerance("AccelerometerData.RawAccelerometer[2]", data.RawAccelerometer[2], row[2], 0.01)
+            InTolerance("AccelerometerData.RawAccelerometer[3]", data.RawAccelerometer[3], row[3], 0.01)
+            InTolerance("AccelerometerData.RawAccelerometer[4]", data.RawAccelerometer[4], row[4], 0.01)
+            InTolerance("AccelerometerData.RawAccelerometer[5]", data.RawAccelerometer[5], row[5], 0.01)
+            InTolerance("AccelerometerData.RawAccelerometer[6]", data.RawAccelerometer[6], row[6], 0.01)
+            InTolerance("AccelerometerData.RawAccelerometer[7]", data.RawAccelerometer[7], row[7], 0.01)
             
     def CheckNoAccelerometer(self, m1m3, sim, state):
         SubHeader("Verify No Accelerometer: %s State Validation" % (state))
@@ -112,9 +112,9 @@ class VerifyAccelerometer:
         time.sleep(1)
         # See if new data came in
         result, data = m1m3.GetSampleAccelerometerData()
-        Equal("No AccelerometerData", result, 0)
+        Equal("No AccelerometerData", result, -100)
         time.sleep(1)
         # Check one last time to see if new data came in
         result, data = m1m3.GetSampleAccelerometerData()
-        Equal("Still No AccelerometerData", result, 0)
+        Equal("Still No AccelerometerData", result, -100)
         
