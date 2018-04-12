@@ -275,8 +275,8 @@ class CellSimulator:
                 Log("CellSimulator: Setting FA force and status for %d to (%d, %0.3f, %0.3f)" % (id, statusByte, primaryCylinderForce, secondaryCylinderForce))
             subnet, address = self.getSubnetAndAddress(id)
             if address <= 16:
-                subnet.send(self._ilcSim.singlePneumaticAxisForce(statusByte, address, float(primaryCylinderForce)))
-                subnet.send(self._ilcSim.singlePneumaticForceAndStatus(statusByte, address, float(primaryCylinderForce)))
+                subnet.send(self._ilcSim.singlePneumaticAxisForce(address, statusByte, float(primaryCylinderForce)))
+                subnet.send(self._ilcSim.singlePneumaticForceAndStatus(address, statusByte, float(primaryCylinderForce)))
             else:
                 subnet.send(self._ilcSim.dualPneumaticAxisForce(address, statusByte, float(primaryCylinderForce), float(secondaryCylinderForce)))
                 subnet.send(self._ilcSim.dualPneumaticForceAndStatus(address, statusByte, float(primaryCylinderForce), float(secondaryCylinderForce)))
