@@ -4,6 +4,7 @@ import VerifyAccelerometer
 import VerifyEFD
 import VerifyStateChanges
 import VerifyTiming
+import VerifyForceActuators
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
 from ForceActuatorTable import *
@@ -21,7 +22,7 @@ for row in hardpointActuatorTable:
     id = row[hardpointActuatorTableIDIndex]
     sim.setILCID(id, id, 1, 1, 0, 0, 8, 2, "Mock-HP")
     #sim.setILCID(id, id, 1, 1, 0, 0, 0x38, 0x32, "Mock-HP")
-    sim.setILCStatus(id, 48, 0, 0)
+    sim.setILCStatus(id, 0, 0, 0)
     sim.setILCMode(id, 0)
     sim.setHPForceAndStatus(id, 0, (id + 1000), (id + 0.5))
     sim.setADCSampleRate(id, 8)
@@ -32,7 +33,7 @@ for row in hardpointMonitorTable:
     id = row[hardpointMonitorTableIDIndex]
     sim.setILCID(id, id, 7, 7, 0, 0, 8, 2, "Mock-HM")
     #sim.setILCID(id, id, 7, 7, 0, 0, 0x38, 0x32, "Mock-HM")
-    sim.setILCStatus(id, 48, 0, 0)
+    sim.setILCStatus(id, 0, 0, 0)
     sim.setILCMode(id, 0)
     sim.setMezzanineID(id, id + 1000, 52, 0x3832)
     sim.setMezzanineStatus(id, 0)
@@ -46,7 +47,7 @@ for row in forceActuatorTable:
         sim.setILCID(id, id, 2, 2, 0, 0, 8, 2, "Mock-FA")
     else:
         sim.setILCID(id, id, 2, 2, 2, 2, 8, 2, "Mock-FA")
-    sim.setILCStatus(id, 48, 0, 0)
+    sim.setILCStatus(id, 0, 0, 0)
     sim.setILCMode(id, 0)
     sim.setBoostValveGains(id, 1.0, 1.0)
     sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
@@ -56,8 +57,9 @@ for row in forceActuatorTable:
     sim.setMezzanineStatus(id, 0)
     sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
 
-VerifyEFD.VerifyEFD().Run(m1m3, sim)
-VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
-VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
-VerifyTiming.VerifyTiming().Run(m1m3, sim)
+#VerifyEFD.VerifyEFD().Run(m1m3, sim)
+#VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
+#VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
+VerifyForceActuators.VerifyForceActuators().Run(m1m3, sim)
+#VerifyTiming.VerifyTiming().Run(m1m3, sim)
        
