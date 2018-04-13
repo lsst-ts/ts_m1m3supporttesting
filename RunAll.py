@@ -7,6 +7,7 @@ import VerifyEFD
 import VerifyStateChanges
 import VerifyTiming
 import VerifyForceActuators
+import VerifyStart
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
 from ForceActuatorTable import *
@@ -56,10 +57,11 @@ for row in forceActuatorTable:
     sim.setMezzanineStatus(id, 0)
     sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
 
-VerifyEFD.VerifyEFD().Run(m1m3, sim)
-VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
-VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
-VerifyInclinometer.VerifyInclinometer().Run(m1m3, sim)
-VerifyDisplacement.VerifyDisplacement().Run(m1m3, sim)
-VerifyForceActuators.VerifyForceActuators().Run(m1m3, sim)
+#VerifyEFD.VerifyEFD().Run(m1m3, sim)
+#VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
+#VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
+#VerifyInclinometer.VerifyInclinometer().Run(m1m3, sim)
+#VerifyDisplacement.VerifyDisplacement().Run(m1m3, sim)
+#VerifyForceActuators.VerifyForceActuators().Run(m1m3, sim)
 #VerifyTiming.VerifyTiming().Run(m1m3, sim)
+VerifyStart.VerifyStart().Run(m1m3, sim)
