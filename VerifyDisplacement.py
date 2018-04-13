@@ -94,7 +94,7 @@ class VerifyDisplacement:
         ]
         for row in displacements:
             sim.setDisplacement(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
-            time.sleep(0.5)
+            time.sleep(1.0)
             result, data = m1m3.GetSampleIMSData()
             InTolerance("IMSData.RawSensorData[0]", data.RawSensorData[0], row[0], 0.001)
             InTolerance("IMSData.RawSensorData[1]", data.RawSensorData[1], row[1], 0.001)

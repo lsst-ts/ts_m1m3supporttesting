@@ -87,7 +87,7 @@ class VerifyForceActuators:
             for otherRow in forceActuatorTable:
                 sim.setFAForceAndStatus(otherRow[forceActuatorTableIDIndex], 0, 0, 0)
             sim.setFAForceAndStatus(row[forceActuatorTableIDIndex], 0, 1, -1)
-            time.sleep(0.5)
+            time.sleep(1.0)
             result, data = m1m3.GetSampleForceActuatorData()
             for otherRow in forceActuatorTable:
                 pIndex = otherRow[forceActuatorTableIndexIndex]
