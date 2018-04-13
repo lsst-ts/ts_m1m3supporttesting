@@ -25,7 +25,7 @@ class VerifyDisplacement:
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
         self.CheckDisplacement(m1m3, sim, "Parked")
-        m1m3.RaiseM1M3(True)
+        m1m3.RaiseM1M3(False)
         result, data = m1m3.GetEventDetailedState()
         Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingState)
         result, data = m1m3.GetEventSummaryState()
@@ -50,7 +50,7 @@ class VerifyDisplacement:
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
         self.CheckDisplacement(m1m3, sim, "ParkedEngineering")
-        m1m3.RaiseM1M3(False)
+        m1m3.RaiseM1M3(True)
         result, data = m1m3.GetEventDetailedState()
         Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingEngineeringState)
         result, data = m1m3.GetEventSummaryState()
@@ -94,7 +94,7 @@ class VerifyDisplacement:
         ]
         for row in displacements:
             sim.setDisplacement(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7])
-            time.sleep(1)
+            time.sleep(0.5)
             result, data = m1m3.GetSampleIMSData()
             InTolerance("IMSData.RawSensorData[0]", data.RawSensorData[0], row[0], 0.001)
             InTolerance("IMSData.RawSensorData[1]", data.RawSensorData[1], row[1], 0.001)

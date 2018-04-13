@@ -1,6 +1,8 @@
 import M1M3
 import CellSimulator
 import VerifyAccelerometer
+import VerifyInclinometer
+import VerifyDisplacement
 import VerifyEFD
 import VerifyStateChanges
 import VerifyTiming
@@ -21,18 +23,15 @@ sim.setAngularVelocity(12.34, 56.78, 91.01, 7, 20)
 for row in hardpointActuatorTable:
     id = row[hardpointActuatorTableIDIndex]
     sim.setILCID(id, id, 1, 1, 0, 0, 8, 2, "Mock-HP")
-    #sim.setILCID(id, id, 1, 1, 0, 0, 0x38, 0x32, "Mock-HP")
     sim.setILCStatus(id, 0, 0, 0)
     sim.setILCMode(id, 0)
     sim.setHPForceAndStatus(id, 0, (id + 1000), (id + 0.5))
     sim.setADCSampleRate(id, 8)
-    #sim.setADCSampleRate(id, 0x38)
     #sim.setCalibrationData(id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
    
 for row in hardpointMonitorTable:
     id = row[hardpointMonitorTableIDIndex]
     sim.setILCID(id, id, 7, 7, 0, 0, 8, 2, "Mock-HM")
-    #sim.setILCID(id, id, 7, 7, 0, 0, 0x38, 0x32, "Mock-HM")
     sim.setILCStatus(id, 0, 0, 0)
     sim.setILCMode(id, 0)
     sim.setMezzanineID(id, id + 1000, 52, 0x3832)
@@ -57,9 +56,10 @@ for row in forceActuatorTable:
     sim.setMezzanineStatus(id, 0)
     sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
 
-#VerifyEFD.VerifyEFD().Run(m1m3, sim)
-#VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
-#VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
+VerifyEFD.VerifyEFD().Run(m1m3, sim)
+VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
+VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
+VerifyInclinometer.VerifyInclinometer().Run(m1m3, sim)
+VerifyDisplacement.VerifyDisplacement().Run(m1m3, sim)
 VerifyForceActuators.VerifyForceActuators().Run(m1m3, sim)
 #VerifyTiming.VerifyTiming().Run(m1m3, sim)
-       
