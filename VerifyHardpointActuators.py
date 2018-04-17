@@ -86,7 +86,7 @@ class VerifyHardpointActuators:
         for row in hardpointActuatorTable:
             for otherRow in hardpointActuatorTable:
                 sim.setHPForceAndStatus(otherRow[hardpointActuatorTableIDIndex], 0, 0, 0)
-            sim.setHPForceAndStatus(otherRow[hardpointActuatorTableIDIndex], 0, -1, 1)
+            sim.setHPForceAndStatus(row[hardpointActuatorTableIDIndex], 0, -1, 1)
             time.sleep(1.0)
             result, data = m1m3.GetSampleHardpointActuatorData()
             for otherRow in hardpointActuatorTable:
