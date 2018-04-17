@@ -61,6 +61,7 @@ class M1M3:
         self.sal.salEvent("m1m3_logevent_SummaryState")
         self.sal.salTelemetrySub("m1m3_AccelerometerData")
         self.sal.salTelemetrySub("m1m3_ForceActuatorData")
+        self.sal.salTelemetrySub("m1m3_HardpointActuatorData")
         self.sal.salTelemetrySub("m1m3_IMSData")
         self.sal.salTelemetrySub("m1m3_InclinometerData")
         
@@ -276,7 +277,7 @@ class M1M3:
         data = m1m3_logevent_AppliedForcesC()
         result = self.sal.getEvent_AppliedForces(data)
         return result, data
-    
+        
     def GetEventAppliedOffsetForces(self):
         data = m1m3_logevent_AppliedOffsetForcesC()
         result = self.sal.getEvent_AppliedOffsetForces(data)
@@ -387,6 +388,11 @@ class M1M3:
         result = self.sal.getSample_ForceActuatorData(data)
         return result, data
         
+    def GetSampleHardpointActuatorData(self):
+        data = m1m3_HardpointActuatorDataC()
+        result = self.sal.getSample_HardpointActuatorData(data)
+        return result, data
+        
     def GetSampleIMSData(self):
         data = m1m3_IMSDataC()
         result = self.sal.getSample_IMSData(data)
@@ -396,5 +402,7 @@ class M1M3:
         data = m1m3_InclinometerDataC()
         result = self.sal.getSample_InclinometerData(data)
         return result, data
+        
+        
         
         
