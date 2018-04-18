@@ -25,6 +25,7 @@ class M1M3:
         self.sal.salCommand("m1m3_command_EnterEngineering")
         self.sal.salCommand("m1m3_command_ExitEngineering")
         self.sal.salCommand("m1m3_command_LowerM1M3")
+        self.sal.salCommand("m1m3_command_MoveHardpointActuators")
         self.sal.salCommand("m1m3_command_RaiseM1M3")
         self.sal.salCommand("m1m3_command_Shutdown")
         self.sal.salCommand("m1m3_command_Standby")
@@ -205,6 +206,15 @@ class M1M3:
         data.LowerM1M3 = run
         cmdId = self.sal.issueCommand_LowerM1M3(data)
         self.sal.waitForCompletion_LowerM1M3(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
+        
+    def MoveHardpointActuators(self, steps):
+        Log("M1M3: MoveHardpointActuators(%s)" % (','.join(map(str, steps))))
+        data = m1m3_command_MoveHardpointActuatorsC()
+        for i in range(6):
+            data.Steps[i] = steps[i]
+        cmdId = self.sal.issueCommand_MoveHardpointActuators(data)
+        self.sal.waitForCompletion_MoveHardpointActuators(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
     def RaiseM1M3(self, bypassReferencePosition, run = True):

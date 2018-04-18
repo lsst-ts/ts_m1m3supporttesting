@@ -3,6 +3,7 @@ import math
 from Utilities import *
 from SALPY_m1m3 import *
 from ForceActuatorTable import *
+from HardpointActuatorTable import *
 
 ########################################################################
 # Test Numbers: M13F-003
@@ -80,11 +81,25 @@ class M13F003:
                 if orientation == '-X':
                     secondaryCylinderForce = -secondaryCylinderForce
                 sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
+                result, data = m1m3.GetEventAppliedOffsetForces()
+                InTolerance("AppliedOffsetForces.XForces[%d]" % x, data.XForces[x], 10.0, 0.1)
+                InTolerance("AppliedOffsetForces.ZForces[%d]" % z, data.ZForces[z], 0.0, 0.1)
+                result, data = m1m3.GetEventAppliedCylinderForces()
+                InTolerance("AppliedCylinderForces.SecondaryCylinderForces[%d]" % s, data.SecondaryCylinderForces[s], secondaryCylinderForce, 0.1)
+                InTolerance("AppliedCylinderForces.PrimaryCylinderForces[%d]" % s, data.PrimaryCylinderForces[z], primaryCylinderForce, 0.1)
                 time.sleep(1)
                 SubHeader("Force Actuator %d X Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
                 m1m3.ClearOffsetForces()
                 sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
+                result, data = m1m3.GetEventAppliedOffsetForces()
+                InTolerance("AppliedOffsetForces.XForces[%d]" % x, data.XForces[x], 0.0, 0.1)
+                InTolerance("AppliedOffsetForces.ZForces[%d]" % z, data.ZForces[z], 0.0, 0.1)
+                result, data = m1m3.GetEventAppliedCylinderForces()
+                InTolerance("AppliedCylinderForces.SecondaryCylinderForces[%d]" % s, data.SecondaryCylinderForces[s], 0.0, 0.1)
+                InTolerance("AppliedCylinderForces.PrimaryCylinderForces[%d]" % s, data.PrimaryCylinderForces[z], 0.0, 0.1)
+                result, data = m1m3.GetEventAppliedCylinderForces()
+                InTolerance("AppliedOffsetForces.XForces[%d]" % x, data.XForces[x], 0.0, 0.1)
                 time.sleep(1)
                 xForces[x] = 0
                 SubHeader("Force Actuator %d X Force Removed" % id)
@@ -98,11 +113,23 @@ class M13F003:
                 if orientation == '-Y':
                     secondaryCylinderForce = -secondaryCylinderForce
                 sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
+                result, data = m1m3.GetEventAppliedOffsetForces()
+                InTolerance("AppliedOffsetForces.YForces[%d]" % y, data.YForces[y], 10.0, 0.1)
+                InTolerance("AppliedOffsetForces.ZForces[%d]" % z, data.ZForces[z], 0.0, 0.1)
+                result, data = m1m3.GetEventAppliedCylinderForces()
+                InTolerance("AppliedCylinderForces.SecondaryCylinderForces[%d]" % s, data.SecondaryCylinderForces[s], secondaryCylinderForce, 0.1)
+                InTolerance("AppliedCylinderForces.PrimaryCylinderForces[%d]" % s, data.PrimaryCylinderForces[z], primaryCylinderForce, 0.1)
                 time.sleep(1)
                 SubHeader("Force Actuator %d Y Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
                 m1m3.ClearOffsetForces()
                 sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
+                result, data = m1m3.GetEventAppliedOffsetForces()
+                InTolerance("AppliedOffsetForces.YForces[%d]" % y, data.YForces[y], 0.0, 0.1)
+                InTolerance("AppliedOffsetForces.ZForces[%d]" % z, data.ZForces[z], 0.0, 0.1)
+                result, data = m1m3.GetEventAppliedCylinderForces()
+                InTolerance("AppliedCylinderForces.SecondaryCylinderForces[%d]" % s, data.SecondaryCylinderForces[s], 0.0, 0.1)
+                InTolerance("AppliedCylinderForces.PrimaryCylinderForces[%d]" % s, data.PrimaryCylinderForces[z], 0.0, 0.1)
                 time.sleep(1)
                 yForces[y] = 0
                 SubHeader("Force Actuator %d Y Force Removed" % id)
@@ -113,15 +140,55 @@ class M13F003:
             primaryCylinderForce = 10.0
             secondaryCylinderForce = 0.0
             sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
+            result, data = m1m3.GetEventAppliedOffsetForces()
+            if x != -1:
+                InTolerance("AppliedOffsetForces.XForces[%d]" % x, data.XForces[x], 0.0, 0.1)
+            if y != -1:
+                InTolerance("AppliedOffsetForces.YForces[%d]" % y, data.YForces[y], 0.0, 0.1)
+            InTolerance("AppliedOffsetForces.ZForces[%d]" % z, data.ZForces[z], 10.0, 0.1)
+            result, data = m1m3.GetEventAppliedCylinderForces()
+            if x != -1 or y != -1:
+                InTolerance("AppliedCylinderForces.SecondaryCylinderForces[%d]" % s, data.SecondaryCylinderForces[s], 0.0, 0.1)
+            InTolerance("AppliedCylinderForces.PrimaryCylinderForces[%d]" % s, data.PrimaryCylinderForces[z], primaryCylinderForce, 0.1)
             time.sleep(1)
             SubHeader("Force Actuator %d Z Force Added" % id)
             self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
             m1m3.ClearOffsetForces()
             sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
+            result, data = m1m3.GetEventAppliedOffsetForces()
+            if x != -1:
+                InTolerance("AppliedOffsetForces.XForces[%d]" % x, data.XForces[x], 0.0, 0.1)
+            if y != -1:
+                InTolerance("AppliedOffsetForces.YForces[%d]" % y, data.YForces[y], 0.0, 0.1)
+            InTolerance("AppliedOffsetForces.ZForces[%d]" % z, data.ZForces[z], 0.0, 0.1)
+            result, data = m1m3.GetEventAppliedCylinderForces()
+            if x != -1 or y != -1:
+                InTolerance("AppliedCylinderForces.SecondaryCylinderForces[%d]" % s, data.SecondaryCylinderForces[s], 0.0, 0.1)
+            InTolerance("AppliedCylinderForces.PrimaryCylinderForces[%d]" % s, data.PrimaryCylinderForces[z], 0.0, 0.1)
             time.sleep(1)
             zForces[z] = 0            
             SubHeader("Force Actuator %d Z Force Removed" % id)
             self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
+            
+        for row in hardpointActuatorTable:
+            index = row[hardpointActuatorTableIndexIndex]
+            id = row[hardpointActuatorTableIDIndex]
+            
+            Header("Verify Hardpoint Actuator %d Commands and Telemetry" % id)
+            
+            sim.setHPForceAndStatus(id, 0, 0, 0)
+            time.sleep(1)
+            result, preStepData = m1m3.GetSampleHardpointActuatorData()
+            steps = [0] * 6
+            steps[index] = 8
+            m1m3.MoveHardpointActuators(steps)
+            sim.setHPForceAndStatus(id, 0, 10, 100)
+            time.sleep(1)
+            result, postStepData = m1m3.GetSampleHardpointActuatorData()
+            NotEqual("Hardpoint Actuator %d Encoder Changed" % id, postStepData.Encoder[index], preStepData.Encoder[index])
+            NotEqual("Hardpoint Actuator %d Force Changed" % id, postStepData.MeasuredForce[index], preStepData.MeasuredForce[index])
+            sim.setHPForceAndStatus(id, 0, 0, 0)
+            
 
         m1m3.Disable()
         result, data = m1m3.GetEventDetailedState()
