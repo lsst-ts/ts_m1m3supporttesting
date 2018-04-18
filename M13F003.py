@@ -98,8 +98,6 @@ class M13F003:
                 result, data = m1m3.GetEventAppliedCylinderForces()
                 InTolerance("AppliedCylinderForces.SecondaryCylinderForces[%d]" % s, data.SecondaryCylinderForces[s], 0.0, 0.1)
                 InTolerance("AppliedCylinderForces.PrimaryCylinderForces[%d]" % s, data.PrimaryCylinderForces[z], 0.0, 0.1)
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("AppliedOffsetForces.XForces[%d]" % x, data.XForces[x], 0.0, 0.1)
                 time.sleep(1)
                 xForces[x] = 0
                 SubHeader("Force Actuator %d X Force Removed" % id)
