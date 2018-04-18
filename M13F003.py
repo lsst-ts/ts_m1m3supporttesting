@@ -48,14 +48,29 @@ class M13F003:
         xForces = [0] * 12
         yForces = [0] * 100
         zForces = [0] * 156
+        xIndex = 0
+        yIndex = 0
+        sIndex = 0
         for row in forceActuatorTable:
             index = row[forceActuatorTableIndexIndex]
             id = row[forceActuatorTableIDIndex]
             orientation = row[forceActuatorTableOrientationIndex]
-            Header("Verify Force Actuator %d Commands and Telemetry" % id)
-            x = self.GetIndex(forceActuatorInfo.XDataReferenceId, id)
-            y = self.GetIndex(forceActuatorInfo.YDataReferenceId, id)
+            x = -1
+            y = -1
+            s = -1
             z = index
+            if orientation in ['+X', '-X']:
+                x = xIndex
+                s = sIndex
+                xIndex += 1
+                sIndex += 1
+            if orientation in ['+Y', '-Y']:
+                y = yIndex
+                s = sIndex
+                yIndex += 1
+                sIndex += 1
+
+            Header("Verify Force Actuator %d Commands and Telemetry" % id)
 
             if x != -1:
                 xForces[x] = 10.0
