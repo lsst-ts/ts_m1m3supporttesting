@@ -82,7 +82,7 @@ class M1M3:
         time.sleep(COMMAND_TIME)
         
     def ApplyAberrationForces(self, zForces):
-        Log("M1M3: ApplyAberrationForces([%s])" % (','.join(zForces)))
+        Log("M1M3: ApplyAberrationForces([%s])" % (','.join(map(str, zForces))))
         data = m1m3_command_ApplyAberrationForcesC()
         for i in range(156):
             data.ZForces[i] = zForces[i]
@@ -91,7 +91,7 @@ class M1M3:
         time.sleep(COMMAND_TIME)
         
     def ApplyAberrationForcesByBendingModes(self, coefficients):
-        Log("M1M3: ApplyAberrationForcesByBendingModes([%s])" % (','.join(coefficients)))
+        Log("M1M3: ApplyAberrationForcesByBendingModes([%s])" % (','.join(map(str, coefficients))))
         data = m1m3_command_ApplyAberrationForcesByBendingModesC()
         for i in range(22):
             data.Coefficients[i] = coefficients[i]
@@ -100,7 +100,7 @@ class M1M3:
         time.sleep(COMMAND_TIME)
         
     def ApplyActiveOpticForces(self, zForces):
-        Log("M1M3: ApplyActiveOpticForces([%s])" % (','.join(zForces)))
+        Log("M1M3: ApplyActiveOpticForces([%s])" % (','.join(map(str, zForces))))
         data = m1m3_command_ApplyActiveOpticForcesC()
         for i in range(156):
             data.ZForces[i] = zForces[i]
@@ -109,7 +109,7 @@ class M1M3:
         time.sleep(COMMAND_TIME)
         
     def ApplyActiveOpticForcesByBendingModes(self, coefficients):
-        Log("M1M3: ApplyActiveOpticForcesByBendingModes([%s])" % (','.join(coefficients)))
+        Log("M1M3: ApplyActiveOpticForcesByBendingModes([%s])" % (','.join(map(str, coefficients))))
         data = m1m3_command_ApplyActiveOpticForcesByBendingModesC()
         for i in range(22):
             data.Coefficients[i] = coefficients[i]
@@ -118,7 +118,7 @@ class M1M3:
         time.sleep(COMMAND_TIME)
         
     def ApplyOffsetForces(self, xForces, yForces, zForces):
-        Log("M1M3: ApplyOffsetForces([%s], [%s], [%s])" % (','.join(xForces), ','.join(yForces), ','.join(zForces)))
+        Log("M1M3: ApplyOffsetForces([%s], [%s], [%s])" % (','.join(map(str, xForces)), ','.join(map(str, yForces)), ','.join(map(str, zForces))))
         data = m1m3_command_ApplyOffsetForcesC()
         for i in range(12):
             data.XForces[i] = xForces[i]
