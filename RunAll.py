@@ -9,6 +9,7 @@ import VerifyTiming
 import VerifyForceActuators
 import VerifyHardpointActuators
 import VerifyStart
+import M13F003
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
 from ForceActuatorTable import *
@@ -27,7 +28,7 @@ for row in hardpointActuatorTable:
     sim.setILCID(id, id, 1, 1, 0, 0, 8, 2, "Mock-HP")
     sim.setILCStatus(id, 0, 0, 0)
     sim.setILCMode(id, 0)
-    sim.setHPForceAndStatus(id, 0, (id + 1000), (id + 0.5))
+    sim.setHPForceAndStatus(id, 0, 0, 0.0)
     sim.setADCSampleRate(id, 8)
     #sim.setCalibrationData(id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
    
@@ -59,11 +60,12 @@ for row in forceActuatorTable:
     sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
 
 #VerifyEFD.VerifyEFD().Run(m1m3, sim)
-VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
-VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
-VerifyInclinometer.VerifyInclinometer().Run(m1m3, sim)
-VerifyDisplacement.VerifyDisplacement().Run(m1m3, sim)
-VerifyForceActuators.VerifyForceActuators().Run(m1m3, sim)
-VerifyHardpointActuators.VerifyHardpointActuators().Run(m1m3, sim)
+#VerifyStateChanges.VerifyStateChanges().Run(m1m3, sim)
+#VerifyAccelerometer.VerifyAccelerometer().Run(m1m3, sim)
+#VerifyInclinometer.VerifyInclinometer().Run(m1m3, sim)
+#VerifyDisplacement.VerifyDisplacement().Run(m1m3, sim)
+#VerifyForceActuators.VerifyForceActuators().Run(m1m3, sim)
+#VerifyHardpointActuators.VerifyHardpointActuators().Run(m1m3, sim)
+M13F003.M13F003().Run(m1m3, sim)
 #VerifyTiming.VerifyTiming().Run(m1m3, sim)
 #VerifyStart.VerifyStart().Run(m1m3, sim)

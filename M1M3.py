@@ -45,6 +45,9 @@ class M1M3:
         self.sal.salEvent("m1m3_logevent_CommandRejectionWarning")
         self.sal.salEvent("m1m3_logevent_DetailedState")
         self.sal.salEvent("m1m3_logevent_ForceActuatorState")
+        self.sal.salEvent("m1m3_logevent_ForceActuatorInfo")
+        self.sal.salEvent("m1m3_logevent_HardpointActuatorInfo")
+        self.sal.salEvent("m1m3_logevent_HardpointMonitorInfo")
         self.sal.salEvent("m1m3_logevent_RejectedAberrationForces")
         self.sal.salEvent("m1m3_logevent_RejectedAccelerationForces")
         self.sal.salEvent("m1m3_logevent_RejectedActiveOpticForces")
@@ -311,6 +314,21 @@ class M1M3:
     def GetEventForceActuatorState(self):
         data = m1m3_logevent_ForceActuatorStateC()
         result = self.sal.getEvent_ForceActuatorState(data)
+        return result, data
+        
+    def GetEventForceActuatorInfo(self):
+        data = m1m3_logevent_ForceActuatorInfoC()
+        result = self.sal.getEvent_ForceActuatorInfo(data)
+        return result, data
+        
+    def GetEventHardpointActuatorInfo(self):
+        data = m1m3_logevent_HardpointActuatorInfoC()
+        result = self.sal.getEvent_HardpointActuatorInfo(data)
+        return result, data
+        
+    def GetEventHardpointMonitorInfo(self):
+        data = m1m3_logevent_HardpointMonitorInfoC()
+        result = self.sal.getEvent_HardpointMonitorInfo(data)
         return result, data
         
     def GetEventRejectedAberrationForces(self):
