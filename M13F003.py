@@ -25,12 +25,12 @@ class M13F003:
             uniqueId = data.ILCUniqueId[index]
             NotEqual("FA ILC %d UniqueId Not 0" % refId, uniqueId, 0)
         result, data = m1m3.GetEventHardpointActuatorInfo()
-        for index in range(156):
+        for index in range(6):
             refId = data.ReferenceId[index]
             uniqueId = data.ILCUniqueId[index]
             NotEqual("HP ILC %d UniqueId Not 0" % refId, uniqueId, 0)
         result, data = m1m3.GetEventHardpointMonitorInfo()
-        for index in range(156):
+        for index in range(6):
             refId = data.ReferenceId[index]
             uniqueId = data.ILCUniqueId[index]
             NotEqual("HM ILC %d UniqueId Not 0" % refId, uniqueId, 0)
@@ -53,17 +53,9 @@ class M13F003:
             id = row[forceActuatorTableIDIndex]
             orientation = row[forceActuatorTableOrientationIndex]
             Header("Verify Force Actuator %d Commands and Telemetry" % id)
-            x = -1
-            y = -1
+            x = self.GetIndex(forceActuatorInfo.XDataReferenceId, id)
+            y = self.GetIndex(forceActuatorInfo.YDataReferenceId, id)
             z = index
-            try:
-                x = forceActuatorInfo.XDataReferenceId.index(id)
-            except ValueError:
-                pass
-            try:
-                y = forceActuatorInfo.YDataReferenceId.index(id)
-            except ValueError:
-                pass
 
             if x != -1:
                 xForces[x] = 10.0
@@ -135,4 +127,12 @@ class M13F003:
             InTolerance("ForceActuatorData.YForce[%d]" % i, data.YForce[i], yForces[i], 0.1)
         for i in range(156):
             InTolerance("ForceActuatorData.ZForce[%d]" % i, data.ZForce[i], zForces[i], 0.1)
+            
+    def GetIndex(self, data, item):
+        index = 0
+        for value in data:
+            if value == item:
+                return index
+            index += 1
+        return -1
         
