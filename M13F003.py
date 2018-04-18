@@ -75,7 +75,11 @@ class M13F003:
 
             if x != -1:
                 xForces[x] = 10.0
+                
                 m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+                m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
+                time.sleep(0.1)
                 primaryCylinderForce = -10.0
                 secondaryCylinderForce = 10.0 * math.sqrt(2)
                 if orientation == '-X':
@@ -94,6 +98,9 @@ class M13F003:
                 SubHeader("Force Actuator %d X Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
                 m1m3.ClearOffsetForces()
+                m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
+                time.sleep(0.1)
                 sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
                 result, data = m1m3.GetEventAppliedForces()
                 InTolerance("AppliedForces.XForces[%d]" % x, data.XForces[x], 0.0, 0.1)
@@ -112,6 +119,9 @@ class M13F003:
             if y != -1:
                 yForces[y] = 10
                 m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+                m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
+                time.sleep(0.1)
                 primaryCylinderForce = -10.0
                 secondaryCylinderForce = 10.0 * math.sqrt(2)
                 if orientation == '-Y':
@@ -130,6 +140,9 @@ class M13F003:
                 SubHeader("Force Actuator %d Y Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
                 m1m3.ClearOffsetForces()
+                m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
+                time.sleep(0.1)
                 sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
                 result, data = m1m3.GetEventAppliedForces()
                 InTolerance("AppliedForces.YForces[%d]" % y, data.YForces[y], 0.0, 0.1)
@@ -147,6 +160,9 @@ class M13F003:
             
             zForces[z] = 10
             m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+            m1m3.Flush(m1m3.GetEventAppliedForces)
+            m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
+            time.sleep(0.1)
             primaryCylinderForce = 10.0
             secondaryCylinderForce = 0.0
             sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
@@ -170,6 +186,9 @@ class M13F003:
             SubHeader("Force Actuator %d Z Force Added" % id)
             self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
             m1m3.ClearOffsetForces()
+            m1m3.Flush(m1m3.GetEventAppliedForces)
+            m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
+            time.sleep(0.1)
             sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
             result, data = m1m3.GetEventAppliedForces()
             if x != -1:
@@ -195,9 +214,7 @@ class M13F003:
         for row in hardpointActuatorTable:
             index = row[hardpointActuatorTableIndexIndex]
             id = row[hardpointActuatorTableIDIndex]
-            
-            Header("Verify Hardpoint Actuator %d Commands and Telemetry" % id)
-            
+            Header("Verify Hardpoint Actuator %d Commands and Telemetry" % id)            
             sim.setHPForceAndStatus(id, 0, 0, 0)
             time.sleep(1)
             result, preStepData = m1m3.GetSampleHardpointActuatorData()
