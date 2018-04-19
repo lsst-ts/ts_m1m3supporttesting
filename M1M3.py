@@ -76,8 +76,10 @@ class M1M3:
         
     def Flush(self, item):
         result, data = item()
+        print("Result: %d" % result)
         while result >= 0:
             result, data = item()           
+            print("Result: %d" % result)
         
     def AbortRaiseM1M3(self, run = True):
         Log("M1M3: AbortRaiseM1M3(%s)" % (run))
