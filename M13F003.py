@@ -75,9 +75,8 @@ class M13F003:
 
             if x != -1:
                 xForces[x] = 10.0
-                
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
                 m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
                 m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
                 time.sleep(0.1)
                 primaryCylinderForce = -10.0
@@ -97,8 +96,8 @@ class M13F003:
                 time.sleep(1)
                 SubHeader("Force Actuator %d X Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-                m1m3.ClearOffsetForces()
                 m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.ClearOffsetForces()
                 m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
                 time.sleep(0.1)
                 sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
@@ -118,8 +117,8 @@ class M13F003:
                 
             if y != -1:
                 yForces[y] = 10
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
                 m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
                 m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
                 time.sleep(0.1)
                 primaryCylinderForce = -10.0
@@ -139,8 +138,8 @@ class M13F003:
                 time.sleep(1)
                 SubHeader("Force Actuator %d Y Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-                m1m3.ClearOffsetForces()
                 m1m3.Flush(m1m3.GetEventAppliedForces)
+                m1m3.ClearOffsetForces()
                 m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
                 time.sleep(0.1)
                 sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
@@ -159,8 +158,8 @@ class M13F003:
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
             
             zForces[z] = 10
-            m1m3.ApplyOffsetForces(xForces, yForces, zForces)
             m1m3.Flush(m1m3.GetEventAppliedForces)
+            m1m3.ApplyOffsetForces(xForces, yForces, zForces)
             m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
             time.sleep(0.1)
             primaryCylinderForce = 10.0
@@ -185,8 +184,8 @@ class M13F003:
             time.sleep(1)
             SubHeader("Force Actuator %d Z Force Added" % id)
             self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-            m1m3.ClearOffsetForces()
             m1m3.Flush(m1m3.GetEventAppliedForces)
+            m1m3.ClearOffsetForces()
             m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
             time.sleep(0.1)
             sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
