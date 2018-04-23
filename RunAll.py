@@ -10,6 +10,7 @@ import VerifyForceActuators
 import VerifyHardpointActuators
 import VerifyStart
 import M13F003
+import M13F005
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
 from ForceActuatorTable import *
@@ -67,5 +68,6 @@ for row in forceActuatorTable:
 #VerifyForceActuators.VerifyForceActuators().Run(m1m3, sim)
 #VerifyHardpointActuators.VerifyHardpointActuators().Run(m1m3, sim)
 M13F003.M13F003().Run(m1m3, sim)
+M13F005.M13F005().Run(m1m3, sim)
 #VerifyTiming.VerifyTiming().Run(m1m3, sim)
 #VerifyStart.VerifyStart().Run(m1m3, sim)
