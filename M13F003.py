@@ -13,7 +13,7 @@ from HardpointActuatorTable import *
 
 class M13F003:
     def Run(self, m1m3, sim):
-        Header("Verify ILC Communications")
+        Header("M13F-003: Communications Tests")
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
         Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)

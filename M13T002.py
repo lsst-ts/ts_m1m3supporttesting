@@ -6,15 +6,15 @@ from ForceActuatorTable import *
 from HardpointActuatorTable import *
 
 ########################################################################
-# Test Numbers: M13F-005
+# Test Numbers: M13T-002
 # Author:       CContaxis
-# Description:  Verify bump test
+# Description:  Bump test
 ########################################################################
 
-class M13F005:
+class M13T002:
     def Run(self, m1m3, sim):
         testForce = 222.0
-        Header("Verify Bump Test")
+        Header("M13T-002: Bump Test")
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
         Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
