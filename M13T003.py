@@ -11,9 +11,8 @@ from HardpointActuatorTable import *
 # Description:  Individual hardpoint displacement test
 ########################################################################
 
-class M13T002:
+class M13T003:
     def Run(self, m1m3, sim):
-        testForce = 222.0
         Header("M13T-002: Individual Hardpoint Displacement Test")
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
