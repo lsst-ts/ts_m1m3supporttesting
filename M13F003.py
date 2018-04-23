@@ -84,6 +84,7 @@ class M13F003:
                 secondaryCylinderForce = 10.0 * math.sqrt(2)
                 if orientation == '-X':
                     secondaryCylinderForce = -secondaryCylinderForce
+                    primaryCylinderForce = -primaryCylinderForce
                 sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
                 result, data = m1m3.GetEventAppliedForces()
                 InTolerance("AppliedForces.XForces[%d]" % x, data.XForces[x], 10.0, 0.1)
@@ -128,6 +129,7 @@ class M13F003:
                 secondaryCylinderForce = 10.0 * math.sqrt(2)
                 if orientation == '-Y':
                     secondaryCylinderForce = -secondaryCylinderForce
+                    primaryCylinderForce = -primaryCylinderForce
                 sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
                 result, data = m1m3.GetEventAppliedForces()
                 InTolerance("AppliedForces.YForces[%d]" % y, data.YForces[y], 10.0, 0.1)
