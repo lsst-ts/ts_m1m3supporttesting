@@ -78,7 +78,7 @@ class M1M3:
         result, data = item()
         while result >= 0:
             result, data = item()           
-=
+
     def AbortRaiseM1M3(self, run = True):
         Log("M1M3: AbortRaiseM1M3(%s)" % (run))
         data = m1m3_command_AbortRaiseM1M3C()
