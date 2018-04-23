@@ -50,7 +50,7 @@ class M13T003:
                 Equal("Actuator %d moving" % index, data.MotionState[index], 2)
                 while True:
                     result, data = m1m3.GetEventHardpointActuatorState()
-                    if result == 0 and data.MotionState == 0:
+                    if result == 0 and data.MotionState[index] == 0:
                         break
                 result, data = m1m3.GetEventHardpointActuatorWarning()
                 if result == 0 and (data.LimitSwitch1Operated[index] or data.LimitSwitch2Operated[index]):
