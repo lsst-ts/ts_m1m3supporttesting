@@ -37,7 +37,7 @@ class M13T003:
             status = 0x04
             if steps < 0:
                 status = 0x08
-            sim.setHPForceAndStatus(index + 1, status, steps + index, 0)
+            sim.setHPForceAndStatus(index + 1, 0, steps + index, 0)
             while True:
                 result, data = m1m3.GetEventHardpointActuatorState()
                 if result < 0:
@@ -52,6 +52,8 @@ class M13T003:
                     result, data = m1m3.GetEventHardpointActuatorState()
                     if result == 0 and data.MotionState[index] == 0:
                         break
+                sim.setHPForceAndStatus(index + 1, status, steps + index, 0)
+                time.sleep(1)
                 result, data = m1m3.GetEventHardpointActuatorWarning()
                 if result == 0 and (data.LimitSwitch1Operated[index] or data.LimitSwitch2Operated[index]):
                     result, data = m1m3.GetSampleHardpointActuatorData()
