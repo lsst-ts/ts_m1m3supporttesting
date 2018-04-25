@@ -66,6 +66,10 @@ class M13T004:
                 sim.setHPForceAndStatus(actId, 0, 100 + index, 0)
                 sim.setILCStatus(actId, 0, 0x0000, 0)
                 
+                # Flush events
+                m1m3.Flush(m1m3.GetEventHardpointActuatorState)
+                m1m3.Flush(m1m3.GetEventHardpointActuatorWarning)
+                
                 # Command the steps
                 tmp = [0] * 6
                 tmp[index] = step
@@ -92,7 +96,7 @@ class M13T004:
                     currentTimestamp = data.Timestamp
                     status1 = 0
                     status2 = 0
-                    if math.abs(currentTimestamp - startTimestamp) >= 10.0:
+                    if abs(currentTimestamp - startTimestamp) >= 10.0:
                         status1 = 0x04 + 0x08
                         status2 = 0x0100 + 0x0200
                     sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
