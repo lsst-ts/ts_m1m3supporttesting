@@ -100,6 +100,7 @@ class M13T004:
                     if abs(currentTimestamp - startTimestamp) >= 10.0:
                         status1 = 0x04 + 0x08
                         status2 = 0x0100 + 0x0200
+                        m1m3.Flush(m1m3.GetEventHardpointActuatorWarning)
                     sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
                     sim.setILCStatus(actId, 0, status2, 0)
                     loopCount += 1
