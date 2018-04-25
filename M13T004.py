@@ -55,6 +55,9 @@ class M13T004:
             
             # Issue through a number of steps for each actuator
             for step in [-999999999, 999999999]:
+                # Give time for a sample
+                time.sleep(1)
+            
                 # Get the start timestamp for collecting data from the EFD
                 result, data = m1m3.GetSampleHardpointActuatorData()
                 startTimestamp = data.Timestamp
@@ -77,11 +80,11 @@ class M13T004:
                 while True:
                     # Check if moving is complete
                     result, data = m1m3.GetEventHardpointActuatorState()
-                    if result == 0 and data.MotionState[index] == 0:
+                    if result >= 0 and data.MotionState[index] == 0:
                         break
                     # Check if limit switch is hit
                     result, data = m1m3.GetEventHardpointActuatorWarning()
-                    if result == 0 and (data.LimitSwitch1Operated[index] or data.LimitSwitch2Operated[index]):
+                    if result >= 0 and (data.LimitSwitch1Operated[index] or data.LimitSwitch2Operated[index]):
                         break
                     status = 0
                     # For simulation testing toggle a limit switch after 10 seconds
@@ -89,12 +92,13 @@ class M13T004:
                     currentTimestamp = data.Timestamp
                     status1 = 0
                     status2 = 0
-                    if currentTimestamp - startTimestamp >= 10.0:
+                    if math.abs(currentTimestamp - startTimestamp) >= 10.0:
                         status1 = 0x04 + 0x08
                         status2 = 0x0100 + 0x0200
                     sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
                     sim.setILCStatus(actId, 0, status2, 0)
                     loopCount += 1
+                    time.sleep(0.5)
                     
                 # Stop hardpoint motion
                 m1m3.StopHardpointMotion()
