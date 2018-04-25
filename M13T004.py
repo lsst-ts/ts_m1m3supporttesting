@@ -50,7 +50,8 @@ class M13T004:
         
         # Iterate through the 6 hardpoint actuators
         for index in range(6):
-            SubHeader("Hardpoint Actuator #%d" % (index + 1))
+            actId = index + 1
+            SubHeader("Hardpoint Actuator #%d" % (actId))
             
             # Issue through a number of steps for each actuator
             for step in [-999999999, 999999999]:
@@ -59,8 +60,8 @@ class M13T004:
                 startTimestamp = data.Timestamp
                 
                 # Setup the simulator response (ignored if running at CAID)
-                sim.setHPForceAndStatus(index + 1, 0, 100 + index, 0)
-                sim.setILCStatus(index + 1, 0, 0x0000, 0)
+                sim.setHPForceAndStatus(actId, 0, 100 + index, 0)
+                sim.setILCStatus(actId, 0, 0x0000, 0)
                 
                 # Command the steps
                 tmp = [0] * 6
@@ -69,7 +70,7 @@ class M13T004:
                 
                 # Verify the commanded actuator is moving
                 result, data = m1m3.GetEventHardpointActuatorState()
-                Equal("Actuator %d moving" % (index + 1), data.MotionState[index], 2)
+                Equal("Actuator %d moving" % (actId), data.MotionState[index], 2)
                 
                 # Wait for moving to complete or a limit switch is hit
                 loopCount = 0
@@ -91,8 +92,8 @@ class M13T004:
                     if currentTimestamp - startTimestamp >= 10.0:
                         status1 = 0x04 + 0x08
                         status2 = 0x0100 + 0x0200
-                    sim.setHPForceAndStatus(index + 1, status1, loopCount, loopCount * 2)
-                    sim.setILCStatus(index + 1, 0, status2, 0)
+                    sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
+                    sim.setILCStatus(actId, 0, status2, 0)
                     loopCount += 1
                     
                 # Stop hardpoint motion
@@ -100,7 +101,7 @@ class M13T004:
                 
                 # Verify hardpoint motion has stopped
                 result, data = m1m3.GetEventHardpointActuatorState()
-                Equal("Actuator %d stopped" % (index + 1), data.MotionState[index], 0)
+                Equal("Actuator %d stopped" % (actId), data.MotionState[index], 0)
                 
                 # Give a little buffer room before completing this part of the test
                 time.sleep(1)
@@ -114,18 +115,18 @@ class M13T004:
                 Log("Stop Timestamp:  %0.6f" % stopTimestamp)
 
                 # Generate the hardpoint monitor data file
-                rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT, DisplacementLVDT, BreakawayPressure FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (startTimestamp, stopTimestamp))
+                rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId actId, startTimestamp, stopTimestamp))
                 Log("Got %d rows" % len(rows))
-                file = open("~/%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), (index + 1)), "w")
+                file = open("~/%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId), "w")
                 file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure")
                 for row in rows:
                     file.write("%0.3f,%0.9f,%0.9f,%0.3f" % (row[0], row[1], row[2], row[3]))
                 file.close()
                 
                 # Generate the hardpoint actuator data file
-                rows = efd.QueryAll("SELECT Timestamp, MeasuredForce, Encoder, Displacement FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (startTimestamp, stopTimestamp))
+                rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
                 Log("Got %d rows" % len(rows))
-                file = open("~/%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), (index + 1)), "w")
+                file = open("~/%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId), "w")
                 file.write("Timestamp,MeasuredForce,Encoder,Displacement")
                 for row in rows:
                     file.write("%0.3f,%0.9f,%d,%0.9f" % (row[0], row[1], row[2], row[3]))
