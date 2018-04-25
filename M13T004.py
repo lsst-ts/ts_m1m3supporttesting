@@ -65,8 +65,9 @@ class M13T004:
                 # Setup the simulator response (ignored if running at CAID)
                 sim.setHPForceAndStatus(actId, 0, 100 + index, 0)
                 sim.setILCStatus(actId, 0, 0x0000, 0)
-                
+                                
                 # Flush events
+                time.sleep(1)
                 m1m3.Flush(m1m3.GetEventHardpointActuatorState)
                 m1m3.Flush(m1m3.GetEventHardpointActuatorWarning)
                 
@@ -125,7 +126,9 @@ class M13T004:
                 # Generate the hardpoint monitor data file
                 rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
                 Log("Got %d rows" % len(rows))
-                file = open(GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId)), "w")
+                path = GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId))
+                Log("File path: %s" % path)
+                file = open(path, "w+")
                 file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure")
                 for row in rows:
                     file.write("%0.3f,%0.9f,%0.9f,%0.3f" % (row[0], row[1], row[2], row[3]))
@@ -134,7 +137,9 @@ class M13T004:
                 # Generate the hardpoint actuator data file
                 rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
                 Log("Got %d rows" % len(rows))
-                file = open(GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId)), "w")
+                path = GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId))
+                Log("File path: %s" % path)
+                file = open(path, "w+")
                 file.write("Timestamp,MeasuredForce,Encoder,Displacement")
                 for row in rows:
                     file.write("%0.3f,%0.9f,%d,%0.9f" % (row[0], row[1], row[2], row[3]))
