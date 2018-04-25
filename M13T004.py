@@ -59,7 +59,7 @@ class M13T004:
                 startTimestamp = data.Timestamp
                 
                 # Setup the simulator response (ignored if running at CAID)
-                sim.setHPForceAndStatus(index + 1, 0, steps + index, 0)
+                sim.setHPForceAndStatus(index + 1, 0, 100 + index, 0)
                 sim.setILCStatus(index + 1, 0, 0x0000, 0)
                 
                 # Command the steps
