@@ -13,7 +13,7 @@ from HardpointActuatorTable import *
 
 class M13T003:
     def Run(self, m1m3, sim):
-        Header("M13T-002: Individual Hardpoint Displacement Test")
+        Header("M13T-003: Individual Hardpoint Displacement Test")
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
         Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
@@ -29,6 +29,8 @@ class M13T003:
         Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+        
+        # Software is not detecting limit switches
         
         encoders = []
         commanded = False

@@ -12,6 +12,7 @@ import VerifyStart
 import M13F003
 import M13T002
 import M13T003
+import M13T004
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
 from ForceActuatorTable import *
@@ -19,6 +20,7 @@ import time
 
 m1m3 = M1M3.M1M3()
 sim = CellSimulator.CellSimulator("140.252.32.153", True)
+efd = EFD.EFD()
 
 sim.setInclinometer(45.0)
 sim.setDisplacement(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0)
@@ -70,6 +72,7 @@ for row in forceActuatorTable:
 #VerifyHardpointActuators.VerifyHardpointActuators().Run(m1m3, sim)
 #M13F003.M13F003().Run(m1m3, sim)
 #M13T002.M13T002().Run(m1m3, sim)
-M13T003.M13T003().Run(m1m3, sim)
+#M13T003.M13T003().Run(m1m3, sim)
+M13T004.M13T004().Run(m1m3, sim, efd)
 #VerifyTiming.VerifyTiming().Run(m1m3, sim)
 #VerifyStart.VerifyStart().Run(m1m3, sim)

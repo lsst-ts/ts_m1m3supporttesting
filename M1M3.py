@@ -30,6 +30,7 @@ class M1M3:
         self.sal.salCommand("m1m3_command_Shutdown")
         self.sal.salCommand("m1m3_command_Standby")
         self.sal.salCommand("m1m3_command_Start")
+        self.sal.salCommand("m1m3_command_StopHardpointMotion")
         self.sal.salEvent("m1m3_logevent_AppliedAberrationForces")
         self.sal.salEvent("m1m3_logevent_AppliedAccelerationForces")
         self.sal.salEvent("m1m3_logevent_AppliedActiveOpticForces")
@@ -256,6 +257,14 @@ class M1M3:
         data.SettingsToApply = settingsToApply
         cmdId = self.sal.issueCommand_Start(data)
         self.sal.waitForCompletion_Start(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
+        
+    def StopHardpointMotion(self, run = True):
+        Log("M1M3: StopHardpointMotion(%s)" % (run))
+        data = m1m3_command_StopHardpointMotionC()
+        data.StopHardpointMotion = run
+        cmdId = self.sal.issueCommand_StopHardpointMotion(data)
+        self.sal.waitForCompletion_StopHardpointMotion(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
 
     def GetEventAppliedAberrationForces(self):
