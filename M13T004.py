@@ -115,7 +115,7 @@ class M13T004:
                 Log("Stop Timestamp:  %0.6f" % stopTimestamp)
 
                 # Generate the hardpoint monitor data file
-                rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId actId, startTimestamp, stopTimestamp))
+                rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
                 Log("Got %d rows" % len(rows))
                 file = open("~/%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId), "w")
                 file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure")
