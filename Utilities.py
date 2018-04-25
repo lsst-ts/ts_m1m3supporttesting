@@ -1,5 +1,7 @@
 import time
 import datetime
+import os
+import os.path
 
 def Equal(topic, actual, expected):
     message = "Check %s (%s) = %s" % (topic, GetFormat(actual), GetFormat(expected))
@@ -72,6 +74,9 @@ def GetFormat(value):
     if isinstance(value, float):
         return "%f" % value
     return "%s" % value
+    
+def GetFilePath(file):
+    return os.path.join(os.path.expanduser("~"), file)
 
 #Equal("A", 1, 2)
 #Equal("A", 2, 2)

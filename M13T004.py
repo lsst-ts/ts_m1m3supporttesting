@@ -117,7 +117,7 @@ class M13T004:
                 # Generate the hardpoint monitor data file
                 rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
                 Log("Got %d rows" % len(rows))
-                file = open("~/%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId), "w")
+                file = open(GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId)), "w")
                 file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure")
                 for row in rows:
                     file.write("%0.3f,%0.9f,%0.9f,%0.3f" % (row[0], row[1], row[2], row[3]))
@@ -126,7 +126,7 @@ class M13T004:
                 # Generate the hardpoint actuator data file
                 rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
                 Log("Got %d rows" % len(rows))
-                file = open("~/%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId), "w")
+                file = open(GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId)), "w")
                 file.write("Timestamp,MeasuredForce,Encoder,Displacement")
                 for row in rows:
                     file.write("%0.3f,%0.9f,%d,%0.9f" % (row[0], row[1], row[2], row[3]))
