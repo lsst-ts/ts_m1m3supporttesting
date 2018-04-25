@@ -85,7 +85,7 @@ class M13T004:
                     status = 0
                     # For simulation testing toggle a limit switch after 10 seconds
                     result, data = m1m3.GetSampleHardpointActuatorData()
--                   currentTimestamp = data.Timestamp
+                    currentTimestamp = data.Timestamp
                     status1 = 0
                     status2 = 0
                     if currentTimestamp - startTimestamp >= 10.0:
