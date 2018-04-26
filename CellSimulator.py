@@ -101,50 +101,50 @@ class CellSimulator:
     def setAUXPowerNetworksOff(self, off):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting AUX power network off to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.powerNetworkShutDown(boolToInt(not on)))
+                Log("CellSimulator: Setting AUX power network off to (%d)" % (self.boolToInt(off)))
+            self._udpClientDI.send(self._diSim.powerNetworkShutDown(self.boolToInt(not off)))
         
     def setThermalEquipmentOff(self, off):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting thermal equipment off to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.fansHeatersPumpPoweredOff(boolToInt(not on)))
+                Log("CellSimulator: Setting thermal equipment off to (%d)" % (self.boolToInt(off)))
+            self._udpClientDI.send(self._diSim.fansHeatersPumpPoweredOff(self.boolToInt(not off)))
     
     def setAirSupplyOff(self, off):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting air supply off to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.airSupplyClosedAirReliefOpen(boolToInt(not on)))
+                Log("CellSimulator: Setting air supply off to (%d)" % (self.boolToInt(off)))
+            self._udpClientDI.send(self._diSim.airSupplyClosedAirReliefOpen(self.boolToInt(not off)))
     
     def setCabinetDoorOpen(self, open):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting cabinet door open to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.gisEarthquakeSignal(boolToInt(not on)))
+                Log("CellSimulator: Setting cabinet door open to (%d)" % (self.boolToInt(open)))
+            self._udpClientDI.send(self._diSim.gisEarthquakeSignal(self.boolToInt(not open)))
     
     def setTMAMotionStop(self, stop):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting TMA motion stop to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.tmaMotionStop(boolToInt(not on)))
+                Log("CellSimulator: Setting TMA motion stop to (%d)" % (self.boolToInt(stop)))
+            self._udpClientDI.send(self._diSim.tmaMotionStop(self.boolToInt(not stop)))
     
     def setGISHeartbeatLost(self, lost):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting GIS heartbeat lost to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.gisHeartbeatLost(boolToInt(not on)))
+                Log("CellSimulator: Setting GIS heartbeat lost to (%d)" % (self.boolToInt(lost)))
+            self._udpClientDI.send(self._diSim.gisHeartbeatLost(self.boolToInt(not lost)))
         
     def setAirSupplyValveOpen(self, open):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting air supply valve open to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.airSupplyValveStatusOpen(boolToInt(not on)))
+                Log("CellSimulator: Setting air supply valve open to (%d)" % (self.boolToInt(open)))
+            self._udpClientDI.send(self._diSim.airSupplyValveStatusOpen(self.boolToInt(not open)))
     
     def setAirSupplyValveClosed(self, closed):
         if not self.Ignore:
             if self.Print:
-                Log("CellSimulator: Setting air supply valve closed to (%d)" % (boolToInt(on)))
-            self._udpClientDI.send(self._diSim.airSupplyValveStatusClosed(boolToInt(not on)))
+                Log("CellSimulator: Setting air supply valve closed to (%d)" % (self.boolToInt(closed)))
+            self._udpClientDI.send(self._diSim.airSupplyValveStatusClosed(self.boolToInt(not closed)))
         
     def getHeartbeatToSafetyController(self):
         if not self.Ignore:
