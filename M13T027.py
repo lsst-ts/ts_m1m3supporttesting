@@ -319,3 +319,4 @@ class M13T027:
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
     M13T027().Run(m1m3, sim, efd, "M13T-027: Actuator Force Limits")
+    Shutdown(m1m3, sim, efd)

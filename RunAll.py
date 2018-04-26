@@ -30,3 +30,5 @@ M13T004.M13T004().Run(m1m3, sim, efd, "M13T-003: Individual Hardpoint Displaceme
 M13T004.M13T004().Run(m1m3, sim, efd, "M13T-004: Individual Hardpoint Breakaway Test")
 #VerifyTiming.VerifyTiming().Run(m1m3, sim)
 #VerifyStart.VerifyStart().Run(m1m3, sim)
+
+Shutdown(m1m3, sim, efd)

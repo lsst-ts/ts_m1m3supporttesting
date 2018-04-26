@@ -10,7 +10,7 @@ class EFD:
                              db="EFD")
         self.cur = self.db.cursor()
 
-    def __del__(self):
+    def Close(self):
         Log("EFD: Shutdown")
         self.db.close()
         

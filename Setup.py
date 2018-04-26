@@ -56,3 +56,7 @@ def Setup():
         sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
     
     return m1m3, sim, efd
+    
+def Shutdown(m1m3, sim, efd):
+    m1m3.Close()
+    efd.Close()

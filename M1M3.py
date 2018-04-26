@@ -72,7 +72,7 @@ class M1M3:
         self.sal.salTelemetrySub("m1m3_IMSData")
         self.sal.salTelemetrySub("m1m3_InclinometerData")
         
-    def __del__(self):
+    def Close(self):
         Log("M1M3: Shutting down SAL")
         time.sleep(1)
         self.sal.salShutdown();
@@ -267,6 +267,8 @@ class M1M3:
         self.sal.waitForCompletion_StopHardpointMotion(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
+    # This function is used to get the most recently published event
+    # action: () -> result:int, data:<SAL_DATA>
     def GetEvent(self, action):
         lastResult, lastData = action()
         while lastResult >= 0:
@@ -277,6 +279,17 @@ class M1M3:
             elif result < 0:
                 break
         return lastResult, lastData
+        
+    # This function is used to search the queued events for data matching the predicate
+    # action: () -> result:int, data:<SAL_DATA>
+    # predicate: data:<SAL_DATA> -> boolean
+    def SearchEvent(self, action, predicate):
+        while True:
+            result, data = action()
+            if result >= 0 and predicate(data):
+                return result, data
+            elif result < 0:
+                return result, data
 
     def GetNextEventAppliedAberrationForces(self):
         data = m1m3_logevent_AppliedAberrationForcesC()
@@ -285,6 +298,9 @@ class M1M3:
         
     def GetEventAppliedAberrationForces(self):
         return self.GetEvent(self.GetNextEventAppliedAberrationForces)
+        
+    def SearchEventAppliedAberrationForces(self, predicate):
+        return self.SearchEvent(self.GetNextEventAppliedAberrationForces, predicate)
 
     def GetNextEventAppliedAccelerationForces(self):
         data = m1m3_logevent_AppliedAccelerationForcesC()

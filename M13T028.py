@@ -34,3 +34,4 @@ from M13T027 import *
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
     M13T027().Run(m1m3, sim, efd, "M13T-028: Actuator to Actuator Force Delta for 6 nearest neighbors")
+    Shutdown(m1m3, sim, efd)

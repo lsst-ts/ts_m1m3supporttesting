@@ -22,3 +22,4 @@ from M13T004 import *
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
     M13T004().Run(m1m3, sim, efd, "M13T-003: Individual Hardpoint Displacement Test")       
+    Shutdown(m1m3, sim, efd)

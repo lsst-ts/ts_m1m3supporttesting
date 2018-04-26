@@ -59,3 +59,4 @@ class M13T001:
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
     M13T001().Run(m1m3, sim, efd)
+    Shutdown(m1m3, sim, efd)
