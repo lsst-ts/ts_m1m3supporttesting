@@ -1,10 +1,3 @@
-import time
-import math
-from Utilities import *
-from SALPY_m1m3 import *
-from ForceActuatorTable import *
-from HardpointActuatorTable import *
-
 ########################################################################
 # Test Numbers: M13T-004
 # Author:       CContaxis
@@ -23,9 +16,17 @@ from HardpointActuatorTable import *
 # - Transition from parked engineering to standby state
 ########################################################################
 
+import time
+import math
+from Utilities import *
+from SALPY_m1m3 import *
+from ForceActuatorTable import *
+from HardpointActuatorTable import *
+from Setup import *
+
 class M13T004:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-004: Individual Hardpoint Breakaway Test")
+    def Run(self, m1m3, sim, efd, header):
+        Header(header)
         
         # Transition to disabled state
         m1m3.Start("Default")
@@ -162,3 +163,6 @@ class M13T004:
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
         
+if __name__ == "__main__":
+    m1m3, sim, efd = Setup()
+    M13T004().Run(m1m3, sim, efd, "M13T-004: Individual Hardpoint Breakaway Test")       
