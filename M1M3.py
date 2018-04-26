@@ -266,171 +266,281 @@ class M1M3:
         cmdId = self.sal.issueCommand_StopHardpointMotion(data)
         self.sal.waitForCompletion_StopHardpointMotion(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
+        
+    def GetEvent(self, action):
+        lastResult, lastData = action()
+        while lastResult >= 0:
+            result, data = action()
+            if result >= 0:
+                lastResult = result
+                lastData = data
+            elif result < 0:
+                break
+        return lastResult, lastData
 
-    def GetEventAppliedAberrationForces(self):
+    def GetNextEventAppliedAberrationForces(self):
         data = m1m3_logevent_AppliedAberrationForcesC()
         result = self.sal.getEvent_AppliedAberrationForces(data)
         return result, data
+        
+    def GetEventAppliedAberrationForces(self):
+        return self.GetEvent(self.GetNextEventAppliedAberrationForces)
 
-    def GetEventAppliedAccelerationForces(self):
+    def GetNextEventAppliedAccelerationForces(self):
         data = m1m3_logevent_AppliedAccelerationForcesC()
         result = self.sal.getEvent_AppliedAccelerationForces(data)
         return result, data
+        
+    def GetEventAppliedAccelerationForces(self):
+        return self.GetEvent(self.GetNextEventAppliedAccelerationForces)
 
-    def GetEventAppliedActiveOpticForces(self):
+    def GetNextEventAppliedActiveOpticForces(self):
         data = m1m3_logevent_AppliedActiveOpticForcesC()
         result = self.sal.getEvent_AppliedActiveOpticForces(data)
         return result, data
+        
+    def GetEventAppliedActiveOpticForces(self):
+        return self.GetEvent(self.GetNextEventAppliedActiveOpticForces)
     
-    def GetEventAppliedAzimuthForces(self):
+    def GetNextEventAppliedAzimuthForces(self):
         data = m1m3_logevent_AppliedAzimuthForcesC()
         result = self.sal.getEvent_AppliedAzimuthForces(data)
         return result, data
+
+    def GetEventAppliedAzimuthForces(self):
+        return self.GetEvent(self.GetNextEventAppliedAzimuthForces)
     
-    def GetEventAppliedBalanceForces(self):
+    def GetNextEventAppliedBalanceForces(self):
         data = m1m3_logevent_AppliedBalanceForcesC()
         result = self.sal.getEvent_AppliedBalanceForces(data)
         return result, data
+        
+    def GetEventAppliedBalanceForces(self):
+        return self.GetEvent(self.GetNextEventAppliedBalanceForces)
     
-    def GetEventAppliedCylinderForces(self):
+    def GetNextEventAppliedCylinderForces(self):
         data = m1m3_logevent_AppliedCylinderForcesC()
         result = self.sal.getEvent_AppliedCylinderForces(data)
         return result, data
+        
+    def GetEventAppliedCylinderForces(self):
+        return self.GetEvent(self.GetNextEventAppliedCylinderForces)
     
-    def GetEventAppliedElevationForces(self):
+    def GetNextEventAppliedElevationForces(self):
         data = m1m3_logevent_AppliedElevationForcesC()
         result = self.sal.getEvent_AppliedElevationForces(data)
         return result, data
+        
+    def GetEventAppliedElevationForces(self):
+        return self.GetEvent(self.GetNextEventAppliedElevationForces)
     
-    def GetEventAppliedForces(self):
+    def GetNextEventAppliedForces(self):
         data = m1m3_logevent_AppliedForcesC()
         result = self.sal.getEvent_AppliedForces(data)
         return result, data
         
-    def GetEventAppliedOffsetForces(self):
+    def GetEventAppliedForces(self):
+        return self.GetEvent(self.GetNextEventAppliedForces)
+        
+    def GetNextEventAppliedOffsetForces(self):
         data = m1m3_logevent_AppliedOffsetForcesC()
         result = self.sal.getEvent_AppliedOffsetForces(data)
         return result, data
+        
+    def GetEventAppliedOffsetForces(self):
+        return self.GetEvent(self.GetNextEventAppliedOffsetForces)
     
-    def GetEventAppliedStaticForces(self):
+    def GetNextEventAppliedStaticForces(self):
         data = m1m3_logevent_AppliedStaticForcesC()
         result = self.sal.getEvent_AppliedStaticForces(data)
         return result, data
+        
+    def GetEventAppliedStaticForces(self):
+        return self.GetEvent(self.GetNextEventAppliedStaticForces)
     
-    def GetEventAppliedThermalForces(self):
+    def GetNextEventAppliedThermalForces(self):
         data = m1m3_logevent_AppliedThermalForcesC()
         result = self.sal.getEvent_AppliedThermalForces(data)
         return result, data
+        
+    def GetEventAppliedThermalForces(self):
+        return self.GetEvent(self.GetNextEventAppliedThermalForces)
     
-    def GetEventAppliedVelocityForces(self):
+    def GetNextEventAppliedVelocityForces(self):
         data = m1m3_logevent_AppliedVelocityForcesC()
         result = self.sal.getEvent_AppliedVelocityForces(data)
         return result, data
+        
+    def GetEventAppliedVelocityForces(self):
+        return self.GetEvent(self.GetNextEventAppliedVelocityForces)
             
-    def GetEventCommandRejectionWarning(self):
+    def GetNextEventCommandRejectionWarning(self):
         data = m1m3_logevent_CommandRejectionWarningC()
         result = self.sal.getEvent_CommandRejectionWarning(data)
         return result, data
+        
+    def GetEventCommandRejectionWarning(self):
+        return self.GetEvent(self.GetNextEventCommandRejectionWarning)
        
-    def GetEventDetailedState(self):
+    def GetNextEventDetailedState(self):
         data = m1m3_logevent_DetailedStateC()
         result = self.sal.getEvent_DetailedState(data)
         return result, data
         
-    def GetEventForceActuatorState(self):
+    def GetEventDetailedState(self):
+        return self.GetEvent(self.GetNextEventDetailedState)
+        
+    def GetNextEventForceActuatorState(self):
         data = m1m3_logevent_ForceActuatorStateC()
         result = self.sal.getEvent_ForceActuatorState(data)
         return result, data
         
-    def GetEventForceActuatorInfo(self):
+    def GetEventForceActuatorState(self):
+        return self.GetEvent(self.GetNextEventForceActuatorState)
+        
+    def GetNextEventForceActuatorInfo(self):
         data = m1m3_logevent_ForceActuatorInfoC()
         result = self.sal.getEvent_ForceActuatorInfo(data)
         return result, data
         
-    def GetEventHardpointActuatorInfo(self):
+    def GetEventForceActuatorInfo(self):
+        return self.GetEvent(self.GetNextEventForceActuatorInfo)
+        
+    def GetNextEventHardpointActuatorInfo(self):
         data = m1m3_logevent_HardpointActuatorInfoC()
         result = self.sal.getEvent_HardpointActuatorInfo(data)
         return result, data
+        
+    def GetEventHardpointActuatorInfo(self):
+        return self.GetEvent(self.GetNextEventHardpointActuatorInfo)
     
-    def GetEventHardpointActuatorState(self):
+    def GetNextEventHardpointActuatorState(self):
         data = m1m3_logevent_HardpointActuatorStateC()
         result = self.sal.getEvent_HardpointActuatorState(data)
         return result, data
+        
+    def GetEventHardpointActuatorState(self):
+        return self.GetEvent(self.GetNextEventHardpointActuatorState)
     
-    def GetEventHardpointActuatorWarning(self):
+    def GetNextEventHardpointActuatorWarning(self):
         data = m1m3_logevent_HardpointActuatorWarningC()
         result = self.sal.getEvent_HardpointActuatorWarning(data)
         return result, data
         
-    def GetEventHardpointMonitorInfo(self):
+    def GetEventHardpointActuatorWarning(self):
+        return self.GetEvent(self.GetNextEventHardpointActuatorWarning)
+        
+    def GetNextEventHardpointMonitorInfo(self):
         data = m1m3_logevent_HardpointMonitorInfoC()
         result = self.sal.getEvent_HardpointMonitorInfo(data)
         return result, data
         
-    def GetEventRejectedAberrationForces(self):
+    def GetEventHardpointMonitorInfo(self):
+        return self.GetEvent(self.GetNextEventHardpointMonitorInfo)
+        
+    def GetNextEventRejectedAberrationForces(self):
         data = m1m3_logevent_RejectedAberrationForcesC()
         result = self.sal.getEvent_RejectedAberrationForces(data)
         return result, data
+        
+    def GetEventRejectedAberrationForces(self):
+        return self.GetEvent(self.GetNextEventRejectedAberrationForces)
 
-    def GetEventRejectedAccelerationForces(self):
+    def GetNextEventRejectedAccelerationForces(self):
         data = m1m3_logevent_RejectedAccelerationForcesC()
         result = self.sal.getEvent_RejectedAccelerationForces(data)
         return result, data
+        
+    def GetEventRejectedAccelerationForces(self):
+        return self.GetEvent(self.GetNextEventRejectedAccelerationForces)
 
-    def GetEventRejectedActiveOpticForces(self):
+    def GetNextEventRejectedActiveOpticForces(self):
         data = m1m3_logevent_RejectedActiveOpticForcesC()
         result = self.sal.getEvent_RejectedActiveOpticForces(data)
         return result, data
+        
+    def GetEventRejectedActiveOpticForces(self):
+        return self.GetEvent(self.GetNextEventRejectedActiveOpticForces)
     
-    def GetEventRejectedAzimuthForces(self):
+    def GetNextEventRejectedAzimuthForces(self):
         data = m1m3_logevent_RejectedAzimuthForcesC()
         result = self.sal.getEvent_RejectedAzimuthForces(data)
         return result, data
+        
+    def GetEventRejectedAzimuthForces(self):
+        return self.GetEvent(self.GetNextEventRejectedAzimuthForces)
     
-    def GetEventRejectedBalanceForces(self):
+    def GetNextEventRejectedBalanceForces(self):
         data = m1m3_logevent_RejectedBalanceForcesC()
         result = self.sal.getEvent_RejectedBalanceForces(data)
         return result, data
+        
+    def GetEventRejectedBalanceForces(self):
+        return self.GetEvent(self.GetNextEventRejectedBalanceForces)
     
-    def GetEventRejectedCylinderForces(self):
+    def GetNextEventRejectedCylinderForces(self):
         data = m1m3_logevent_RejectedCylinderForcesC()
         result = self.sal.getEvent_RejectedCylinderForces(data)
         return result, data
+        
+    def GetEventRejectedCylinderForces(self):
+        return self.GetEvent(self.GetNextEventRejectedCylinderForces)
     
-    def GetEventRejectedElevationForces(self):
+    def GetNextEventRejectedElevationForces(self):
         data = m1m3_logevent_RejectedElevationForcesC()
         result = self.sal.getEvent_RejectedElevationForces(data)
         return result, data
+        
+    def GetEventRejectedElevationForces(self):
+        return self.GetEvent(self.GetNextEventRejectedElevationForces)
     
-    def GetEventRejectedForces(self):
+    def GetNextEventRejectedForces(self):
         data = m1m3_logevent_RejectedForcesC()
         result = self.sal.getEvent_RejectedForces(data)
         return result, data
+        
+    def GetEventRejectedForces(self):
+        return self.GetEvent(self.GetNextEventRejectedForces)
     
-    def GetEventRejectedOffsetForces(self):
+    def GetNextEventRejectedOffsetForces(self):
         data = m1m3_logevent_RejectedOffsetForcesC()
         result = self.sal.getEvent_RejectedOffsetForces(data)
         return result, data
+        
+    def GetEventRejectedOffsetForces(self):
+        return self.GetEvent(self.GetNextEventRejectedOffsetForces)
     
-    def GetEventRejectedStaticForces(self):
+    def GetNextEventRejectedStaticForces(self):
         data = m1m3_logevent_RejectedStaticForcesC()
         result = self.sal.getEvent_RejectedStaticForces(data)
         return result, data
+        
+    def GetEventRejectedStaticForces(self):
+        return self.GetEvent(self.GetNextEventRejectedStaticForces)
     
-    def GetEventRejectedThermalForces(self):
+    def GetNextEventRejectedThermalForces(self):
         data = m1m3_logevent_RejectedThermalForcesC()
         result = self.sal.getEvent_RejectedThermalForces(data)
         return result, data
+        
+    def GetEventRejectedThermalForces(self):
+        return self.GetEvent(self.GetNextEventRejectedThermalForces)
     
-    def GetEventRejectedVelocityForces(self):
+    def GetNextEventRejectedVelocityForces(self):
         data = m1m3_logevent_RejectedVelocityForcesC()
         result = self.sal.getEvent_RejectedVelocityForces(data)
         return result, data
         
-    def GetEventSummaryState(self):
+    def GetEventRejectedVelocityForces(self):
+        return self.GetEvent(self.GetNextEventRejectedVelocityForces)
+        
+    def GetNextEventSummaryState(self):
         data = m1m3_logevent_SummaryStateC()
         result = self.sal.getEvent_SummaryState(data)
         return result, data
+        
+    def GetEventSummaryState(self):
+        return self.GetEvent(self.GetNextEventSummaryState)
         
     def GetSampleAccelerometerData(self):
         data = m1m3_AccelerometerDataC()

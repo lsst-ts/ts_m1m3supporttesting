@@ -67,11 +67,9 @@ class M13T004:
                 sim.setHPForceAndStatus(actId, 0, 100 + index, 0)
                 sim.setILCStatus(actId, 0, 0x0000, 0)
                                 
-                # Flush events
+                # Wait a bit
                 time.sleep(1)
-                m1m3.Flush(m1m3.GetEventHardpointActuatorState)
-                m1m3.Flush(m1m3.GetEventHardpointActuatorWarning)
-                
+
                 # Command the steps
                 tmp = [0] * 6
                 tmp[index] = step
@@ -101,9 +99,6 @@ class M13T004:
                     if abs(currentTimestamp - startTimestamp) >= 10.0:
                         status1 = 0x04 + 0x08
                         status2 = 0x0100 + 0x0200
-                        # TODO This is for the simulator only the broadcast counter warning triggers
-                        # putting many items into the event queue
-                        m1m3.Flush(m1m3.GetEventHardpointActuatorWarning)
                     sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
                     sim.setILCStatus(actId, 0, status2, 0)
                     loopCount += 1

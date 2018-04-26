@@ -101,17 +101,10 @@ class M13T002:
             if x != -1:
                 # Set the commanded X force
                 xForces[x] = testForce
-                
-                # Flush events before applying offset forces
-                m1m3.Flush(m1m3.GetEventAppliedForces)
-                m1m3.Flush(m1m3.GetEventAppliedOffsetForces)
-                
+
                 # Apply the X only offset force
                 m1m3.ApplyOffsetForces(xForces, yForces, zForces)
-                
-                # Flush applied cylinder forces (these are updated every outer loop cycle)
-                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
-                
+
                 # Wait a bit before setting the simulator
                 time.sleep(1.0)
                 
@@ -144,16 +137,9 @@ class M13T002:
                 # Check all force actuators
                 SubHeader("Force Actuator %d X Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-                
-                # Flush events before clearing offset forces
-                m1m3.Flush(m1m3.GetEventAppliedForces)
-                m1m3.Flush(m1m3.GetEventAppliedOffsetForces)
-                
+
                 # Clear offset forces
                 m1m3.ClearOffsetForces()
-                
-                # Flush applied cylinder forces (these are updated every outer loop cycle)
-                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
                 
                 # Wait a bit before setting the simulator
                 time.sleep(1)
@@ -189,16 +175,9 @@ class M13T002:
                 # Set the commanded Y force
                 yForces[y] = testForce
                 
-                # Flush events before applying offset forces
-                m1m3.Flush(m1m3.GetEventAppliedForces)
-                m1m3.Flush(m1m3.GetEventAppliedOffsetForces)
-                
                 # Apply offset forces
                 m1m3.ApplyOffsetForces(xForces, yForces, zForces)
-                
-                # Flush applied cylinder forces (these are updated every outer loop cycle)
-                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
-                
+
                 # Wait a bit before setting the simulator
                 time.sleep(0.1)
                 
@@ -231,17 +210,10 @@ class M13T002:
                 # Check all force actuators
                 SubHeader("Force Actuator %d Y Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-                
-                # Flush events before clearing offset forces
-                m1m3.Flush(m1m3.GetEventAppliedForces)
-                m1m3.Flush(m1m3.GetEventAppliedOffsetForces)
-                
+
                 # Clear offset forces
                 m1m3.ClearOffsetForces()
-                
-                # Flush applied cylinder forces (these are updated every outer loop cycle)
-                m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
-                
+
                 # Wait a bit before setting the simulator
                 time.sleep(0.1)
                 
@@ -274,16 +246,9 @@ class M13T002:
             # Set the commanded Z force
             zForces[z] = testForce
             
-            # Flush events before applying offset forces
-            m1m3.Flush(m1m3.GetEventAppliedForces)
-            m1m3.Flush(m1m3.GetEventAppliedOffsetForces)
-            
             # Apply offset forces
             m1m3.ApplyOffsetForces(xForces, yForces, zForces)
-            
-            # Flush applied cylinder forces (these are updated every outer loop cycle)
-            m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
-            
+
             # Wait a bit before setting the simulator
             time.sleep(0.1)
             
@@ -326,15 +291,8 @@ class M13T002:
             SubHeader("Force Actuator %d Z Force Added" % id)
             self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
             
-            # Flush events before applying offset forces
-            m1m3.Flush(m1m3.GetEventAppliedForces)
-            m1m3.Flush(m1m3.GetEventAppliedOffsetForces)
-            
             # Clear offset forces
             m1m3.ClearOffsetForces()
-            
-            # Flush applied cylinder forces (these are updated every outer loop cycle)
-            m1m3.Flush(m1m3.GetEventAppliedCylinderForces)
             
             # Wait a bit before setting the simulator
             time.sleep(0.1)

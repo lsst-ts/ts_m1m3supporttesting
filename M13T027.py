@@ -108,14 +108,7 @@ class M13T027:
                 for testForce in [xMinLimit, xMaxLimit]:
                     # Set the commanded X force
                     xForces[x] = testForce * testForceOffset
-                    
-                    # Flush events before applying offset forces
-                    m1m3.Flush(m1m3.GetEventAppliedForces)
-                    m1m3.Flush(m1m3.GetEventRejectedForces)
-                    
-                    # Apply the X only offset force
-                    m1m3.ApplyOffsetForces(xForces, yForces, zForces)
-                    
+
                     # Wait a bit before setting the simulator
                     time.sleep(1.0)
                     
@@ -143,11 +136,7 @@ class M13T027:
                     # Check all force actuators
                     SubHeader("Force Actuator %d X Force Added" % id)
                     self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-                    
-                    # Flush events before clearing offset forces
-                    m1m3.Flush(m1m3.GetEventAppliedForces)
-                    m1m3.Flush(m1m3.GetEventRejectedForces)
-                    
+
                     # Clear offset forces
                     m1m3.ClearOffsetForces()
                                         
@@ -176,10 +165,6 @@ class M13T027:
                 for testForce in [yMinLimit, yMaxLimit]:
                     # Set the commanded Y force
                     yForces[y] = testForce * testForceOffset
-                    
-                    # Flush events before applying offset forces
-                    m1m3.Flush(m1m3.GetEventAppliedForces)
-                    m1m3.Flush(m1m3.GetEventRejectedForces)
                     
                     # Apply the X only offset force
                     m1m3.ApplyOffsetForces(xForces, yForces, zForces)
@@ -211,11 +196,7 @@ class M13T027:
                     # Check all force actuators
                     SubHeader("Force Actuator %d Y Force Added" % id)
                     self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-                    
-                    # Flush events before clearing offset forces
-                    m1m3.Flush(m1m3.GetEventAppliedForces)
-                    m1m3.Flush(m1m3.GetEventRejectedForces)
-                    
+
                     # Clear offset forces
                     m1m3.ClearOffsetForces()
                                         
@@ -242,11 +223,7 @@ class M13T027:
             for testForce in [zMinLimit, zMaxLimit]:
                 # Set the commanded Z force
                 zForces[z] = testForce * testForceOffset
-                
-                # Flush events before applying offset forces
-                m1m3.Flush(m1m3.GetEventAppliedForces)
-                m1m3.Flush(m1m3.GetEventRejectedForces)
-                
+
                 # Apply offset forces
                 m1m3.ApplyOffsetForces(xForces, yForces, zForces)
                 
@@ -284,11 +261,7 @@ class M13T027:
                 # Check all force actuators
                 SubHeader("Force Actuator %d Z Force Added" % id)
                 self.VerifyForceActuators(m1m3, sim, xForces, yForces, zForces)
-                
-                # Flush events before applying offset forces
-                m1m3.Flush(m1m3.GetEventAppliedForces)
-                m1m3.Flush(m1m3.GetEventRejectedForces)
-                
+
                 # Clear offset forces
                 m1m3.ClearOffsetForces()
                 
