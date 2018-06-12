@@ -48,15 +48,15 @@ referenceXRotation = 0.0
 referenceYRotation = 0.0
 referenceZRotation = 0.0
 
-travelDistance = 0.001
+travelPosition = 0.001
 travelRotation = 0.014
 
 class M13T010:
 # This test has some TODOs that need to be completed before it can be run.  Hence the short circuit.
     def Run(self, m1m3, sim, efd):
         Header("M13T-010: Position System Requirements")
-        Log("M13T-010 is not ready for test, TODOs need to be completed.")
-        return
+#        Log("M13T-010 is not ready for test, TODOs need to be completed.")
+#        return
         
         ########################################
         # Enable the mirror, Raise it.

@@ -235,12 +235,12 @@ class M1M3:
                      xRotation = 0.0, yRotation = 0.0, zRotation = 0.0):
         Log("M1M3: PositionM1M3(%s, %s, %s, %s, %s, %s)" % (xPosition, yPosition, zPosition, xRotation, yRotation,zRotation))
         data = m1m3_command_PositionM1M3C()
-        data.xPosition = xPosition
-        data.yPosition = yPosition
-        data.zPosition = zPosition
-        data.xRotation = xRotation
-        data.yRotation = yRotation
-        data.zRotation = zRotation
+        data.XPosition = xPosition
+        data.YPosition = yPosition
+        data.ZPosition = zPosition
+        data.XRotation = xRotation
+        data.YRotation = yRotation
+        data.ZRotation = zRotation
         cmdId = self.sal.issueCommand_PositionM1M3(data)
         self.sal.waitForCompletion_PositionM1M3(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
