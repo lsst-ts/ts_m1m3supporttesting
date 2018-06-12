@@ -1,4 +1,6 @@
 import time
+import binascii
+import struct
 from SALPY_m1m3 import *
 from Utilities import *
 
@@ -31,6 +33,7 @@ class M1M3:
         self.sal.salCommand("m1m3_command_Standby")
         self.sal.salCommand("m1m3_command_Start")
         self.sal.salCommand("m1m3_command_StopHardpointMotion")
+        self.sal.salCommand("m1m3_command_ModbusTransmit")
         self.sal.salEvent("m1m3_logevent_AppliedAberrationForces")
         self.sal.salEvent("m1m3_logevent_AppliedAccelerationForces")
         self.sal.salEvent("m1m3_logevent_AppliedActiveOpticForces")
@@ -52,6 +55,7 @@ class M1M3:
         self.sal.salEvent("m1m3_logevent_HardpointActuatorState")
         self.sal.salEvent("m1m3_logevent_HardpointActuatorWarning")
         self.sal.salEvent("m1m3_logevent_HardpointMonitorInfo")
+        self.sal.salEvent("m1m3_logevent_ModbusResponse")
         self.sal.salEvent("m1m3_logevent_RejectedAberrationForces")
         self.sal.salEvent("m1m3_logevent_RejectedAccelerationForces")
         self.sal.salEvent("m1m3_logevent_RejectedActiveOpticForces")
@@ -267,6 +271,45 @@ class M1M3:
         self.sal.waitForCompletion_StopHardpointMotion(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
+    def ModbusTransmit(self, actuatorId, functionCode, rawData):
+        Log("M1M3: ModbusTransmit(%d, %d, %d)" % (actuatorId, functionCode, len(rawData)))
+        data = m1m3_command_ModbusTransmitC()
+        data.ActuatorId = actuatorId
+        data.FunctionCode = functionCode
+        for i in range(len(rawData)):
+            data.Data[i] = rawData[i]
+        data.DataLength = len(rawData)
+        cmdId = self.sal.issueCommand_ModbusTransmit(data)
+        self.sal.waitForCompletion_ModbusTransmit(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
+        
+    def Modbus_SetADCOffsetSensitivity(self, actuatorId, channel, offset, sensitivity):
+        Log("M1M3: Modbus SetADCOffsetSensitivity(%d, %d, %f, %f)" % (actuatorId, channel, offset, sensitivity))
+        offsetBytes = self._floatToBytes(offset, "offset", 4)
+        sensitivityBytes = self._floatToBytes(sensitivity, "sensitivity", 4)
+        data = []
+        data.append(bytes([channel]))
+        data.append(offsetBytes[0])
+        data.append(offsetBytes[1])
+        data.append(offsetBytes[2])
+        data.append(offsetBytes[3])
+        data.append(sensitivityBytes[0])
+        data.append(sensitivityBytes[1])
+        data.append(sensitivityBytes[2])
+        data.append(sensitivityBytes[3])
+        self.ModbusTransmit(actuatorId, 81, data)
+        self.PrintModbusResponse()
+        
+    def PrintModbusResponse(self):
+        rtn, data = self.GetEventModbusResponse()
+        if rtn == 0:
+            Log("Modbus Response")
+            Log("     Valid:         %s" % data.ResponseValid)
+            Log("     Address:       %d" % data.Address)
+            Log("     Function Code: %d" % data.FunctionCode)
+            Log("     Data:          %s" % data.Data)
+            Log("     CRC:           %d" % data.CRC)
+   
     # This function is used to get the most recently published event
     # action: () -> result:int, data:<SAL_DATA>
     def GetEvent(self, action):
@@ -454,6 +497,14 @@ class M1M3:
     def GetEventHardpointMonitorInfo(self):
         return self.GetEvent(self.GetNextEventHardpointMonitorInfo)
         
+    def GetNextEventModbusResponse(self):
+        data = m1m3_logevent_ModbusResponseC()
+        result = self.sal.getEvent_ModbusResponseC(data)
+        return result, data
+        
+    def GetEventModbusResponse(self):
+        return self.GetEvent(self.GetNextEventModbusResponse)
+        
     def GetNextEventRejectedAberrationForces(self):
         data = m1m3_logevent_RejectedAberrationForcesC()
         result = self.sal.getEvent_RejectedAberrationForces(data)
@@ -583,6 +634,11 @@ class M1M3:
         result = self.sal.getSample_InclinometerData(data)
         return result, data
         
-        
+    def _floatToBytes(self, someData:float, parameterName:str, byteSize:int):
+        floatBytes = struct.pack(">f", someData)
+        if (len(floatBytes) != byteSize):
+            raise Exception(parameterName + " size does not match the byte size("
+                            + str(byteSize) + ") specified.")
+        return floatBytes
         
         

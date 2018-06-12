@@ -2,6 +2,7 @@ import time
 import datetime
 import os
 import os.path
+import math
 
 def Equal(topic, actual, expected):
     message = "Check %s (%s) = %s" % (topic, GetFormat(actual), GetFormat(expected))
@@ -77,6 +78,26 @@ def GetFormat(value):
     
 def GetFilePath(file):
     return os.path.join(os.path.expanduser("~"), file)
+    
+def Average(data, accessor):
+    sum = 0.0
+    count = 0
+    for item in data:
+        count += 1
+        sum += accessor(item)
+    return sum / count
+    
+def ActuatorToCylinderSpace(o, x, y, z):
+    if o == '+Y':
+        return z - y, y * math.sqrt(2)
+    if o == '-Y':
+        return z + y, -y * math.sqrt(2)
+    if o == '+X':
+        return z - x, x * math.sqrt(2)
+    if o == '-X':
+        return z + x, -x * math.sqrt(2)
+    return z, 0
+    
 
 #Equal("A", 1, 2)
 #Equal("A", 2, 2)

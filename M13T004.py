@@ -124,25 +124,29 @@ class M13T004:
 
                 # Generate the hardpoint monitor data file
                 rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-                Log("Got %d rows" % len(rows))
                 path = GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId))
                 Log("File path: %s" % path)
                 file = open(path, "w+")
-                file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure")
+                file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure\r\n")
+                rowCount = 0
                 for row in rows:
-                    file.write("%0.3f,%0.9f,%0.9f,%0.3f" % (row[0], row[1], row[2], row[3]))
+                    rowCount += 1
+                    file.write("%0.3f,%0.9f,%0.9f,%0.3f\r\n" % (row[0], row[1], row[2], row[3]))
                 file.close()
+                Log("Got %d rows" % rowCount)
                 
                 # Generate the hardpoint actuator data file
                 rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-                Log("Got %d rows" % len(rows))
                 path = GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId))
                 Log("File path: %s" % path)
                 file = open(path, "w+")
-                file.write("Timestamp,MeasuredForce,Encoder,Displacement")
+                file.write("Timestamp,MeasuredForce,Encoder,Displacement\r\n")
+                rowCount = 0
                 for row in rows:
-                    file.write("%0.3f,%0.9f,%d,%0.9f" % (row[0], row[1], row[2], row[3]))
+                    rowCount += 1
+                    file.write("%0.3f,%0.9f,%d,%0.9f\r\n" % (row[0], row[1], row[2], row[3]))
                 file.close()
+                Log("Got %d rows" % rowCount)
        
         # Transition to the disabled state
         m1m3.Disable()
@@ -161,3 +165,4 @@ class M13T004:
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
     M13T004().Run(m1m3, sim, efd, "M13T-004: Individual Hardpoint Breakaway Test")       
+    Shutdown(m1m3, sim, efd)

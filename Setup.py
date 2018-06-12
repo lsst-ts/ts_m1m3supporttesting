@@ -7,17 +7,17 @@ from ForceActuatorTable import *
 import time
 
 simulatorIP = "140.252.32.153"
-runSimulator = True
+runSimulator = False
 
 def Setup():
     m1m3 = M1M3.M1M3()
     sim = CellSimulator.CellSimulator(simulatorIP, runSimulator)
     efd = EFD.EFD()
 
-    sim.setInclinometer(45.0)
-    sim.setDisplacement(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0)
-    sim.setAccelerometerVoltage(1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0)
-    sim.setAngularVelocity(12.34, 56.78, 91.01, 7, 20)
+    sim.setInclinometer(0.0)
+    sim.setDisplacement(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    sim.setAccelerometerVoltage(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    sim.setAngularVelocity(0.0, 0.0, 0.0, 7, 20)
         
     for row in hardpointActuatorTable:
         id = row[hardpointActuatorTableIDIndex]
@@ -60,3 +60,4 @@ def Setup():
 def Shutdown(m1m3, sim, efd):
     m1m3.Close()
     efd.Close()
+    return 0
