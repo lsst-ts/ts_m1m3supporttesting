@@ -30,12 +30,14 @@ class M1M3:
         self.sal.salCommand("m1m3_command_ExitEngineering")
         self.sal.salCommand("m1m3_command_LowerM1M3")
         self.sal.salCommand("m1m3_command_MoveHardpointActuators")
+        self.sal.salCommand("m1m3_command_PositionM1M3")
         self.sal.salCommand("m1m3_command_RaiseM1M3")
         self.sal.salCommand("m1m3_command_Shutdown")
         self.sal.salCommand("m1m3_command_Standby")
         self.sal.salCommand("m1m3_command_Start")
         self.sal.salCommand("m1m3_command_StopHardpointMotion")
         self.sal.salCommand("m1m3_command_ModbusTransmit")
+        self.sal.salCommand("m1m3_command_TranslateM1M3")
         self.sal.salEvent("m1m3_logevent_AppliedAberrationForces")
         self.sal.salEvent("m1m3_logevent_AppliedAccelerationForces")
         self.sal.salEvent("m1m3_logevent_AppliedActiveOpticForces")
@@ -247,6 +249,20 @@ class M1M3:
         self.sal.waitForCompletion_MoveHardpointActuators(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
+    def PositionM1M3(self, xPosition = 0.0, yPosition = 0.0, zPosition = 0.0,
+                     xRotation = 0.0, yRotation = 0.0, zRotation = 0.0):
+        Log("M1M3: PositionM1M3(%s, %s, %s, %s, %s, %s)" % (xPosition, yPosition, zPosition, xRotation, yRotation,zRotation))
+        data = m1m3_command_PositionM1M3C()
+        data.XPosition = xPosition
+        data.YPosition = yPosition
+        data.ZPosition = zPosition
+        data.XRotation = xRotation
+        data.YRotation = yRotation
+        data.ZRotation = zRotation
+        cmdId = self.sal.issueCommand_PositionM1M3(data)
+        self.sal.waitForCompletion_PositionM1M3(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
+        
     def RaiseM1M3(self, bypassReferencePosition, run = True):
         Log("M1M3: RaiseM1M3(%s, %s)" % (run, bypassReferencePosition))
         data = m1m3_command_RaiseM1M3C()
@@ -287,6 +303,20 @@ class M1M3:
         data.StopHardpointMotion = run
         cmdId = self.sal.issueCommand_StopHardpointMotion(data)
         self.sal.waitForCompletion_StopHardpointMotion(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
+        
+    def TranslateM1M3(self, xTranslation = 0.0, yTranslation = 0.0, zTranslation = 0.0,
+                     xRotation = 0.0, yRotation = 0.0, zRotation = 0.0):
+        Log("M1M3: TranslateM1M3(%s, %s, %s, %s, %s, %s)" % (xTranslation, yTranslation, zTranslation, xRotation, yRotation,zRotation))
+        data = m1m3_command_TranslateM1M3C()
+        data.xTranslation = xTranslation
+        data.yTranslation = yTranslation
+        data.zTranslation = zTranslation
+        data.xRotation = xRotation
+        data.yRotation = yRotation
+        data.zRotation = zRotation
+        cmdId = self.sal.issueCommand_TranslateM1M3(data)
+        self.sal.waitForCompletion_TranslateM1M3(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
     def ModbusTransmit(self, actuatorId, functionCode, rawData):
