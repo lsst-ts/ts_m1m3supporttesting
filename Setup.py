@@ -7,11 +7,11 @@ from ForceActuatorTable import *
 import time
 
 simulatorIP = "140.252.32.153"
-runSimulator = False
+ignoreSimulator = True
 
 def Setup():
     m1m3 = M1M3.M1M3()
-    sim = CellSimulator.CellSimulator(simulatorIP, runSimulator)
+    sim = CellSimulator.CellSimulator(simulatorIP, ignoreSimulator, ignoreSimulator)
     efd = EFD.EFD()
 
     sim.setInclinometer(0.0)

@@ -23,7 +23,9 @@ class M1M3:
         self.sal.salCommand("m1m3_command_ClearActiveOpticForces")
         self.sal.salCommand("m1m3_command_ClearOffsetForces")
         self.sal.salCommand("m1m3_command_Disable")
+        self.sal.salCommand("m1m3_command_DisableHardpointCorrections")
         self.sal.salCommand("m1m3_command_Enable")
+        self.sal.salCommand("m1m3_command_EnableHardpointCorrections")
         self.sal.salCommand("m1m3_command_EnterEngineering")
         self.sal.salCommand("m1m3_command_ExitEngineering")
         self.sal.salCommand("m1m3_command_LowerM1M3")
@@ -188,12 +190,28 @@ class M1M3:
         self.sal.waitForCompletion_Disable(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
+    def DisableHardpointCorrections(self, run = True):
+        Log("M1M3: DisableHardpointCorrections(%s)" % (run))
+        data = m1m3_command_DisableHardpointCorrectionsC()
+        data.DisableHardpointCorrections = run
+        cmdId = self.sal.issueCommand_DisableHardpointCorrections(data)
+        self.sal.waitForCompletion_DisableHardpointCorrections(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
+        
     def Enable(self, run = True):
         Log("M1M3: Enable(%s)" % (run))
         data = m1m3_command_EnableC()
         data.Enable = run
         cmdId = self.sal.issueCommand_Enable(data)
         self.sal.waitForCompletion_Enable(cmdId, COMMAND_TIMEOUT)
+        time.sleep(COMMAND_TIME)
+        
+    def EnableHardpointCorrections(self, run = True):
+        Log("M1M3: EnableHardpointCorrections(%s)" % (run))
+        data = m1m3_command_EnableHardpointCorrectionsC()
+        data.EnableHardpointCorrections = run
+        cmdId = self.sal.issueCommand_EnableHardpointCorrections(data)
+        self.sal.waitForCompletion_EnableHardpointCorrections(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
     def EnterEngineering(self, run = True):

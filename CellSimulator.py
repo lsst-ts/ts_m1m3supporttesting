@@ -19,8 +19,8 @@ class CellSimulator:
     AccelerometerYDistance = 0.7648
     AccelerometerZDistance = 4.2500
   
-    def __init__(self, ipAddress, dbg = False, ignore = False):
-        self.Print = dbg
+    def __init__(self, ipAddress, prnt = True, ignore = True):
+        self.Print = prnt
         self.Ignore = ignore
         self._ilcSim = ILCSimulator.ILCSimulator()
         self._inclinSim = InclinometerSimulator.InclinometerSimulator()
@@ -29,19 +29,20 @@ class CellSimulator:
         self._diSim = DigitalInputSimulator.DigitalInputSimulator()
         self._doSim = DigitalOutputSimulator.DigitalOutputSimulator()
         self._gyroSim = GyroSimulator.GyroSimulator()
-
-        self._udpClientSubnetA = UDP.UDP(ipAddress, 5006)
-        self._udpClientSubnetB = UDP.UDP(ipAddress, 5007)
-        self._udpClientSubnetC = UDP.UDP(ipAddress, 5008)
-        self._udpClientSubnetD = UDP.UDP(ipAddress, 5009)
-        self._udpClientSubnetE = UDP.UDP(ipAddress, 5005)
-        self._udpClientInclin = UDP.UDP(ipAddress, 5010)
-        self._udpClientDisplace = UDP.UDP(ipAddress, 5011)
-        self._udpClientAccel = UDP.UDP(ipAddress, 5012)
-        self._udpClientDI = UDP.UDP(ipAddress, 5013)
-        self._udpClientDO = UDP.UDP(ipAddress, 5014)
-        self._udpClientGyro = UDP.UDP(ipAddress, 5015)
-        self._udpResponse = UDP.UDP(socket.gethostbyname(socket.gethostname()), 4999, True)
+        
+        if not ignore:
+            self._udpClientSubnetA = UDP.UDP(ipAddress, 5006)
+            self._udpClientSubnetB = UDP.UDP(ipAddress, 5007)
+            self._udpClientSubnetC = UDP.UDP(ipAddress, 5008)
+            self._udpClientSubnetD = UDP.UDP(ipAddress, 5009)
+            self._udpClientSubnetE = UDP.UDP(ipAddress, 5005)
+            self._udpClientInclin = UDP.UDP(ipAddress, 5010)
+            self._udpClientDisplace = UDP.UDP(ipAddress, 5011)
+            self._udpClientAccel = UDP.UDP(ipAddress, 5012)
+            self._udpClientDI = UDP.UDP(ipAddress, 5013)
+            self._udpClientDO = UDP.UDP(ipAddress, 5014)
+            self._udpClientGyro = UDP.UDP(ipAddress, 5015)
+            self._udpResponse = UDP.UDP(socket.gethostbyname(socket.gethostname()), 4999, True)
         
     def setDisplacement(self, d1:float, d2:float, d3:float, d4:float, d5:float, d6:float, d7:float, d8:float):
         if not self.Ignore:
