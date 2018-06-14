@@ -43,6 +43,46 @@ def WaitUntil(topic, timeout, eval):
     message = "WaitUntil %s or %0.3fs" % (topic, timeout)
     return Result(message, not timedout)
 
+def TestHardpointsMotion(m1m3):
+    MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
+    for i in range(0, 6):
+        if MotionStateArray[i] != 2 and MotionStateArray[i] != 3:
+            return False;
+    return True
+
+def TestHardpointsAtRest(m1m3):
+    MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
+    for i in range(0, 6):
+        if MotionStateArray[i] != 0:
+            return False;
+    return True
+        
+###############################################################
+# since my functional programming skils suck, maybe someone can 
+# find a way to test the motion of all 6 HPs using lambda
+# 
+def WaitUntilHardpointsMotion(topic, timeout, m1m3):
+    start = time.time()
+    timedout = False
+    while not TestHardpointsMotion(m1m3):
+        time.sleep(0.1)
+        if time.time() - start >= timeout:
+            timedout = True
+            break
+    message = "WaitUntil %s or %0.3f" % (topic, timeout)
+    return Result(message, not timedout)
+
+def WaitUntilHardpointsAtRest(topic, timeout, m1m3):
+    start = time.time()
+    timedout = False
+    while not TestHardpointsAtRest(m1m3):
+        time.sleep(0.1)
+        if time.time() - start >= timeout:
+            timedout = True
+            break
+    message = "WaitUntil %s or %0.3f" % (topic, timeout)
+    return Result(message, not timedout)
+
 def InTolerance(topic, actual, expected, tolerance):
     message = "Check %s (%s) = %s (+/-)%s" % (topic, GetFormat(actual), GetFormat(expected), GetFormat(tolerance))
     return Result(message, actual >= (expected - tolerance) and actual <= (expected + tolerance))        
