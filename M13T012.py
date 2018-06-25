@@ -38,7 +38,7 @@ REFERENCE_Z_ROTATION = 0.000351054
 
 TRAVEL_POSITION = 0.001
 POSITION_TOLERANCE = 0.001221
-WAIT_UNTIL_TIMEOUT = 3 #TODO: should be 600 when done testing
+WAIT_UNTIL_TIMEOUT = 600 #TODO: should be 600 when done testing
 
 class M13T012:
     def RaiseM1M3(self, m1m3):

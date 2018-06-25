@@ -39,16 +39,18 @@ import MySQLdb
 import time
 
 # edit the defined reference positions as needed.
-REFERENCE_X_POSITION = -0.000667375
-REFERENCE_Y_POSITION = 0.00133325
-REFERENCE_Z_POSITION = 0.0143788
-REFERENCE_X_ROTATION = -0.0000395131
-REFERENCE_Y_ROTATION = -0.000000892629
-REFERENCE_Z_ROTATION = 0.000351054
+REFERENCE_X_POSITION = 0.0
+REFERENCE_Y_POSITION = 0.0
+REFERENCE_Z_POSITION = 0.0
+REFERENCE_X_ROTATION = 0.0
+REFERENCE_Y_ROTATION = 0.0
+REFERENCE_Z_ROTATION = 0.0
 
 TRAVEL_POSITION = 0.001
-POSITION_TOLERANCE = 0.001221
-WAIT_UNTIL_TIMEOUT = 3 #TODO: should be 600 when done testing
+TRAVEL_ROTATION = 0.00024435
+POSITION_TOLERANCE = 0.000008
+ROTATION_TOLERANCE = 0.00000209
+WAIT_UNTIL_TIMEOUT = 600
 
 class M13T011:
     def Run(self, m1m3, sim, efd):
@@ -93,269 +95,59 @@ class M13T011:
 
         # The martix need to be tested 3 times
         for i in range(0,3):
-            ##########################################################
-            # Check that mirror is in nominal/reference/0,0,0 position
+           testTable = [
+                ["(0, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(+X, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(-X, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, -Y, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, 0, +Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(+X, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(+X, -Y, 0, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(-X, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(-X, -Y, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(+X, 0, +Z, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(+X, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(-X, 0, +Z, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(-X, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, +Y, +Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, +Y, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, -Y, +Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["(0, -Y, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION]*                
+            ]
             
-            # make sure the hardpoints have stopped moving.
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            # Not sure of the best way how to check when it is settled into reference position...
-            # currently checking each direction, one at a time.
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition", data.XPosition, REFERENCE_X_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition", data.XPosition, REFERENCE_X_POSITION, POSITION_TOLERANCE)
-            
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition", data.YPosition, REFERENCE_Y_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.YPosition", data.YPosition, REFERENCE_Y_POSITION, POSITION_TOLERANCE)
-            
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition", data.ZPosition, REFERENCE_Z_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.ZPosition", data.ZPosition, REFERENCE_Z_POSITION, POSITION_TOLERANCE)
-            
-            ##########################################################
-            # Command the mirror to the matrix positions.  Check to make sure it reaches those positions.
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            #########################
-            # (X, 0, 0) to (-X, 0, 0) 
-            m1m3.PositionM1M3(REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            # wait for hardpoint movement.
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            # wait for hardpoints to stop moving.
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(X, 0, 0)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(X, 0, 0)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(-X, 0, 0)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(-X, 0, 0)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            #########################
-            # (0, Y, 0) to (0, Y, 0)
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(0, Y, 0)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.YPosition(0, Y, 0)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(0, -Y, 0)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.YPosition(0, -Y, 0)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            #########################
-            # (0, 0, Z) to (0, 0, Z)
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(0, 0, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.ZPosition(0, 0, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-           
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(0, 0, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.ZPosition(0, 0, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-                    
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            #########################
-            # (X, Y, 0) to (-X, -Y, 0) 
-            m1m3.PositionM1M3(REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(X, Y, 0)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(X, Y, 0)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(X, Y, 0)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.YPosition(X, Y, 0)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(X, -Y, 0)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(X, -Y, 0)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(X, -Y, 0)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.YPosition(X, -Y, 0)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(-X, Y, 0)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(-X, Y, 0)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(-X, Y, 0)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.YPosition(-X, Y, 0)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(-X, -Y, 0)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(-X, -Y, 0)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(-X, -Y, 0)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.YPosition(-X, -Y, 0)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            #########################
-            # (X, 0, Z) to (-X, 0, -Z) 
-            m1m3.PositionM1M3(REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(X, 0, Z)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(X, 0, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(X, 0, Z)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(X, 0, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(X, 0, -Z)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(X, 0, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(X, 0, -Z)", data.XPosition, REFERENCE_X_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(X, 0, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(-X, 0, Z)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(-X, 0, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(-X, 0, Z)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(-X, 0, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.XPosition(-X, 0, -Z)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(-X, 0, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.XPosition(-X, 0, -Z)", data.XPosition, REFERENCE_X_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(-X, 0, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            #########################
-            # (0, Y, Z) to (0, -Y, -Z) 
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(0, Y, Z)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(0, Y, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.YPosition(0, Y, Z)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(0, Y, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(0, Y, -Z)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(0, Y, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.YPosition(0, Y, -Z)", data.YPosition, REFERENCE_Y_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(0, Y, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(0, -Y, Z)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(0, -Y, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.YPosition(0, -Y, Z)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(0, -Y, Z)", data.ZPosition, REFERENCE_Z_POSITION + TRAVEL_POSITION, POSITION_TOLERANCE)
-
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
-
-            m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntilHardpointsMotion("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            WaitUntilHardpointsAtRest("SAL m1m3_HardpointActuatorState.MotionState", WAIT_UNTIL_TIMEOUT, m1m3)
-            result, data = m1m3.GetSampleHardpointActuatorData()
-            InTolerance("SAL m1m3_HardpointActuatorData.YPosition(0, -Y, -Z)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_HardpointActuatorData.ZPosition(0, -Y, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            result, data = m1m3.GetSampleIMSData()
-            InTolerance("SAL m1m3_IMSData.YPosition(0, -Y, -Z)", data.YPosition, REFERENCE_Y_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            InTolerance("SAL m1m3_IMSData.ZPosition(0, -Y, -Z)", data.ZPosition, REFERENCE_Z_POSITION - TRAVEL_POSITION, POSITION_TOLERANCE)
-            
-            # wait 15 seconds so the control can record telemetry
-            time.sleep(15)
+            for row in testTable:
+                rtn, data = m1m3.GetEventHardpointActuatorState()
+                m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
+                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
+                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
+                
+                time.sleep(5.0)
+                
+                result, data = m1m3.GetSampleHardpointActuatorData()
+                startTime = data.Timestamp
+                InTolerance("SAL %s m1m3_HardpointActuatorData.XPosition" % row[0], data.XPosition, row[1], POSITION_TOLERANCE)
+                InTolerance("SAL %s m1m3_HardpointActuatorData.YPosition" % row[0], data.YPosition, row[2], POSITION_TOLERANCE)
+                InTolerance("SAL %s m1m3_HardpointActuatorData.ZPosition" % row[0], data.ZPosition, row[3], POSITION_TOLERANCE)
+                InTolerance("SAL %s m1m3_HardpointActuatorData.XRotation" % row[0], data.XRotation, row[4], ROTATION_TOLERANCE)
+                InTolerance("SAL %s m1m3_HardpointActuatorData.YRotation" % row[0], data.YRotation, row[5], ROTATION_TOLERANCE)
+                InTolerance("SAL %s m1m3_HardpointActuatorData.ZRotation" % row[0], data.ZRotation, row[6], ROTATION_TOLERANCE)
+                
+                result, data = m1m3.GetSampleIMSData()
+                InTolerance("SAL %s m1m3_IMSData.XPosition" % row[0], data.XPosition, row[1], POSITION_TOLERANCE)
+                InTolerance("SAL %s m1m3_IMSData.YPosition" % row[0], data.YPosition, row[2], POSITION_TOLERANCE)
+                InTolerance("SAL %s m1m3_IMSData.ZPosition" % row[0], data.ZPosition, row[3], POSITION_TOLERANCE)
+                InTolerance("SAL %s m1m3_IMSData.XRotation" % row[0], data.XRotation, row[4], ROTATION_TOLERANCE)
+                InTolerance("SAL %s m1m3_IMSData.YRotation" % row[0], data.YRotation, row[5], ROTATION_TOLERANCE)
+                InTolerance("SAL %s m1m3_IMSData.ZRotation" % row[0], data.ZRotation, row[6], ROTATION_TOLERANCE)
+                
+                time.sleep(15.0)
+                
+                result, data = m1m3.GetSampleHardpointActuatorData()
+                Log("%s Start Timestamp: %0.3f" % (row[0], startTime))
+                Log("%s Stop Timestamp: %0.3f" % (row[0], data.Timestamp))
+                
 
         #######################
         # Lower the mirror, put back in standby state.
@@ -383,6 +175,26 @@ class M13T011:
         Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
         result, data = m1m3.GetEventSummaryState()
         Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
+        
+    def checkMotionStateEquals(self, eval):
+        rtn, data = m1m3.GetNextEventHardpointActuatorState()
+        if rtn >= 0:
+            return eval(sum(data.MotionState))
+        return False
+        
+    def getDatas(self, getter, time):
+        result, data = getter()
+        startTime = data.Timestamp
+        datas = [data]
+        while True:
+            result, data = getter()
+            if result > 0:
+                if data.Timestamp - startTime > 15.0:
+                    break
+                else:
+                    datas.append(data)
+        return datas
+        
         
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()

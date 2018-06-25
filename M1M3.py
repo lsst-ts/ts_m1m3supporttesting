@@ -147,7 +147,7 @@ class M1M3:
         self.sal.waitForCompletion_ApplyOffsetForces(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
-    def ApplyOffsetForcesByMirrorForce(self, fx, fy, fz, mx, my, mz):
+    def ApplyOffsetForcesByMirrorForce(self, fx, fy, fz, mx, my, mz, waitForCompletion = True):
         Log("M1M3: ApplyOffsetForcesByMirrorForce(%s, %s, %s, %s, %s, %s)" % (fx, fy, fz, mx, my, mz))
         data = m1m3_command_ApplyOffsetForcesByMirrorForceC()
         data.XForce = fx
@@ -157,8 +157,9 @@ class M1M3:
         data.YMoment = my
         data.ZMoment = mz
         cmdId = self.sal.issueCommand_ApplyOffsetForcesByMirrorForce(data)
-        self.sal.waitForCompletion_ApplyOffsetForcesByMirrorForce(cmdId, COMMAND_TIMEOUT)
-        time.sleep(COMMAND_TIME)
+        if waitForCompletion:
+            self.sal.waitForCompletion_ApplyOffsetForcesByMirrorForce(cmdId, COMMAND_TIMEOUT)
+            time.sleep(COMMAND_TIME)
         
     def ClearAberrationForces(self, run = True):
         Log("M1M3: ClearAberrationForces(%s)" % (run))
@@ -670,6 +671,11 @@ class M1M3:
     def GetSampleHardpointActuatorData(self):
         data = m1m3_HardpointActuatorDataC()
         result = self.sal.getSample_HardpointActuatorData(data)
+        return result, data
+    
+    def GetNextSampleHardpointActuatorData(self):
+        data = m1m3_HardpointActuatorDataC()
+        result = self.sal.getNextSample_HardpointActuatorData(data)
         return result, data
         
     def GetSampleIMSData(self):
