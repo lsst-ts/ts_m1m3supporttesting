@@ -38,7 +38,7 @@ REFERENCE_Z_ROTATION = 0.0
 
 TRAVEL_POSITION = 0.001
 TRAVEL_ROTATION = 0.00024435
-POSITION_TOLERANCE = 0.000008
+POSITION_TOLERANCE = 0.000040
 ROTATION_TOLERANCE = 0.00000209
 WAIT_UNTIL_TIMEOUT = 600
 
@@ -56,7 +56,7 @@ class M13T012:
         # Place mirror into Enabled state.
         m1m3.Enable()
         result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_EnabledState)
+        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
 
@@ -81,7 +81,7 @@ class M13T012:
                 # Raise mirror (therefore entering the Raised Engineering State).
                 m1m3.RaiseM1M3(False)
                 result, data = m1m3.GetEventDetailedState()
-                Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ActiveState)
+                Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ActiveEngineeringState)
                 result, data = m1m3.GetEventSummaryState()
                 Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
 
