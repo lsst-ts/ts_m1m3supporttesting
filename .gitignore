@@ -1,0 +1,7 @@
+# Compiled Object files
+*.cpython-36
+*.pyc
+
+# Logs
+ospl-error.log
+ospl-info.log

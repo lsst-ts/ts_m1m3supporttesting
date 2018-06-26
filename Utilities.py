@@ -1,5 +1,8 @@
 import time
 import datetime
+import os
+import os.path
+import math
 
 def Equal(topic, actual, expected):
     message = "Check %s (%s) = %s" % (topic, GetFormat(actual), GetFormat(expected))
@@ -40,9 +43,57 @@ def WaitUntil(topic, timeout, eval):
     message = "WaitUntil %s or %0.3fs" % (topic, timeout)
     return Result(message, not timedout)
 
+def TestHardpointsMotion(m1m3):
+    MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
+    for i in range(0, 6):
+        if MotionStateArray[i] != 2 and MotionStateArray[i] != 3:
+            return False;
+    return True
+
+def TestHardpointsAtRest(m1m3):
+    MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
+    for i in range(0, 6):
+        if MotionStateArray[i] != 0:
+            return False;
+    return True
+        
+###############################################################
+# since my functional programming skils suck, maybe someone can 
+# find a way to test the motion of all 6 HPs using lambda
+# 
+def WaitUntilHardpointsMotion(topic, timeout, m1m3):
+    start = time.time()
+    timedout = False
+    while not TestHardpointsMotion(m1m3):
+        time.sleep(0.1)
+        if time.time() - start >= timeout:
+            timedout = True
+            break
+    message = "WaitUntil %s or %0.3f" % (topic, timeout)
+    return Result(message, not timedout)
+
+def WaitUntilHardpointsAtRest(topic, timeout, m1m3):
+    start = time.time()
+    timedout = False
+    while not TestHardpointsAtRest(m1m3):
+        time.sleep(0.1)
+        if time.time() - start >= timeout:
+            timedout = True
+            break
+    message = "WaitUntil %s or %0.3f" % (topic, timeout)
+    return Result(message, not timedout)
+
 def InTolerance(topic, actual, expected, tolerance):
     message = "Check %s (%s) = %s (+/-)%s" % (topic, GetFormat(actual), GetFormat(expected), GetFormat(tolerance))
     return Result(message, actual >= (expected - tolerance) and actual <= (expected + tolerance))        
+    
+def Header(message):
+    print("*********************************************")
+    print("***** %s" % message)
+    print("*********************************************")
+    
+def SubHeader(message):
+    print("***** %s" % message)
     
 def Log(message):
     _Log("     - %s" % message)
@@ -64,6 +115,29 @@ def GetFormat(value):
     if isinstance(value, float):
         return "%f" % value
     return "%s" % value
+    
+def GetFilePath(file):
+    return os.path.join(os.path.expanduser("~"), file)
+    
+def Average(data, accessor):
+    sum = 0.0
+    count = 0
+    for item in data:
+        count += 1
+        sum += accessor(item)
+    return sum / count
+    
+def ActuatorToCylinderSpace(o, x, y, z):
+    if o == '+Y':
+        return z - y, y * math.sqrt(2)
+    if o == '-Y':
+        return z + y, -y * math.sqrt(2)
+    if o == '+X':
+        return z - x, x * math.sqrt(2)
+    if o == '-X':
+        return z + x, -x * math.sqrt(2)
+    return z, 0
+    
 
 #Equal("A", 1, 2)
 #Equal("A", 2, 2)

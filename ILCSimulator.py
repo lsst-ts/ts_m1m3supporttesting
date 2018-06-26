@@ -122,10 +122,10 @@ class ILCSimulator(Simulator):
 
     ##########################################################################################################
     # Code 75(0x4B) Pneumatic Axis Force Demand Command (Single)
-    def singlePneumaticAxisForce(self, statusByte, serverAddr, loadCellForce):
+    def singlePneumaticAxisForce(self, serverAddr, statusByte, loadCellForce):
         response = bytearray()
         
-        self.dataCheck(statusByte, 'Status Byte', response)
+        self.dataCheck(statusByte, 'Status Byte', response, 1, False)
         self.dataCheck(loadCellForce, 'Load Cell Force', response, 4)
         
         return self.finalizeResponse(serverAddr, 75, response)
@@ -135,7 +135,7 @@ class ILCSimulator(Simulator):
     def dualPneumaticAxisForce(self, serverAddr, statusByte, axialLoadCellForce, lateralLoadCellForce):
         response = bytearray()
         
-        self.dataCheck(statusByte, 'Status Byte', response)
+        self.dataCheck(statusByte, 'Status Byte', response, 1, False)
         self.dataCheck(axialLoadCellForce, 'Axial Load Cell Force', response, 4)
         self.dataCheck(lateralLoadCellForce, 'Lateral Load Cell Force', response, 4)
         
@@ -143,7 +143,7 @@ class ILCSimulator(Simulator):
 
     ##########################################################################################################
     # Code 76(0x4C) Pneumatic Force and Status (Single)
-    def singlePneumaticForceAndStatus(self, statusByte, serverAddr, loadCellForce):
+    def singlePneumaticForceAndStatus(self, serverAddr, statusByte, loadCellForce):
         response = bytearray()
         
         self.dataCheck(statusByte, 'Status Byte', response, 1, False)
@@ -167,7 +167,7 @@ class ILCSimulator(Simulator):
     def setAdcSampleRate(self, serverAddr, scanRateCode):
         response = bytearray()
         
-        self.dataCheck(scanRateCode, 'Scan Rate Code', response, 2)
+        self.dataCheck(scanRateCode, 'Scan Rate Code', response, 1)
         
         return self.finalizeResponse(serverAddr, 80, response)
 
