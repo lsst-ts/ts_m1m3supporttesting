@@ -306,16 +306,15 @@ class M1M3:
         self.sal.waitForCompletion_StopHardpointMotion(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
-    def TranslateM1M3(self, xTranslation = 0.0, yTranslation = 0.0, zTranslation = 0.0,
-                     xRotation = 0.0, yRotation = 0.0, zRotation = 0.0):
+    def TranslateM1M3(self, xTranslation = 0.0, yTranslation = 0.0, zTranslation = 0.0, xRotation = 0.0, yRotation = 0.0, zRotation = 0.0):
         Log("M1M3: TranslateM1M3(%s, %s, %s, %s, %s, %s)" % (xTranslation, yTranslation, zTranslation, xRotation, yRotation,zRotation))
         data = m1m3_command_TranslateM1M3C()
-        data.xTranslation = xTranslation
-        data.yTranslation = yTranslation
-        data.zTranslation = zTranslation
-        data.xRotation = xRotation
-        data.yRotation = yRotation
-        data.zRotation = zRotation
+        data.XTranslation = xTranslation
+        data.YTranslation = yTranslation
+        data.ZTranslation = zTranslation
+        data.XRotation = xRotation
+        data.YRotation = yRotation
+        data.ZRotation = zRotation
         cmdId = self.sal.issueCommand_TranslateM1M3(data)
         self.sal.waitForCompletion_TranslateM1M3(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
