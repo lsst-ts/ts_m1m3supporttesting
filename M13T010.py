@@ -239,7 +239,7 @@ class M13T010:
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
         
-        # Wait until active engineering state
+        # Wait until parked engineering state
         WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
         
         # Bring mirror into Disabled state.
