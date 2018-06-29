@@ -82,8 +82,13 @@ class M13T013:
         time.sleep(SETTLE_TIME)
         
         testTable = [
-            ["X Position", -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0.0, 0.0, TRANSLATION_STEP, 0, 0, 0, 0, 0],            
-        ]
+            #["X Position", -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0.0, 0.0, TRANSLATION_STEP, 0, 0, 0, 0, 0],
+            ["Y Position", 0.0, -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0.0, 0, TRANSLATION_STEP, 0, 0, 0, 0],
+            #["Z Position", 0.0, 0.0, -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0, 0, TRANSLATION_STEP, 0, 0, 0],
+            #["X Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, ROTATION_STEP, 0, 0],
+            #["Y Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, ROTATION_STEP, 0],
+            #["Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0, ROTATION_STEP],
+        ]0, 
         detailTable = []
         for row in testTable:
             xPos = row[1]
