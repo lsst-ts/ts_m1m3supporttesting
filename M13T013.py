@@ -27,11 +27,10 @@ from Setup import *
 import MySQLdb
 import time
 
-HP_FORCE_TRIGGER = 1000.0
-HP_MOMENT_TRIGGER = 800.0
+
 TRANSLATION_STEP = 0.0001
 ROTATION_STEP = 0.000024435
-SETTLE_TIME = 3.0
+SETTLE_TIME = 5.0
 SAMPLE_TIME = 1.0
 
 WAIT_UNTIL_TIMEOUT = 600
@@ -82,18 +81,18 @@ class M13T013:
         time.sleep(SETTLE_TIME)
         
         testTable = [
-#            ["+Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, ROTATION_STEP],
-#            ["-Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP],
-#            ["+X Rotation", 0.0, 0.0, 0.0, ROTATION_STEP, 0.0, 0.0],
-#            ["-X Rotation", 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0, 0.0],
-#            ["+Y Rotation", 0.0, 0.0, 0.0, 0.0, ROTATION_STEP, 0.0],
-#            ["-Y Rotation", 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0],
-            ["+X Position", TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0],
-            ["-X Position", -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0],
-#            ["+Y Position", 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0],
-#            ["-Y Position", 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0],
-#            ["+Z Position", 0.0, 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0],
-#            ["-Z Position", 0.0, 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0],
+            ["+Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, ROTATION_STEP, 1000, 1000, 1000, 1500, 1500, 1500],
+            ["-Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP, 1000, 1000, 1000, 1500, 1500, 1500],
+            ["+X Rotation", 0.0, 0.0, 0.0, ROTATION_STEP, 0.0, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["-X Rotation", 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["+Y Rotation", 0.0, 0.0, 0.0, 0.0, ROTATION_STEP, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["-Y Rotation", 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["+X Position", TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["-X Position", -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["+Y Position", 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["-Y Position", 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["+Z Position", 0.0, 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0, 1000, 1000, 1000, 800, 800, 800],
+            ["-Z Position", 0.0, 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0, 1000, 1000, 1000, 800, 800, 800],
         ]
         resultTable = []
         detailTable = []
@@ -117,7 +116,7 @@ class M13T013:
             dMz = 0
             
             # Loop until force / moment triggers are hit
-            while abs(dFx) < HP_FORCE_TRIGGER and abs(dFy) < HP_FORCE_TRIGGER and abs(dFz) < HP_FORCE_TRIGGER and abs(dMx) < HP_MOMENT_TRIGGER and abs(dMy) < HP_MOMENT_TRIGGER and abs(dMz) < HP_MOMENT_TRIGGER:
+            while abs(dFx) < row[7] and abs(dFy) < row[8] and abs(dFz) < row[9] and abs(dMx) < row[10] and abs(dMy) < row[11] and abs(dMz) < row[12]:
                 # Clear HP states
                 rtn, data = m1m3.GetEventHardpointActuatorState()
                 
