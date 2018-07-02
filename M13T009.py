@@ -47,11 +47,12 @@ TRAVEL_POSITION = 6.13
 POS_Z_TRAVEL_POSITION = 4.07
 NEG_Z_TRAVEL_POSITION = 5.57
 POSITION_TOLERANCE = 0.000008
-WAIT_UNTIL_TIMEOUT = 600
+ROTATION_TOLERANCE = 0.00000209
+WAIT_UNTIL_TIMEOUT = 3 #600
 LOAD_PATH_FORCE = 0.0
 LOAD_PATH_TOLERANCE = 0.0
 
-class M13T010:
+class M13T009:
 
     def TestHardpointsMotion(self, m1m3):
         MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
@@ -127,7 +128,7 @@ class M13T010:
         WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
 
         # make sure the HardpointCorrection is disabled.
-        m1m3.DisableHardpointCorrection(True)
+        m1m3.DisableHardpointCorrections(True)
         
         time.sleep(5.0)
         
@@ -175,8 +176,8 @@ class M13T010:
         for row in testTable:
             rtn, data = m1m3.GetEventHardpointActuatorState()
             m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
-            WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
-            WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
+            WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x != 0))
+            WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x == 0))
             
             time.sleep(3.0)
             
@@ -231,7 +232,7 @@ class M13T010:
         result, data = m1m3.GetEventSummaryState()
         Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
         
-    def checkMotionStateEquals(self, eval):
+    def checkMotionStateEquals(self, m1m3, eval):
         rtn, data = m1m3.GetNextEventHardpointActuatorState()
         if rtn >= 0:
             return eval(sum(data.MotionState))
