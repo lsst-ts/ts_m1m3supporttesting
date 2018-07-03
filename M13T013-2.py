@@ -29,7 +29,7 @@ import time
 
 
 TRANSLATION_STEP = 0.0002
-ROTATION_STEP = 0.000024435
+ROTATION_STEP = 0.00004887
 SETTLE_TIME = 5.0
 SAMPLE_TIME = 1.0
 LOOP_COUNT = 2
@@ -82,13 +82,13 @@ class M13T013:
         time.sleep(SETTLE_TIME)
         
         testTable = [
-            #["X Position", -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0.0, 0.0, TRANSLATION_STEP, 0, 0, 0, 0, 0],
+            ["X Position", -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0.0, 0.0, TRANSLATION_STEP, 0, 0, 0, 0, 0],
             ["Y Position", 0.0, -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0.0, 0, TRANSLATION_STEP, 0, 0, 0, 0],
             #["Z Position", 0.0, 0.0, -0.002, 0.0, 0.0, 0.0, 0.0, 0.0, 0.002, 0.0, 0.0, 0.0, 0, 0, TRANSLATION_STEP, 0, 0, 0],
-            #["X Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, ROTATION_STEP, 0, 0],
-            #["Y Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, ROTATION_STEP, 0],
-            #["Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0, 0, 0, ROTATION_STEP],
-        ]0, 
+            #["X Rotation", 0.0, 0.0, 0.0, -0.0004887, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0004887, 0.0, 0.0, 0, 0, 0, ROTATION_STEP, 0, 0],
+            #["Y Rotation", 0.0, 0.0, 0.0, 0.0, -0.0004887, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0004887, 0.0, 0, 0, 0, 0, ROTATION_STEP, 0],
+            #["Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, -0.0004887, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0004887, 0, 0, 0, 0, 0, ROTATION_STEP],
+        ]
         detailTable = []
         for row in testTable:
             xPos = row[1]
@@ -168,9 +168,9 @@ class M13T013:
                     xPos = round(xPos + xPosStep, 6)
                     yPos = round(yPos + yPosStep, 6)
                     zPos = round(zPos + zPosStep, 6)
-                    xRot = round(xRot + xRotStep, 6)
-                    yRot = round(yRot + yRotStep, 6)
-                    zRot = round(zRot + zRotStep, 6)
+                    xRot = round(xRot + xRotStep, 9)
+                    yRot = round(yRot + yRotStep, 9)
+                    zRot = round(zRot + zRotStep, 9)
                 
                 # Swap direction
                 t1 = xPosEnd
@@ -230,9 +230,9 @@ class M13T013:
                     xPos = round(xPos - xPosStep, 6)
                     yPos = round(yPos - yPosStep, 6)
                     zPos = round(zPos - zPosStep, 6)
-                    xRot = round(xRot - xRotStep, 6)
-                    yRot = round(yRot - yRotStep, 6)
-                    zRot = round(zRot - zRotStep, 6)
+                    xRot = round(xRot - xRotStep, 9)
+                    yRot = round(yRot - yRotStep, 9)
+                    zRot = round(zRot - zRotStep, 9)
                     
                 # Swap direction
                 t1 = xPosEnd

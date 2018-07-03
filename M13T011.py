@@ -120,8 +120,8 @@ class M13T011:
             for row in testTable:
                 rtn, data = m1m3.GetEventHardpointActuatorState()
                 m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
-                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
-                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
+                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x != 0))
+                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x == 0))
                 
                 time.sleep(5.0)
                 
@@ -176,7 +176,7 @@ class M13T011:
         result, data = m1m3.GetEventSummaryState()
         Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
         
-    def checkMotionStateEquals(self, eval):
+    def checkMotionStateEquals(self, m1m3, eval):
         rtn, data = m1m3.GetNextEventHardpointActuatorState()
         if rtn >= 0:
             return eval(sum(data.MotionState))

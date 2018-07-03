@@ -84,6 +84,9 @@ class M1M3:
         Log("M1M3: Shutting down SAL")
         time.sleep(1)
         self.sal.salShutdown();
+
+    def Time(self):
+            return self.sal.getCurrentTime()
         
     def Flush(self, item):
         result, data = item()
@@ -680,6 +683,11 @@ class M1M3:
     def GetSampleIMSData(self):
         data = m1m3_IMSDataC()
         result = self.sal.getSample_IMSData(data)
+        return result, data
+
+    def GetNextSampleIMSData(self):
+        data = m1m3_IMSDataC()
+        result = self.sal.getNextSample_IMSData(data)
         return result, data
                 
     def GetSampleInclinometerData(self):

@@ -67,6 +67,8 @@ class M13T012:
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
 
+        results = []
+
         for i in range(5):
             testTable = [
                 ["(0, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
