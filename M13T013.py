@@ -30,7 +30,7 @@ import time
 
 TRANSLATION_STEP = 0.0001
 ROTATION_STEP = 0.000024435
-SETTLE_TIME = 5.0
+SETTLE_TIME = 3.0
 SAMPLE_TIME = 1.0
 
 WAIT_UNTIL_TIMEOUT = 600
@@ -81,18 +81,18 @@ class M13T013:
         time.sleep(SETTLE_TIME)
         
         testTable = [
-            ["+Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, ROTATION_STEP, 1000, 1000, 1000, 1500, 1500, 1500],
-            ["-Z Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP, 1000, 1000, 1000, 1500, 1500, 1500],
-            ["+X Rotation", 0.0, 0.0, 0.0, ROTATION_STEP, 0.0, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
-            ["-X Rotation", 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
-            ["+Y Rotation", 0.0, 0.0, 0.0, 0.0, ROTATION_STEP, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
-            ["-Y Rotation", 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
-            ["+X Position", TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
-            ["-X Position", -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
-            ["+Y Position", 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
-            ["-Y Position", 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
-            ["+Z Position", 0.0, 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0, 1000, 1000, 1000, 800, 800, 800],
-            ["-Z Position", 0.0, 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0, 1000, 1000, 1000, 800, 800, 800],
+            ["X Pos Position", TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["X Neg Position", -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["Y Pos Position", 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["Y Neg Position", 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
+            ["Z Pos Position", 0.0, 0.0, TRANSLATION_STEP, 0.0, 0.0, 0.0, 1000, 1000, 1000, 800, 800, 800],
+            ["Z Neg Position", 0.0, 0.0, -TRANSLATION_STEP, 0.0, 0.0, 0.0, 1000, 1000, 1000, 800, 800, 800],
+            ["X Pos Rotation", 0.0, 0.0, 0.0, ROTATION_STEP, 0.0, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["X Neg Rotation", 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["Y Pos Rotation", 0.0, 0.0, 0.0, 0.0, ROTATION_STEP, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["Y Neg Rotation", 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP, 0.0, 1000, 1000, 1000, 1200, 1200, 1200],
+            ["Z Pos Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, ROTATION_STEP, 1000, 1000, 1000, 1500, 1500, 1500],
+            ["Z Neg Rotation", 0.0, 0.0, 0.0, 0.0, 0.0, -ROTATION_STEP, 1000, 1000, 1000, 1500, 1500, 1500],
         ]
         resultTable = []
         detailTable = []

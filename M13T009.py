@@ -43,12 +43,12 @@ REFERENCE_X_ROTATION = 0.0
 REFERENCE_Y_ROTATION = 0.0
 REFERENCE_Z_ROTATION = 0.0
 
-TRAVEL_POSITION = 6.13
-POS_Z_TRAVEL_POSITION = 4.07
-NEG_Z_TRAVEL_POSITION = 5.57
+TRAVEL_POSITION = 0.00613
+POS_Z_TRAVEL_POSITION = 0.00407
+NEG_Z_TRAVEL_POSITION = 0.00557
 POSITION_TOLERANCE = 0.000008
 ROTATION_TOLERANCE = 0.00000209
-WAIT_UNTIL_TIMEOUT = 3 #600
+WAIT_UNTIL_TIMEOUT = 600
 LOAD_PATH_FORCE = 0.0
 LOAD_PATH_TOLERANCE = 0.0
 
@@ -58,14 +58,14 @@ class M13T009:
         MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
         for i in range(0, 6):
             if MotionStateArray[i] != 2 and MotionStateArray[i] != 3:
-                return False;
+                return False
         return True
 
     def TestHardpointsAtRest(self, m1m3):
         MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
         for i in range(0, 6):
             if MotionStateArray[i] != 0:
-                return False;
+                return False
         return True
         
     def WaitUntilHardpointsMotion(self, topic, timeout, m1m3):

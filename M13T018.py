@@ -3,7 +3,7 @@
 # Author:       CContaxis
 # Description:  Bump test raised
 # Steps:
-# - Transition from standby to parked engineering state
+# - Transition from standby to active engineering state
 # - Perform the following steps for each force actuator
 #   - If the force actuator has an X component
 #     - Apply a pure X force offset
@@ -43,7 +43,7 @@
 #   - Clear offset forces
 #   - Verify the pure -Z force is no longer being applied
 #   - Verify the pure -Z force is no longer being measured
-# - Transition from parked engineering state to standby
+# - Transition from active engineering state to standby
 ########################################################################
 
 import time
