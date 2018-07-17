@@ -55,6 +55,7 @@ class M1M3:
         self.sal.salEvent("m1m3_logevent_DetailedState")
         self.sal.salEvent("m1m3_logevent_ForceActuatorState")
         self.sal.salEvent("m1m3_logevent_ForceActuatorInfo")
+        self.sal.salEvent("m1m3_logevent_ForceSetpointWarning")
         self.sal.salEvent("m1m3_logevent_HardpointActuatorInfo")
         self.sal.salEvent("m1m3_logevent_HardpointActuatorState")
         self.sal.salEvent("m1m3_logevent_HardpointActuatorWarning")
@@ -137,7 +138,7 @@ class M1M3:
         self.sal.waitForCompletion_ApplyActiveOpticForcesByBendingModes(cmdId, COMMAND_TIMEOUT)
         time.sleep(COMMAND_TIME)
         
-    def ApplyOffsetForces(self, xForces, yForces, zForces):
+    def ApplyOffsetForces(self, xForces, yForces, zForces, waitForCompletion = True):
         Log("M1M3: ApplyOffsetForces([%s], [%s], [%s])" % (','.join(map(str, xForces)), ','.join(map(str, yForces)), ','.join(map(str, zForces))))
         data = m1m3_command_ApplyOffsetForcesC()
         for i in range(12):
@@ -147,8 +148,9 @@ class M1M3:
         for i in range(156):
             data.ZForces[i] = zForces[i]
         cmdId = self.sal.issueCommand_ApplyOffsetForces(data)
-        self.sal.waitForCompletion_ApplyOffsetForces(cmdId, COMMAND_TIMEOUT)
-        time.sleep(COMMAND_TIME)
+        if waitForCompletion:
+            self.sal.waitForCompletion_ApplyOffsetForces(cmdId, COMMAND_TIMEOUT)
+            time.sleep(COMMAND_TIME)
         
     def ApplyOffsetForcesByMirrorForce(self, fx, fy, fz, mx, my, mz, waitForCompletion = True):
         Log("M1M3: ApplyOffsetForcesByMirrorForce(%s, %s, %s, %s, %s, %s)" % (fx, fy, fz, mx, my, mz))
@@ -515,6 +517,14 @@ class M1M3:
         
     def GetEventForceActuatorInfo(self):
         return self.GetEvent(self.GetNextEventForceActuatorInfo)
+
+    def GetNextEventForceSetpointWarning(self):
+        data = m1m3_logevent_ForceSetpointWarningC()
+        result = self.sal.getEvent_ForceSetpointWarning(data)
+        return result, data
+
+    def GetEventForceSetpointWarning(self):
+        return self.GetEvent(self.GetNextEventForceSetpointWarning)
         
     def GetNextEventHardpointActuatorInfo(self):
         data = m1m3_logevent_HardpointActuatorInfoC()
@@ -668,6 +678,11 @@ class M1M3:
     def GetSampleForceActuatorData(self):
         data = m1m3_ForceActuatorDataC()
         result = self.sal.getSample_ForceActuatorData(data)
+        return result, data
+
+    def GetNextSampleForceActuatorData(self):
+        data = m1m3_ForceActuatorDataC()
+        result = self.sal.getNextSample_ForceActuatorData(data)
         return result, data
         
     def GetSampleHardpointActuatorData(self):

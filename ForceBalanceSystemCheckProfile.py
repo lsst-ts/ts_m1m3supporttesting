@@ -10,9 +10,25 @@ import time
 import math
 from Utilities import *
 from SALPY_m1m3 import *
+from SALPY_vms import *
 from ForceActuatorTable import *
 from HardpointActuatorTable import *
 from Setup import *
+
+X1Sensitivity = 51.459
+Y1Sensitivity = 52.061
+Z1Sensitivity = 51.298
+
+X2Sensitivity = 51.937
+Y2Sensitivity = 52.239
+Z2Sensitivity = 52.130
+
+X3Sensitivity = 52.183
+Y3Sensitivity = 52.015
+Z3Sensitivity = 51.908
+
+def convert(raw, sensitivity):
+    return (raw * 1000.0) / sensitivity
 
 testTable = [
        # Timestamp, Fx, Fy, Fz, Mx, My, Mz
@@ -839,27 +855,65 @@ testTable = [
 ]
 
 TEST_HOLD_TIME = 5.0
-TEST_SCALER = -0.5
+TEST_SCALER = 0.2
 
 class ForceBalanceSystemCheckProfile:
     def Run(self, m1m3, sim, efd):
         Header("Force balance system check profile")
+
         
-        for test in testTable:
+        
+        #for test in testTable:
+        #for scaler in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
+        for scaler in [0.1, 0.2, 0.3, 0.4, 0.5]:
+            test = testTable[1]
+            TEST_SCALER = scaler
+
+            # Setup VMS
+            vms = SAL_vms()
+            vms.salTelemetrySub("vms_M1M3")
+
             # Get start time of this test
             result, data = m1m3.GetSampleHardpointActuatorData()
             startTimestamp = data.Timestamp
             realStart = startTimestamp
+            result, data = m1m3.GetSampleIMSData()
+            vmsData = vms_M1M3C()
+            result = vms.getSample_M1M3(vmsData)
             
             # Write header
-            output = "Timestamp,RelativeTimestamp,SFx,SFy,SFz,SMx,SMy,SMz,HP1,HP2,HP3,HP4,HP5,HP6,Fx,Fy,Fz,Mx,My,Mz\r\n"
-            
+            hpOutput = "Timestamp,RelativeTimestamp,SFx,SFy,SFz,SMx,SMy,SMz,HP1,HP2,HP3,HP4,HP5,HP6,Fx,Fy,Fz,Mx,My,Mz\r\n"
+            imsOutput = "Timestamp,XPosition,YPosition,ZPosition,XRotation,YRotation,ZRotation\r\n"
+            vmsOutput = "Timestamp (s),X1 (m/s^2),Y1 (m/s^2),Z1 (m/s^2),X2 (m/s^2),Y2 (m/s^2),Z2 (m/s^2),X3 (m/s^2),Y3 (m/s^2),Z3 (m/s^2)\r\n"
+
             # Wait hold time
             while (data.Timestamp - startTimestamp) < TEST_HOLD_TIME:
                 # Sample data
                 rtn, data = m1m3.GetNextSampleHardpointActuatorData()
                 if rtn >= 0:
-                    output = output + ("%0.6f,%0.6f,0.0,0.0,0.0,0.0,0.0,0.0,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n" % (data.Timestamp, (data.Timestamp - realStart), data.MeasuredForce[0], data.MeasuredForce[1], data.MeasuredForce[2], data.MeasuredForce[3], data.MeasuredForce[4], data.MeasuredForce[5], data.Fx, data.Fy, data.Fz, data.Mx, data.My, data.Mz))
+                    hpOutput = hpOutput + ("%0.6f,%0.6f,0.0,0.0,0.0,0.0,0.0,0.0,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n" % (data.Timestamp, (data.Timestamp - realStart), data.MeasuredForce[0], data.MeasuredForce[1], data.MeasuredForce[2], data.MeasuredForce[3], data.MeasuredForce[4], data.MeasuredForce[5], data.Fx, data.Fy, data.Fz, data.Mx, data.My, data.Mz))
+
+                rtn, imsData = m1m3.GetNextSampleIMSData()
+                if rtn >= 0:
+                    imsOutput = imsOutput + ("%0.6f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f\r\n" % (imsData.Timestamp, imsData.XPosition, imsData.YPosition, imsData.ZPosition, imsData.XRotation, imsData.YRotation, imsData.ZRotation))
+
+                vmsData = vms_M1M3C()
+                result = vms.getNextSample_M1M3(vmsData)
+                if result >= 0:
+                    newTimestamp = vmsData.Timestamp
+                    for j in range(50):
+                        vmsOutput = vmsOutput + ("%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f\r\n" % (
+                            newTimestamp, 
+                            convert(vmsData.Sensor1XAcceleration[j], X1Sensitivity),
+                            convert(vmsData.Sensor1YAcceleration[j], Y1Sensitivity),
+                            convert(vmsData.Sensor1ZAcceleration[j], Z1Sensitivity),
+                            convert(vmsData.Sensor2XAcceleration[j], X2Sensitivity),
+                            convert(vmsData.Sensor2YAcceleration[j], Y2Sensitivity),
+                            convert(vmsData.Sensor2ZAcceleration[j], Z2Sensitivity),
+                            convert(vmsData.Sensor3XAcceleration[j], X3Sensitivity),
+                            convert(vmsData.Sensor3YAcceleration[j], Y3Sensitivity),
+                            convert(vmsData.Sensor3ZAcceleration[j], Z3Sensitivity)))
+                        newTimestamp += 0.001
 
             # Run profile
             for record in test[1]:               
@@ -867,13 +921,35 @@ class ForceBalanceSystemCheckProfile:
                 while True:
                     rtn, data = m1m3.GetNextSampleHardpointActuatorData()
                     if rtn >= 0:
-                        break
+                        break               
                 
                 # Command new offset
                 m1m3.ApplyOffsetForcesByMirrorForce(record[1] * TEST_SCALER, record[2] * TEST_SCALER, record[3] * TEST_SCALER, record[4] * TEST_SCALER, record[5] * TEST_SCALER, record[6] * TEST_SCALER, False)
                 
                 # Append data to file
-                output = output + ("%0.6f,%0.6f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n" % (data.Timestamp, (data.Timestamp - realStart), record[1] * TEST_SCALER, record[2] * TEST_SCALER, record[3] * TEST_SCALER, record[4] * TEST_SCALER, record[5] * TEST_SCALER, record[6] * TEST_SCALER, data.MeasuredForce[0], data.MeasuredForce[1], data.MeasuredForce[2], data.MeasuredForce[3], data.MeasuredForce[4], data.MeasuredForce[5], data.Fx, data.Fy, data.Fz, data.Mx, data.My, data.Mz))
+                hpOutput = hpOutput + ("%0.6f,%0.6f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n" % (data.Timestamp, (data.Timestamp - realStart), record[1] * TEST_SCALER, record[2] * TEST_SCALER, record[3] * TEST_SCALER, record[4] * TEST_SCALER, record[5] * TEST_SCALER, record[6] * TEST_SCALER, data.MeasuredForce[0], data.MeasuredForce[1], data.MeasuredForce[2], data.MeasuredForce[3], data.MeasuredForce[4], data.MeasuredForce[5], data.Fx, data.Fy, data.Fz, data.Mx, data.My, data.Mz))
+
+                rtn, imsData = m1m3.GetNextSampleIMSData()
+                if rtn >= 0:
+                    imsOutput = imsOutput + ("%0.6f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f\r\n" % (imsData.Timestamp, imsData.XPosition, imsData.YPosition, imsData.ZPosition, imsData.XRotation, imsData.YRotation, imsData.ZRotation))
+
+                vmsData = vms_M1M3C()
+                result = vms.getNextSample_M1M3(vmsData)
+                if result >= 0:
+                    newTimestamp = vmsData.Timestamp
+                    for j in range(50):
+                        vmsOutput = vmsOutput + ("%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f\r\n" % (
+                            newTimestamp, 
+                            convert(vmsData.Sensor1XAcceleration[j], X1Sensitivity),
+                            convert(vmsData.Sensor1YAcceleration[j], Y1Sensitivity),
+                            convert(vmsData.Sensor1ZAcceleration[j], Z1Sensitivity),
+                            convert(vmsData.Sensor2XAcceleration[j], X2Sensitivity),
+                            convert(vmsData.Sensor2YAcceleration[j], Y2Sensitivity),
+                            convert(vmsData.Sensor2ZAcceleration[j], Z2Sensitivity),
+                            convert(vmsData.Sensor3XAcceleration[j], X3Sensitivity),
+                            convert(vmsData.Sensor3YAcceleration[j], Y3Sensitivity),
+                            convert(vmsData.Sensor3ZAcceleration[j], Z3Sensitivity)))
+                        newTimestamp += 0.001
                            
                            
             # Wait hold time
@@ -882,18 +958,54 @@ class ForceBalanceSystemCheckProfile:
                 # Sample data
                 rtn, data = m1m3.GetNextSampleHardpointActuatorData()
                 if rtn >= 0:
-                    output = output + ("%0.6f,%0.6f,0.0,0.0,0.0,0.0,0.0,0.0,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n" % (data.Timestamp, (data.Timestamp - realStart), data.MeasuredForce[0], data.MeasuredForce[1], data.MeasuredForce[2], data.MeasuredForce[3], data.MeasuredForce[4], data.MeasuredForce[5], data.Fx, data.Fy, data.Fz, data.Mx, data.My, data.Mz))
+                    hpOutput = hpOutput + ("%0.6f,%0.6f,0.0,0.0,0.0,0.0,0.0,0.0,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n" % (data.Timestamp, (data.Timestamp - realStart), data.MeasuredForce[0], data.MeasuredForce[1], data.MeasuredForce[2], data.MeasuredForce[3], data.MeasuredForce[4], data.MeasuredForce[5], data.Fx, data.Fy, data.Fz, data.Mx, data.My, data.Mz))
+
+                rtn, imsData = m1m3.GetNextSampleIMSData()
+                if rtn >= 0:
+                    imsOutput = imsOutput + ("%0.6f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f\r\n" % (imsData.Timestamp, imsData.XPosition, imsData.YPosition, imsData.ZPosition, imsData.XRotation, imsData.YRotation, imsData.ZRotation))
+
+                vmsData = vms_M1M3C()
+                result = vms.getNextSample_M1M3(vmsData)
+                if result >= 0:
+                    newTimestamp = vmsData.Timestamp
+                    for j in range(50):
+                        vmsOutput = vmsOutput + ("%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f\r\n" % (
+                            newTimestamp, 
+                            convert(vmsData.Sensor1XAcceleration[j], X1Sensitivity),
+                            convert(vmsData.Sensor1YAcceleration[j], Y1Sensitivity),
+                            convert(vmsData.Sensor1ZAcceleration[j], Z1Sensitivity),
+                            convert(vmsData.Sensor2XAcceleration[j], X2Sensitivity),
+                            convert(vmsData.Sensor2YAcceleration[j], Y2Sensitivity),
+                            convert(vmsData.Sensor2ZAcceleration[j], Z2Sensitivity),
+                            convert(vmsData.Sensor3XAcceleration[j], X3Sensitivity),
+                            convert(vmsData.Sensor3YAcceleration[j], Y3Sensitivity),
+                            convert(vmsData.Sensor3ZAcceleration[j], Z3Sensitivity)))
+                        newTimestamp += 0.001
 
             # Write the output file        
-            path = GetFilePath("%d-ForceBalanceSystemCheckProfile-%s.csv" % (int(startTimestamp), test[0]))
+            path = GetFilePath("%d-%0.1f-ForceBalanceSystemCheckProfile-HP-%s.csv" % (int(startTimestamp), TEST_SCALER, test[0]))
             Log("File path: %s" % path)
             file = open(path, "w+")
-            file.write(output)
+            file.write(hpOutput)
+            file.close()
+
+            path = GetFilePath("%d-%0.1f-ForceBalanceSystemCheckProfile-IMS-%s.csv" % (int(startTimestamp), TEST_SCALER, test[0]))
+            Log("File path: %s" % path)
+            file = open(path, "w+")
+            file.write(imsOutput)
+            file.close()
+
+            path = GetFilePath("%d-%0.1f-ForceBalanceSystemCheckProfile-VMS-%s.csv" % (int(startTimestamp), TEST_SCALER, test[0]))
+            Log("File path: %s" % path)
+            file = open(path, "w+")
+            file.write(vmsOutput)
             file.close()
             
             # Clear offset forces
             m1m3.ClearOffsetForces()
             time.sleep(5.0)
+
+            vms.salShutdown()
         
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()

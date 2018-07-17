@@ -34,6 +34,7 @@
 
 from Utilities import *
 from SALPY_m1m3 import *
+from SALPY_vms import *
 from Setup import *
 import MySQLdb
 import time
@@ -46,15 +47,36 @@ REFERENCE_X_ROTATION = 0.0
 REFERENCE_Y_ROTATION = 0.0
 REFERENCE_Z_ROTATION = 0.0
 
+X1Sensitivity = 51.459
+Y1Sensitivity = 52.061
+Z1Sensitivity = 51.298
+
+X2Sensitivity = 51.937
+Y2Sensitivity = 52.239
+Z2Sensitivity = 52.130
+
+X3Sensitivity = 52.183
+Y3Sensitivity = 52.015
+Z3Sensitivity = 51.908
+
 TRAVEL_POSITION = 0.001
 TRAVEL_ROTATION = 0.00024435
 POSITION_TOLERANCE = 0.000008
 ROTATION_TOLERANCE = 0.00000209
 WAIT_UNTIL_TIMEOUT = 600
+SETTLE_TIME = 3.0
+SAMPLE_TIME = 15.0
+
+def convert(raw, sensitivity):
+    return (raw * 1000.0) / sensitivity
 
 class M13T011:
     def Run(self, m1m3, sim, efd):
         Header("M13T-011: Position Stability During Active Mode Operation")
+
+        # Setup VMS
+        vms = SAL_vms()
+        vms.salTelemetrySub("vms_M1M3")
         
         ########################################
         # Enable the mirror, Raise it.
@@ -93,61 +115,104 @@ class M13T011:
         # wait 5 seconds
         time.sleep(5)
 
+        skipFirstMove = True
+
         # The martix need to be tested 3 times
         for i in range(0,3):
-           testTable = [
-                ["(0, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(+X, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(-X, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, -Y, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, 0, +Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(+X, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(+X, -Y, 0, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(-X, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(-X, -Y, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(+X, 0, +Z, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(+X, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(-X, 0, +Z, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(-X, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, +Y, +Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, +Y, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, -Y, +Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, -Y, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION]
-           ]
-            
-        for row in testTable:
-               rtn, data = m1m3.GetEventHardpointActuatorState()
-               m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
-               WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x != 0))
-               WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x == 0))
-               
-               time.sleep(5.0)
-               
-               result, data = m1m3.GetSampleHardpointActuatorData()
-               startTime = data.Timestamp
-               InTolerance("SAL %s m1m3_HardpointActuatorData.XPosition" % row[0], data.XPosition, row[1], POSITION_TOLERANCE)
-               InTolerance("SAL %s m1m3_HardpointActuatorData.YPosition" % row[0], data.YPosition, row[2], POSITION_TOLERANCE)
-               InTolerance("SAL %s m1m3_HardpointActuatorData.ZPosition" % row[0], data.ZPosition, row[3], POSITION_TOLERANCE)
-               InTolerance("SAL %s m1m3_HardpointActuatorData.XRotation" % row[0], data.XRotation, row[4], ROTATION_TOLERANCE)
-               InTolerance("SAL %s m1m3_HardpointActuatorData.YRotation" % row[0], data.YRotation, row[5], ROTATION_TOLERANCE)
-               InTolerance("SAL %s m1m3_HardpointActuatorData.ZRotation" % row[0], data.ZRotation, row[6], ROTATION_TOLERANCE)
-                
-               result, data = m1m3.GetSampleIMSData()
-               InTolerance("SAL %s m1m3_IMSData.XPosition" % row[0], data.XPosition, row[1], POSITION_TOLERANCE)
-               InTolerance("SAL %s m1m3_IMSData.YPosition" % row[0], data.YPosition, row[2], POSITION_TOLERANCE)
-               InTolerance("SAL %s m1m3_IMSData.ZPosition" % row[0], data.ZPosition, row[3], POSITION_TOLERANCE)
-               InTolerance("SAL %s m1m3_IMSData.XRotation" % row[0], data.XRotation, row[4], ROTATION_TOLERANCE)
-               InTolerance("SAL %s m1m3_IMSData.YRotation" % row[0], data.YRotation, row[5], ROTATION_TOLERANCE)
-               InTolerance("SAL %s m1m3_IMSData.ZRotation" % row[0], data.ZRotation, row[6], ROTATION_TOLERANCE)
-                
-               time.sleep(15.0)
-               
-               result, data = m1m3.GetSampleHardpointActuatorData()
-               Log("%s Start Timestamp: %0.3f" % (row[0], startTime))
-               Log("%s Stop Timestamp: %0.3f" % (row[0], data.Timestamp))
-                
+            testTable = [
+                ["REF", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+X", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-X", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+Y", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-Y", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+X+Y", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+X-Y", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-X+Y", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-X-Y", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+X+Z", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+X-Z", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-X+Z", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-X-Z", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+Y+Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["+Y-Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-Y+Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
+                ["-Y-Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION]]
+
+            for row in testTable:
+                # Dont attempt to move to reference position unless we have moved previously
+                if not skipFirstMove:
+                    # Perform the requested motion
+                    rtn, data = m1m3.GetEventHardpointActuatorState()
+                    m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
+
+                    # Wait for the requested motion to complete
+                    WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x != 0))
+                    WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x == 0))
+                else:
+                    skipFirstMove = False
+
+                # Allow some settling time
+                time.sleep(SETTLE_TIME)
+
+                # Prepare to sample data
+                imsDatas = []
+                vmsDatas = []
+
+                # Flush IMS data
+                result, imsData = m1m3.GetSampleIMSData()
+
+                # Flush VMS data
+                vmsData = vms_M1M3C()
+                result = vms.getNextSample_M1M3(vmsData)
+                while result >= 0:
+                    vmsData = vms_M1M3C()
+                    result = vms.getNextSample_M1M3(vmsData)
+
+                # Mark times
+                startTimestamp = imsData.Timestamp
+                timestamp = startTimestamp
+
+                # Sample data for the configured sample time
+                while (timestamp - startTimestamp) < SAMPLE_TIME:
+                    result, imsData = m1m3.GetNextSampleIMSData()
+                    if result >= 0:
+                        timestamp = imsData.Timestamp
+                        imsDatas.append(imsData)
+                    vmsData = vms_M1M3C()
+                    result = vms.getNextSample_M1M3(vmsData)
+                    if result >= 0:
+                        vmsDatas.append(vmsData)
+
+                # Write the IMS data to a file
+                path = GetFilePath("M13T011-%s-%d-IMS-%d.csv" % (row[0], (i+1), int(startTimestamp)))
+                file = open(path, "w+")
+                file.write("Timestamp,XPosition,YPosition,ZPosition,XRotation,YRotation,ZRotation\r\n")
+                for imsData in imsDatas:
+                    file.write("%0.3f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f\r\n" % (imsData.Timestamp, imsData.XPosition, imsData.YPosition, imsData.ZPosition, imsData.XRotation, imsData.YRotation, imsData.ZRotation))
+                file.close()
+
+                # Write the VMS data to a file
+                path = GetFilePath("M13T011-%s-%d-VMS-%d.csv" % (row[0], (i+1), int(startTimestamp)))
+                file = open(path, "w+")
+                file.write("Timestamp (s),X1 (m/s^2),Y1 (m/s^2),Z1 (m/s^2),X2 (m/s^2),Y2 (m/s^2),Z2 (m/s^2),X3 (m/s^2),Y3 (m/s^2),Z3 (m/s^2)\r\n")
+                for vmsData in vmsDatas:
+                    newTimestamp = vmsData.Timestamp
+                    for j in range(50):
+                        file.write("%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f\r\n" % (
+                            newTimestamp, 
+                            convert(vmsData.Sensor1XAcceleration[j], X1Sensitivity),
+                            convert(vmsData.Sensor1YAcceleration[j], Y1Sensitivity),
+                            convert(vmsData.Sensor1ZAcceleration[j], Z1Sensitivity),
+                            convert(vmsData.Sensor2XAcceleration[j], X2Sensitivity),
+                            convert(vmsData.Sensor2YAcceleration[j], Y2Sensitivity),
+                            convert(vmsData.Sensor2ZAcceleration[j], Z2Sensitivity),
+                            convert(vmsData.Sensor3XAcceleration[j], X3Sensitivity),
+                            convert(vmsData.Sensor3YAcceleration[j], Y3Sensitivity),
+                            convert(vmsData.Sensor3ZAcceleration[j], Z3Sensitivity)))
+                        newTimestamp += 0.001
+                file.close()               
 
         #######################
         # Lower the mirror, put back in standby state.
@@ -180,21 +245,7 @@ class M13T011:
         rtn, data = m1m3.GetNextEventHardpointActuatorState()
         if rtn >= 0:
             return eval(sum(data.MotionState))
-        return False
-        
-    def getDatas(self, getter, time):
-        result, data = getter()
-        startTime = data.Timestamp
-        datas = [data]
-        while True:
-            result, data = getter()
-            if result > 0:
-                if data.Timestamp - startTime > 15.0:
-                    break
-                else:
-                    datas.append(data)
-        return datas
-        
+        return False        
         
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
