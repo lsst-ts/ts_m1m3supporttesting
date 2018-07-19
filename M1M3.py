@@ -78,6 +78,7 @@ class M1M3:
         self.sal.salTelemetrySub("m1m3_AccelerometerData")
         self.sal.salTelemetrySub("m1m3_ForceActuatorData")
         self.sal.salTelemetrySub("m1m3_HardpointActuatorData")
+        self.sal.salTelemetrySub("m1m3_HardpointMonitorData")
         self.sal.salTelemetrySub("m1m3_IMSData")
         self.sal.salTelemetrySub("m1m3_InclinometerData")
         
@@ -693,6 +694,16 @@ class M1M3:
     def GetNextSampleHardpointActuatorData(self):
         data = m1m3_HardpointActuatorDataC()
         result = self.sal.getNextSample_HardpointActuatorData(data)
+        return result, data
+
+    def GetSampleHardpointMonitorData(self):
+        data = m1m3_HardpointMonitorDataC()
+        result = self.sal.getSample_HardpointMonitorData(data)
+        return result, data
+    
+    def GetNextSampleHardpointMonitorData(self):
+        data = m1m3_HardpointMonitorDataC()
+        result = self.sal.getNextSample_HardpointMonitorData(data)
         return result, data
         
     def GetSampleIMSData(self):
