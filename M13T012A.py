@@ -2,11 +2,7 @@
 # Test Numbers: M13T-012A  
 # Author:       AClements
 # Description:  Position Repeatability After Parking
-<<<<<<< HEAD
-# NOTE: This is a derivative of M13T012
-=======
 # NOTE: This is a derivative of M13-T012
->>>>>>> 8a2d690caaaf7f4930084fef1cdae3b4f833e232
 # Steps:
 # - Issue start command
 # - Raise Mirror in Active Engineering Mode
@@ -46,19 +42,11 @@ TRAVEL_POSITION = 0.001
 TRAVEL_ROTATION = 0.00024435
 POSITION_TOLERANCE = 0.000040
 ROTATION_TOLERANCE = 0.00000209
-<<<<<<< HEAD
 WAIT_UNTIL_TIMEOUT = 600
-
-class M13T012:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-012: Position Repeatability After Parking")
-=======
-WAIT_UNTIL_TIMEOUT = 6 #00
 
 class M13T012A:
     def Run(self, m1m3, sim, efd):
-        Header("M13T-012A: Position Repeatability After Parking")
->>>>>>> 8a2d690caaaf7f4930084fef1cdae3b4f833e232
+        Header("M13T-012: Position Repeatability After Parking")
         
         # Bring mirror into Disabled state.
         m1m3.Start("Default")
@@ -85,7 +73,6 @@ class M13T012A:
 
         for i in range(7):
             testTable = [
-<<<<<<< HEAD
                 ["(0 0 0 0 0 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
                 ["(+X 0 0 0 0 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
                 #["(-X, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
@@ -95,18 +82,6 @@ class M13T012A:
                 #["(0, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION]
                 ["(-X +Y 0 0 0 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
             ]
-=======
-                ["(0, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(+X, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                #["(-X, 0, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                #["(0, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["(0, -Y, 0, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                #["(0, 0, +Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                #["(0, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION]
-                ["(-X, +Y, 0, 0, 0, 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-            ]
-
->>>>>>> 8a2d690caaaf7f4930084fef1cdae3b4f833e232
             rowNumbers = list(range(0, len(testTable)))
             random.shuffle(rowNumbers)
             for rowNumber in rowNumbers:
@@ -114,11 +89,7 @@ class M13T012A:
                 # Raise mirror (therefore entering the Raised Engineering State).
                 m1m3.RaiseM1M3(False)
                 result, data = m1m3.GetEventDetailedState()
-<<<<<<< HEAD
                 Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingEngineeringState)
-=======
-                Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ActiveEngineeringState)
->>>>>>> 8a2d690caaaf7f4930084fef1cdae3b4f833e232
                 result, data = m1m3.GetEventSummaryState()
                 Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
 
@@ -131,13 +102,8 @@ class M13T012A:
                 rtn, data = m1m3.GetEventHardpointActuatorState()
                 if row[1] != 0.0 or row[2] != 0.0 or row[3] != 0.0 or row[4] != 0.0 or row[5] != 0.0 or row[6] != 0.0:
                     m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
-<<<<<<< HEAD
                     WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
                     WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
-=======
-                    WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x != 0))
-                    WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x == 0))
->>>>>>> 8a2d690caaaf7f4930084fef1cdae3b4f833e232
 
                 time.sleep(3.0)
 
@@ -179,11 +145,7 @@ class M13T012A:
                 # Wait until active engineering state
                 WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
 
-<<<<<<< HEAD
         path = GetFilePath("M13T012-Positions.csv")
-=======
-        path = GetFilePath("%d-M13T012-Positions.csv" % (int(startTimestamp)))
->>>>>>> 8a2d690caaaf7f4930084fef1cdae3b4f833e232
         Log("File path: %s" % path)
         f = open(path, "w+")
         f.write("Location,HP-XPosition,HP-YPosition,HP-ZPosition,HP-XRotation,HP-YRotation,HP-ZRotation,IMS-XPosition,IMS-YPosition,IMS-ZPosition,IMS-XRotation,IMS-YRotation,IMS-ZRotation\r\n")
@@ -205,11 +167,7 @@ class M13T012A:
         result, data = m1m3.GetEventSummaryState()
         Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
                 
-<<<<<<< HEAD
     def checkMotionStateEquals(self, eval):
-=======
-    def checkMotionStateEquals(self, m1m3, eval):
->>>>>>> 8a2d690caaaf7f4930084fef1cdae3b4f833e232
         rtn, data = m1m3.GetNextEventHardpointActuatorState()
         if rtn >= 0:
             return eval(sum(data.MotionState))
