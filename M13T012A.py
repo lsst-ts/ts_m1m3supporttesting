@@ -1,7 +1,8 @@
 ########################################################################
-# Test Numbers: M13T-012  
+# Test Numbers: M13T-012A  
 # Author:       AClements
 # Description:  Position Repeatability After Parking
+# NOTE: This is a derivative of M13T012
 # Steps:
 # - Issue start command
 # - Raise Mirror in Active Engineering Mode
@@ -10,9 +11,9 @@
 # - Park the miror, confirmed it has parked.
 # - Take IMS measurements
 # - return mirror to parked position.
-# - repeat above process 5 times.
+# - repeat above process 7 times.
 # - repeat the process for the matrix below
-# - Follow the motion matrix below, where X, Y & Z are 1.0 mm
+# - Randomly select from the motion matrix below, where X, Y & Z are 1.0 mm
 #   +X, 0, 0 
 #   -X, 0, 0
 #   0,+Y, 0
@@ -27,6 +28,7 @@ from SALPY_m1m3 import *
 from Setup import *
 import MySQLdb
 import time
+import random
 
 # edit the defined reference positions as needed.
 REFERENCE_X_POSITION = 0.0
@@ -80,7 +82,10 @@ class M13T012:
                 #["(0, 0, -Z, 0, 0, 0)", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION]
                 ["(-X +Y 0 0 0 0)", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
             ]
-            for row in testTable:
+            rowNumbers = list(range(0, len(testTable)))
+            random.shuffle(rowNumbers)
+            for rowNumber in rowNumbers:
+                row = testTable[rowNumber]
                 # Raise mirror (therefore entering the Raised Engineering State).
                 m1m3.RaiseM1M3(False)
                 result, data = m1m3.GetEventDetailedState()

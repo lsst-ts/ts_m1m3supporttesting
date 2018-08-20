@@ -1,12 +1,13 @@
 ########################################################################
-# Test Numbers: M13T-010  
+# Test Numbers: M13T-010A  
 # Author:       AClements
 # Description:  Position System Requirements
+# NOTE: This is a derivative of M13-T010
 # Steps:
 # - Issue start command
 # - Raise Mirror in Active Engineering Mode
 # - Confirm Mirror in Reference Position
-# - Follow the motion matrix below, where X, Y & Z are 1.0 mm and ΘX, ΘY, & ΘZ are 0.014 degrees:
+# - Randomly select from the motion matrix below, where X, Y & Z are 1.0 mm and ΘX, ΘY, & ΘZ are 0.014 degrees:
 #   +X, 0, 0 
 #   -X, 0, 0
 #   0,+Y, 0
@@ -43,7 +44,7 @@
 #   0, +ΘY, -ΘZ
 #   0, -ΘY, +ΘZ
 #   0, -ΘY, -ΘZ
-# - Repeat Matrix 2 more times
+# - Repeat Matrix 7 more times
 # - Transition back to standby
 ########################################################################
 
@@ -52,6 +53,7 @@ from SALPY_m1m3 import *
 from Setup import *
 import MySQLdb
 import time
+import random
 
 # edit the defined reference positions as needed.
 REFERENCE_X_POSITION = 0.0
@@ -67,7 +69,7 @@ POSITION_TOLERANCE = 0.000008
 ROTATION_TOLERANCE = 0.00000209
 WAIT_UNTIL_TIMEOUT = 600
 
-class M13T010:
+class M13T010A:
 
     def TestHardpointsMotion(self, m1m3):
         MotionStateArray = m1m3.GetEventHardpointActuatorState()[1].MotionState
@@ -106,7 +108,7 @@ class M13T010:
         return Result(message, not timedout)
 
     def Run(self, m1m3, sim, efd):
-        Header("M13T-010: Position System Requirements")
+        Header("M13T-010A: Position System Requirements")
         
         ########################################
         # Enable the mirror, Raise it.
@@ -162,8 +164,8 @@ class M13T010:
 
         results = []
         
-        # The martix need to be tested 3 times
-        for i in range(3):
+        # The martix need to be tested 7 times
+        for i in range(7):
             ##########################################################
             # Command the mirror to the matrix positions.  Check to make sure it reaches those positions.
             
@@ -207,7 +209,10 @@ class M13T010:
 
             ]
             
-            for row in testTable:
+            rowNumbers = list(range(0, len(testTable)))
+            random.shuffle(rowNumbers)
+            for rowNumber in rowNumbers:
+                row = testTable[rowNumber]
                 rtn, data = m1m3.GetEventHardpointActuatorState()
                 m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
                 WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
