@@ -114,39 +114,40 @@ class M13T010A:
         # Enable the mirror, Raise it.
 
         # Bring mirror into Disabled state.
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+#        m1m3.Start("Default")
+#        result, data = m1m3.GetEventDetailedState()
+#        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+#        result, data = m1m3.GetEventSummaryState()
+#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
         
         # Place mirror into Enabled state.
-        m1m3.Enable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+#        m1m3.Enable()
+#        result, data = m1m3.GetEventDetailedState()
+#        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
+#        result, data = m1m3.GetEventSummaryState()
+#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
         
         # Transition to parked engineering state
-        m1m3.EnterEngineering()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+#        m1m3.EnterEngineering()
+#        result, data = m1m3.GetEventDetailedState()
+#        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
+#        result, data = m1m3.GetEventSummaryState()
+#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
         
         # Raise mirror (therefore entering the Raised Engineering State).
-        m1m3.RaiseM1M3(False)
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ActiveEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+#        m1m3.RaiseM1M3(False)
+#        result, data = m1m3.GetEventDetailedState()
+#        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ActiveEngineeringState)
+#        result, data = m1m3.GetEventSummaryState()
+#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
         
         # Wait until active engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
+#        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
         
-        time.sleep(5.0)
+#        time.sleep(5.0)
         
         result, data = m1m3.GetSampleHardpointActuatorData()
+        Log("result from GetSampleHardpointActuatorData is %d" % result)
         InTolerance("SAL m1m3_HardpointActuatorData.XPosition", data.XPosition, REFERENCE_X_POSITION, POSITION_TOLERANCE)
         InTolerance("SAL m1m3_HardpointActuatorData.YPosition", data.YPosition, REFERENCE_Y_POSITION, POSITION_TOLERANCE)
         InTolerance("SAL m1m3_HardpointActuatorData.ZPosition", data.ZPosition, REFERENCE_Z_POSITION, POSITION_TOLERANCE)
@@ -155,6 +156,7 @@ class M13T010A:
         InTolerance("SAL m1m3_HardpointActuatorData.ZRotation", data.ZRotation, REFERENCE_Z_ROTATION, ROTATION_TOLERANCE)
         
         result, data = m1m3.GetSampleIMSData()
+        Log("result from GetSampleIMSData is %d" %  result)
         InTolerance("SAL m1m3_IMSData.XPosition", data.XPosition, REFERENCE_X_POSITION, POSITION_TOLERANCE)
         InTolerance("SAL m1m3_IMSData.YPosition", data.YPosition, REFERENCE_Y_POSITION, POSITION_TOLERANCE)
         InTolerance("SAL m1m3_IMSData.ZPosition", data.ZPosition, REFERENCE_Z_POSITION, POSITION_TOLERANCE)
@@ -251,28 +253,28 @@ class M13T010A:
         f.close()
 
         # Lower mirror.
-        m1m3.LowerM1M3()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_LoweringEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+#        m1m3.LowerM1M3()
+#        result, data = m1m3.GetEventDetailedState()
+#        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_LoweringEngineeringState)
+#        result, data = m1m3.GetEventSummaryState()
+#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
         
         # Wait until parked engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
+#        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
         
         # Bring mirror into Disabled state.
-        m1m3.Disable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+#        m1m3.Disable()
+#        result, data = m1m3.GetEventDetailedState()
+#        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+#        result, data = m1m3.GetEventSummaryState()
+#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
         
         # Get back into StandbyState
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
+#        m1m3.Standby()
+#        result, data = m1m3.GetEventDetailedState()
+#        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
+#        result, data = m1m3.GetEventSummaryState()
+#        Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
         
     def checkMotionStateEquals(self, eval):
         rtn, data = m1m3.GetNextEventHardpointActuatorState()
@@ -283,5 +285,5 @@ class M13T010A:
         
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
-    M13T010().Run(m1m3, sim, efd)
+    M13T010A().Run(m1m3, sim, efd)
     Shutdown(m1m3, sim, efd)
