@@ -30,14 +30,13 @@ class M13T001:
         Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
         
         # Check EFD Command
-        row = efd.QueryOne("SELECT Start, SettingsToApply FROM m1m3_command_Start ORDER BY date_time DESC LIMIT 1")
-        Equal("EFD m1m3_command_Start.Start", int(row[0]), 1)
-        Equal("EFD m1m3_command_Start.SettingsToApply", row[1], "Default")
+        row = efd.QueryOne('SELECT "settingsToApply" FROM "efd"."autogen"."lsst.sal.MTM1M3.command_start" ORDER BY DESC LIMIT 1')
+        Equal("EFD m1m3_command_start.settingsToApply", row[0], "default")
         
         # Check EFD Event
-        row = efd.QueryOne("SELECT Timestamp, DetailedState FROM m1m3_logevent_DetailedState WHERE Timestamp <= %0.3f ORDER BY Timestamp DESC LIMIT 1" % (eventTimestamp + 0.001))
-        InTolerance("EFD m1m3_logevent_DetailedState.Timestamp", float(row[0]), data.Timestamp, 0.001)
-        Equal("EFD m1m3_logevent_DetailedState.DetailedState", int(row[1]), data.DetailedState)
+        row = efd.QueryOne('SELECT "timestamp", "detailedState" FROM "efd"."autogen"."lsst.sal.MTM1M3.logevent_detailedState" ORDER BY DESC LIMIT 1'
+        InTolerance("EFD m1m3_logevent_detailedState.timestamp", float(row[0]), data.timestamp, 0.001)
+        Equal("EFD m1m3_logevent_detailedState.detailedState", int(row[1]), data.detailedState)
                 
         # Check SAL Telemetry
         result, data = m1m3.GetSampleInclinometerData()
@@ -45,9 +44,9 @@ class M13T001:
         GreaterThan("SAL m1m3_InclinometerData.Timestamp", data.Timestamp, eventTimestamp)
         
         # Check EFD Telemetry
-        row = efd.QueryOne("SELECT Timestamp, InclinometerAngle FROM m1m3_InclinometerData WHERE Timestamp <= %0.3f ORDER BY Timestamp DESC LIMIT 1" % (telemetryTimestamp + 0.001))
-        InTolerance("EFD m1m3_InclinometerData.Timestamp", float(row[0]), data.Timestamp, 0.001)
-        InTolerance("EFD m1m3_InclinometerData.InclinometerAngle", float(row[1]), data.InclinometerAngle, 0.001)
+        row = efd.QueryOne('SELECT "timestamp", "inclinometerAngle" FROM "efd"."autogen"."lsst.sal.MTM1M3.inclinometerData" ORDER BY DESC LIMIT 1')
+        InTolerance("EFD m1m3_inclinometerData.timestamp", float(row[0]), data.timestamp, 0.001)
+        InTolerance("EFD m1m3_inclinometerData.inclinometerAngle", float(row[1]), data.inclinometerAngle, 0.001)
         
         # Get back into StandbyState
         m1m3.Standby()
