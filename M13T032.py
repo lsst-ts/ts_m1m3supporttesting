@@ -55,33 +55,33 @@ class M13T032:
         # Transition to disabled state
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_DisabledState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_DisabledState)
         
         # Transition to parked state
         m1m3.Enable()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_ParkedState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_EnabledState)
         
         # Transition to parked engineering state
         m1m3.EnterEngineering()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_ParkedEngineeringState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_EnabledState)
           
         # Raise mirror (therefore entering the Raised Engineering State).
         m1m3.RaiseM1M3(False)
         result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingEngineeringState)
+        Equal("SAL MTM1M3_logevent_DetailedState.DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_RaisingEngineeringState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_EnabledState)
         
         # Wait until active engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
+        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == MTM1M3_shared_DetailedStates_ActiveEngineeringState)
         
         # Prepare log file
         path = GetFilePath("M13T032-%d-HP-IMS.csv" % (testID))
@@ -107,8 +107,8 @@ class M13T032:
                 # Move to the test location
                 rtn, data = m1m3.GetEventHardpointActuatorState()
                 m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
-                WaitUntil("%s - m1m3_HardpointActuatorState.MotionState = Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
-                WaitUntil("%s - m1m3_HardpointActuatorState.MotionState = Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
+                WaitUntil("%s - MTM1M3_HardpointActuatorState.MotionState = Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
+                WaitUntil("%s - MTM1M3_HardpointActuatorState.MotionState = Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
 
                 # Settle for a bit
                 time.sleep(SETTLE_TIME)
@@ -129,20 +129,20 @@ class M13T032:
                 zRotIMS = Average(imsdatas, lambda data: data.ZRotation) + zRotOffset
 
                 # Verify HP
-                InTolerance("%s - %d - m1m3_HardpointActuatorData.XPosition" % (row[0], i + 1), xPosHP, row[1], POSITION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_HardpointActuatorData.YPosition" % (row[0], i + 1), yPosHP, row[2], POSITION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_HardpointActuatorData.ZPosition" % (row[0], i + 1), zPosHP, row[3], POSITION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_HardpointActuatorData.XRotation" % (row[0], i + 1), xRotHP, row[4], ROTATION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_HardpointActuatorData.YRotation" % (row[0], i + 1), yRotHP, row[5], ROTATION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_HardpointActuatorData.ZRotation" % (row[0], i + 1), zRotHP, row[6], ROTATION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_HardpointActuatorData.XPosition" % (row[0], i + 1), xPosHP, row[1], POSITION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_HardpointActuatorData.YPosition" % (row[0], i + 1), yPosHP, row[2], POSITION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_HardpointActuatorData.ZPosition" % (row[0], i + 1), zPosHP, row[3], POSITION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_HardpointActuatorData.XRotation" % (row[0], i + 1), xRotHP, row[4], ROTATION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_HardpointActuatorData.YRotation" % (row[0], i + 1), yRotHP, row[5], ROTATION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_HardpointActuatorData.ZRotation" % (row[0], i + 1), zRotHP, row[6], ROTATION_TOLERANCE)
 
                 # Verify IMS vs HP
-                InTolerance("%s - %d - m1m3_IMSData.XPosition" % (row[0], i + 1), xPosIMS, xPosHP, POSITION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_IMSData.YPosition" % (row[0], i + 1), yPosIMS, yPosHP, POSITION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_IMSData.ZPosition" % (row[0], i + 1), zPosIMS, zPosHP, POSITION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_IMSData.XRotation" % (row[0], i + 1), xRotIMS, xRotHP, ROTATION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_IMSData.YRotation" % (row[0], i + 1), yRotIMS, yRotHP, ROTATION_TOLERANCE)
-                InTolerance("%s - %d - m1m3_IMSData.ZRotation" % (row[0], i + 1), zRotIMS, zRotHP, ROTATION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_IMSData.XPosition" % (row[0], i + 1), xPosIMS, xPosHP, POSITION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_IMSData.YPosition" % (row[0], i + 1), yPosIMS, yPosHP, POSITION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_IMSData.ZPosition" % (row[0], i + 1), zPosIMS, zPosHP, POSITION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_IMSData.XRotation" % (row[0], i + 1), xRotIMS, xRotHP, ROTATION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_IMSData.YRotation" % (row[0], i + 1), yRotIMS, yRotHP, ROTATION_TOLERANCE)
+                InTolerance("%s - %d - MTM1M3_IMSData.ZRotation" % (row[0], i + 1), zRotIMS, zRotHP, ROTATION_TOLERANCE)
 
                 # Write record
                 log.write("%0.3f,%s,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f,%0.9f\r\n" % (hpdatas[0].Timestamp, "%s - %d" % (row[0], i + 1), xPosHP, yPosHP, zPosHP, xRotHP, yRotHP, zRotHP, xPosIMS, yPosIMS, zPosIMS, xRotIMS, yRotIMS, zRotIMS))
@@ -151,32 +151,32 @@ class M13T032:
             # Return to the reference position
             rtn, data = m1m3.GetEventHardpointActuatorState()
             m1m3.PositionM1M3(REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION)
-            WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
-            WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
+            WaitUntil("SAL %s MTM1M3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
+            WaitUntil("SAL %s MTM1M3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
 
         # Lower mirror.
         m1m3.LowerM1M3()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_LoweringEngineeringState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_LoweringEngineeringState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_EnabledState)
         
         # Wait until parked engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
+        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == MTM1M3_shared_DetailedStates_ParkedEngineeringState)
         
         # Transition to the disabled state
         m1m3.Disable()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_DisabledState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_DisabledState)
         
         # Transition to the standby state
         m1m3.Standby()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_StandbyState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_StandbyState)
 
     def sampleHPIMS(self, m1m3):
         hpdatas = []

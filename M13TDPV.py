@@ -42,23 +42,23 @@ class M13TDPV:
         # Transition to disabled state
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_DisabledState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_DisabledState)
         
         # Transition to parked state
         m1m3.Enable()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_ParkedState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_EnabledState)
         
         # Transition to parked engineering state
         m1m3.EnterEngineering()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_ParkedEngineeringState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_EnabledState)
         
         # Prepare force data
         xForces = [0] * 12
@@ -196,16 +196,16 @@ class M13TDPV:
         # Transition to disabled state
         m1m3.Disable()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_DisabledState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_DisabledState)
         
         # Transition to standby state
         m1m3.Standby()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_StandbyState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_StandbyState)
         
     def SampleForceActuators(self, m1m3):
         # Get force actuator data

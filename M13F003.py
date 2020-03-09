@@ -16,9 +16,9 @@ class M13F003:
         Header("M13F-003: Communications Tests")
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_DisabledState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_DisabledState)
         result, data = m1m3.GetEventForceActuatorInfo()
         forceActuatorInfo = data
         for index in range(156):
@@ -37,7 +37,7 @@ class M13F003:
             NotEqual("HM ILC %d UniqueId Not 0" % refId, uniqueId, 0)
         m1m3.Standby()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
+        Equal("DetailedState", data.detailedState, MTM1M3_shared_DetailedStates_StandbyState)
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
+        Equal("SummaryState", data.summaryState, MTM1M3_shared_SummaryStates_StandbyState)
         
