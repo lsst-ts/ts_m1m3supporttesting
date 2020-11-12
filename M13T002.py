@@ -1,573 +1,140 @@
+# This file is part of ts_salobj.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 ########################################################################
 # Test Numbers: M13T-002
-# Author:       CContaxis
 # Description:  Bump test
 # Steps:
 # - Transition from standby to parked engineering state
-# - Perform the following steps for each force actuator
-#   - If the force actuator has an X component
-#     - Apply a pure X force offset
-#     - Verify the pure X force is being applied
-#     - Verify the pure X force is being measured
-#     - Clear offset forces
-#     - Verify the pure X force is no longer being applied
-#     - Verify the pure X force is no longer being measured
-#     - Apply a pure -X force offset
-#     - Verify the pure -X force is being applied
-#     - Verify the pure -X force is being measured
-#     - Clear offset forces
-#     - Verify the pure -X force is no longer being applied
-#     - Verify the pure -X force is no longer being measured
-#   - If the force actuator has an Y component
-#     - Apply a pure Y force offset
-#     - Verify the pure Y force is being applied
-#     - Verify the pure Y force is being measured
-#     - Clear offset forces
-#     - Verify the pure Y force is no longer being applied
-#     - Verify the pure Y force is no longer being measured
-#     - Apply a pure -Y force offset
-#     - Verify the pure -Y force is being applied
-#     - Verify the pure -Y force is being measured
-#     - Clear offset forces
-#     - Verify the pure -Y force is no longer being applied
-#     - Verify the pure -Y force is no longer being measured
-#   - Apply a pure Z force offset
-#   - Verify the pure Z force is being applied
-#   - Verify the pure Z force is being measured
+# - Perform the following steps for each force actuator and each of its force component (X or Y and Z)
+#   - Apply a pure force offset
+#   - Verify the pure force is being applied
+#   - Verify the pure force is being measured
 #   - Clear offset forces
-#   - Verify the pure Z force is no longer being applied
-#   - Verify the pure Z force is no longer being measured
-#   - Apply a pure -Z force offset
-#   - Verify the pure -Z force is being applied
-#   - Verify the pure -Z force is being measured
+#   - Verify the pure force is no longer being applied
+#   - Verify the pure force is no longer being measured
+#   - Apply a pure -force offset
+#   - Verify the pure -force is being applied
+#   - Verify the pure -force is being measured
 #   - Clear offset forces
-#   - Verify the pure -Z force is no longer being applied
-#   - Verify the pure -Z force is no longer being measured
+#   - Verify the pure -force is no longer being applied
+#   - Verify the pure -force is no longer being measured
 # - Transition from parked engineering state to standby
 ########################################################################
 
-import time
-import math
+import asynctest
+import asyncio
+import logging
 from Utilities import *
-from SALPY_m1m3 import *
 from ForceActuatorTable import *
-from HardpointActuatorTable import *
-from Setup import *
+from lsst.ts import salobj
+from lsst.ts.idl.enums import MTM1M3
 
-TEST_FORCE = 222.0
-TEST_SETTLE_TIME = 3.0
-TEST_TOLERANCE = 5.0
-TEST_SAMPLES_TO_AVERAGE = 10
 
-class M13T002:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-002: Bump Test")
-        
-        # Transition to disabled state
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to parked state
-        m1m3.Enable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to parked engineering state
-        m1m3.EnterEngineering()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Prepare force data
-        xForces = [0] * 12
-        yForces = [0] * 100
-        zForces = [0] * 156
-        xIndex = 0
-        yIndex = 0
-        sIndex = 0
-        
-        # Iterate through all 156 force actuators
-        for row in forceActuatorTable:
-            index = row[forceActuatorTableIndexIndex]
-            id = row[forceActuatorTableIDIndex]
-            orientation = row[forceActuatorTableOrientationIndex]
-            x = -1        # X index for data access, if -1 no X data available
-            y = -1        # Y index for data access, if -1 no Y data available
-            s = -1        # S (Secondary Cylinder) index for data access, if -1 no S data available
-            z = index     # Z index for data access, all force actuators have Z data
-            
-            # Set the X and S index if applicable
-            if orientation in ['+X', '-X']:
-                x = xIndex
-                s = sIndex
-                xIndex += 1
-                sIndex += 1
-                
-            # Set the Y and S index if applicable
-            if orientation in ['+Y', '-Y']:
-                y = yIndex
-                s = sIndex
-                yIndex += 1
-                sIndex += 1
+class M13T002(asynctest.TestCase):
+    def setUp(self):
+        self.domain = salobj.Domain()
+        self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
 
-            Header("Verify Force Actuator %d Commands and Telemetry" % id)
+    async def assertM1M3State(self, state, wait=1):
+        await asyncio.sleep(wait)
+        self.assertEqual(self.m1m3.evt_detailedState.get().detailedState, state)
 
-            # If the current actuator has X data available, test it
-            if x != -1:
-                # Set the commanded X force
-                xForces[x] = TEST_FORCE
+    async def wait_bump_test(self):
+        TIMEOUT = 25
+        count = 0
+        while True:
+            data = await self.m1m3.evt_forceActuatorBumpTestStatus.aget()
+            primary = data.primaryTest[self._actuator_index]
+            if primary > 5:
+                break
 
-                # Apply the X only offset force
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+            await asyncio.sleep(1)
+            if count > TIMEOUT:
+                raise TimeoutError(
+                    f"M1M3 primary actuator {self._actuator_index} ID {self._actuator_id} ends after {TIMEOUT} seconds in {primary}"
+                )
+            count += 1
+            print(
+                f"{count} M1M3 primary actuator {self._actuator_index} ID {self._actuator_id} ends in {primary}"
+            )
 
-                # Set the simulatored force actuator's load cells to the correct value
-                primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, TEST_FORCE, 0, 0)
-                sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d +X AppliedForces.XForces[%d]" % (id, x), data.XForces[x], TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +X AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +X AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +X AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d +X AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], int(secondaryCylinderForce * 1000), TEST_TOLERANCE)
-                InTolerance("FA%03d +X AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], int(primaryCylinderForce * 1000), TEST_TOLERANCE)
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                SubHeader("Force Actuator %d X Force Added" % id)
-                self.VerifyForceActuators("FA%03d +X" % id, m1m3, sim, xForces, yForces, zForces)
+        self.assertEqual(primary, 6)
 
-                # Clear offset forces
-                m1m3.ClearOffsetForces()
-                
-                # Set the simulated force actuator's load cells to the correct value
-                sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d +X0 AppliedForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +X0 AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +X0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +X0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d +X0 AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +X0 AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Wait a bit before checking all force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                xForces[x] = 0
-                SubHeader("Force Actuator %d X Force Removed" % id)
-                self.VerifyForceActuators("FA%03d +X0" % id, m1m3, sim, xForces, yForces, zForces)
-                
-                # Set the commanded X force
-                xForces[x] = -TEST_FORCE
+        if self._secondary_index is None:
+            return
 
-                # Apply the X only offset force
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+        count = 0
+        while True:
+            secondary = self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
+                self._secondary_index
+            ]
+            if secondary > 5:
+                break
 
-                # Set the simulatored force actuator's load cells to the correct value
-                primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, -TEST_FORCE, 0, 0)
-                sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d -X AppliedForces.XForces[%d]" % (id, x), data.XForces[x], -TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -X AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -X AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], -TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -X AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d -X AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], int(secondaryCylinderForce * 1000), TEST_TOLERANCE)
-                InTolerance("FA%03d -X AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], int(primaryCylinderForce * 1000), TEST_TOLERANCE)
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                SubHeader("Force Actuator %d X Force Added" % id)
-                self.VerifyForceActuators("FA%03d -X" % id, m1m3, sim, xForces, yForces, zForces)
+            await asyncio.sleep(1)
+            if count > TIMEOUT:
+                raise TimeoutError(
+                    f"M1M3 secondary actuator {self._actuator_id} ends after {TIMEOUT} seconds in {secondary}"
+                )
+            count += 1
+            print(
+                f"{count} M1M3 secondary actuator {self._secondary_index} ID {self._actuator_id} ends in {secondary}"
+            )
 
-                # Clear offset forces
-                m1m3.ClearOffsetForces()
-                
-                # Set the simulated force actuator's load cells to the correct value
-                sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d -X0 AppliedForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -X0 AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -X0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -X0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d -X0 AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -X0 AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Wait a bit before checking all force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                xForces[x] = 0
-                SubHeader("Force Actuator %d X Force Removed" % id)
-                self.VerifyForceActuators("FA%03d -X0" % id, m1m3, sim, xForces, yForces, zForces)
-                
-            # If the current actuator has Y data available, test it
-            if y != -1:
-                # Set the commanded Y force
-                yForces[y] = TEST_FORCE
-                
-                # Apply offset forces
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+        self.assertEqual(secondary, 6)
 
-                # Set the simulated force actuator's load cells to the correct value
-                primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, 0, TEST_FORCE, 0)
-                sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d +Y AppliedForces.YForces[%d]" % (id, y), data.YForces[y], TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +Y AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d +Y AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], int(secondaryCylinderForce * 1000), TEST_TOLERANCE)
-                InTolerance("FA%03d +Y AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], int(primaryCylinderForce * 1000), TEST_TOLERANCE)
-                
-                # Wait a bit before checking all force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                SubHeader("Force Actuator %d Y Force Added" % id)
-                self.VerifyForceActuators("FA%03d +Y" % id, m1m3, sim, xForces, yForces, zForces)
+    async def test_bump_test(self):
+        await self.m1m3.start_task
+        await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
 
-                # Clear offset forces
-                m1m3.ClearOffsetForces()
+        await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
+        self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
 
-                # Set the simulated force actuator's load cells to the correct value
-                sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d +Y0 AppliedForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y0 AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +Y0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d +Y0 AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y0 AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Wait a bit before checking all force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                yForces[y] = 0
-                SubHeader("Force Actuator %d Y Force Removed" % id)
-                self.VerifyForceActuators("FA%03d +Y0" % id, m1m3, sim, xForces, yForces, zForces)
-                
-                # Set the commanded Y force
-                yForces[y] = -TEST_FORCE
-                
-                # Apply offset forces
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+        await self.m1m3.cmd_enable.start()
+        self.assertM1M3State(MTM1M3.DetailedState.PARKED)
 
-                # Set the simulated force actuator's load cells to the correct value
-                primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, 0, -TEST_FORCE, 0)
-                sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d -Y AppliedForces.YForces[%d]" % (id, y), data.YForces[y], -TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -Y AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], -TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d -Y AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], int(secondaryCylinderForce * 1000), TEST_TOLERANCE)
-                InTolerance("FA%03d -Y AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], int(primaryCylinderForce * 1000), TEST_TOLERANCE)
-                
-                # Wait a bit before checking all force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                SubHeader("Force Actuator %d Y Force Added" % id)
-                self.VerifyForceActuators("FA%03d -Y" % id, m1m3, sim, xForces, yForces, zForces)
+        await self.m1m3.cmd_enterEngineering.start()
+        self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
 
-                # Clear offset forces
-                m1m3.ClearOffsetForces()
+        secondary = 0
 
-                # Set the simulated force actuator's load cells to the correct value
-                sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
-                
-                # Verify the applied mirror forces match the expected value
-                result, data = m1m3.GetEventAppliedForces()
-                InTolerance("FA%03d -Y0 AppliedForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y0 AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -Y0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Verify the applied cylinder forces match the expected value
-                result, data = m1m3.GetEventAppliedCylinderForces()
-                InTolerance("FA%03d -Y0 AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y0 AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], 0.0, TEST_TOLERANCE)
-                
-                # Wait a bit before checking all force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check all force actuators
-                yForces[y] = 0
-                SubHeader("Force Actuator %d Y Force Removed" % id)
-                self.VerifyForceActuators("FA%03d -Y0" % id, m1m3, sim, xForces, yForces, zForces)
-            
-            # Set the commanded Z force
-            zForces[z] = TEST_FORCE
-            
-            # Apply offset forces
-            m1m3.ApplyOffsetForces(xForces, yForces, zForces)
-            
-            # Set the simulated force actuator's load cells to the correct value
-            primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, 0, 0, TEST_FORCE)
-            sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-            
-            # Verify the applied mirror forces match the expected value
-            result, data = m1m3.GetEventAppliedForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d +Z AppliedForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d +Z AppliedForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], TEST_FORCE, TEST_TOLERANCE)
-            
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d +Z AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d +Z AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], TEST_FORCE, TEST_TOLERANCE)
-            
-            # Verify the applied cylinder forces match the expected value
-            result, data = m1m3.GetEventAppliedCylinderForces()
-            # If this actuator has a X or Y force, verify it
-            if x != -1 or y != -1:
-                InTolerance("FA%03d +Z AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], int(primaryCylinderForce * 1000), TEST_TOLERANCE)
-            
-            # Wait a bit before checking all force actuator forces (positive and negative testing) 
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check all force actuators
-            SubHeader("Force Actuator %d Z Force Added" % id)
-            self.VerifyForceActuators("FA%03d +Z" % id, m1m3, sim, xForces, yForces, zForces)
-            
-            # Clear offset forces
-            m1m3.ClearOffsetForces()
-            
-            # Set the simulated force actuator's load cells to the correct value
-            sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
-            
-            # Verify the applied mirror forces match the expected value
-            result, data = m1m3.GetEventAppliedForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d +Z0 AppliedForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d +Z0 AppliedForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z0 AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-            
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d +Z0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d +Z0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
+        for actuator in forceActuatorTable:
+            self._actuator_index = actuator[0]
+            self._actuator_id = actuator[1]
+            if actuator[5] == "DAA":
+                self._secondary_index = secondary
+                secondary += 1
+            else:
+                self._secondary_index = None
+            print(
+                f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}"
+            )
+            await self.m1m3.cmd_forceActuatorBumpTest.set_start(
+                actuatorId=self._actuator_id,
+                testPrimary=True,
+                testSecondary=self._secondary_index is not None,
+            )
+            await self.wait_bump_test()
 
-            # Verify the applied cylinder forces match the expected value
-            result, data = m1m3.GetEventAppliedCylinderForces()
-            # If this actuator has a X or Y force, verify it
-            if x != -1 or y != -1:
-                InTolerance("FA%03d +Z0 AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z0 AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], 0.0, TEST_TOLERANCE)
-            
-            # Wait a bit before checking all force actuator forces (positive and negative)
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check all force actuators
-            zForces[z] = 0            
-            SubHeader("Force Actuator %d Z Force Removed" % id)
-            self.VerifyForceActuators("FA%03d +Z0" % id, m1m3, sim, xForces, yForces, zForces)
-            
-            # Set the commanded Z force
-            zForces[z] = -TEST_FORCE
-            
-            # Apply offset forces
-            m1m3.ApplyOffsetForces(xForces, yForces, zForces)
-            
-            # Set the simulated force actuator's load cells to the correct value
-            primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, 0, 0, -TEST_FORCE)
-            sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-            
-            # Verify the applied mirror forces match the expected value
-            result, data = m1m3.GetEventAppliedForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d -Z AppliedForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d -Z AppliedForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], -TEST_FORCE, TEST_TOLERANCE)
-            
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d -Z AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d -Z AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], -TEST_FORCE, TEST_TOLERANCE)
-            
-            # Verify the applied cylinder forces match the expected value
-            result, data = m1m3.GetEventAppliedCylinderForces()
-            # If this actuator has a X or Y force, verify it
-            if x != -1 or y != -1:
-                InTolerance("FA%03d -Z AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], int(primaryCylinderForce * 1000), TEST_TOLERANCE)
-            
-            # Wait a bit before checking all force actuator forces (positive and negative testing) 
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check all force actuators
-            SubHeader("Force Actuator %d Z Force Added" % id)
-            self.VerifyForceActuators("FA%03d -Z" % id, m1m3, sim, xForces, yForces, zForces)
-            
-            # Clear offset forces
-            m1m3.ClearOffsetForces()
-            
-            # Set the simulated force actuator's load cells to the correct value
-            sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
-            
-            # Verify the applied mirror forces match the expected value
-            result, data = m1m3.GetEventAppliedForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d -Z0 AppliedForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d -Z0 AppliedForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z0 AppliedForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
-            
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            # If this actuator has a X force, verify it
-            if x != -1:
-                InTolerance("FA%03d -Z0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            # If this actuator has a Y force, verify it
-            if y != -1:
-                InTolerance("FA%03d -Z0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)
 
-            # Verify the applied cylinder forces match the expected value
-            result, data = m1m3.GetEventAppliedCylinderForces()
-            # If this actuator has a X or Y force, verify it
-            if x != -1 or y != -1:
-                InTolerance("FA%03d -Z0 AppliedCylinderForces.SecondaryCylinderForces[%d]" % (id, s), data.SecondaryCylinderForces[s], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z0 AppliedCylinderForces.PrimaryCylinderForces[%d]" % (id, z), data.PrimaryCylinderForces[z], 0.0, TEST_TOLERANCE)
-            
-            # Wait a bit before checking all force actuator forces (positive and negative)
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check all force actuators
-            zForces[z] = 0            
-            SubHeader("Force Actuator %d Z Force Removed" % id)
-            self.VerifyForceActuators("FA%03d -Z0" % id, m1m3, sim, xForces, yForces, zForces)
-            
-        # Transition to disabled state
-        m1m3.Disable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to standby state
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        
-    def VerifyForceActuators(self, preText, m1m3, sim, xForces, yForces, zForces):
-        # Get force actuator data
-        datas = []
-        while len(datas) < TEST_SAMPLES_TO_AVERAGE:
-            result, data = m1m3.GetSampleForceActuatorData()
-            if result >= 0:
-                datas.append(data)
-        # Validate all X data
-        for i in range(12):
-            InTolerance("%s ForceActuatorData.XForce[%d]" % (preText, i), Average(datas, lambda x: x.XForce[i]), xForces[i], TEST_TOLERANCE)
-        # Validate all Y data
-        for i in range(100):
-            InTolerance("%s ForceActuatorData.YForce[%d]" % (preText, i), Average(datas, lambda x: x.YForce[i]), yForces[i], TEST_TOLERANCE)
-        # Validate all Z data
-        for i in range(156):
-            InTolerance("%s ForceActuatorData.ZForce[%d]" % (preText, i), Average(datas, lambda x: x.ZForce[i]), zForces[i], TEST_TOLERANCE)
-        
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T002().Run(m1m3, sim, efd)
-    Shutdown(m1m3, sim, efd)
+    unittest.main()
