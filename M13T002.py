@@ -50,7 +50,7 @@ from lsst.ts.idl.enums import MTM1M3
 
 
 class M13T002(asynctest.TestCase):
-    def setUp(self):
+    async def setUp(self):
         self.domain = salobj.Domain()
         self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
 
@@ -59,7 +59,7 @@ class M13T002(asynctest.TestCase):
         self.assertEqual(self.m1m3.evt_detailedState.get().detailedState, state)
 
     async def wait_bump_test(self):
-        TIMEOUT = 25
+        TIMEOUT = 26
         count = 0
         while True:
             data = await self.m1m3.evt_forceActuatorBumpTestStatus.aget()
@@ -104,7 +104,7 @@ class M13T002(asynctest.TestCase):
 
     async def test_bump_test(self):
         await self.m1m3.start_task
-        await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
+        #await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
 
         await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
         self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
@@ -115,7 +115,12 @@ class M13T002(asynctest.TestCase):
         await self.m1m3.cmd_enterEngineering.start()
         self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
 
+        print('Sleeping..')
+        await asyncio.sleep(10)
+
         secondary = 0
+
+        skip = []
 
         for actuator in forceActuatorTable:
             self._actuator_index = actuator[0]
@@ -125,6 +130,10 @@ class M13T002(asynctest.TestCase):
                 secondary += 1
             else:
                 self._secondary_index = None
+
+            if self._actuator_id in skip:
+                continue
+
             print(
                 f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}"
             )
