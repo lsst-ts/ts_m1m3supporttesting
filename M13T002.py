@@ -44,8 +44,7 @@
 
 import asynctest
 import asyncio
-import logging
-from Utilities import *
+import click
 from ForceActuatorTable import *
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
@@ -67,23 +66,37 @@ class M13T002(asynctest.TestCase):
         self.assertEqual(
             self.m1m3.evt_detailedState.get().detailedState,
             state,
-            f"M1M3 SS is in wrong state",
+            click.style("M1M3 SS is in wrong state", bold=True, bg="red"),
         )
 
     async def wait_bump_test(self):
         TIMEOUT = 26
-        count = 0
-        while True:
-            data = await self.m1m3.evt_forceActuatorBumpTestStatus.aget()
-            primary = data.primaryTest[self._actuator_index]
-            if primary > 5 or count > TIMEOUT:
-                break
 
-            await asyncio.sleep(1)
-            count += 1
-            print(
-                f"{count} M1M3 primary actuator {self._actuator_index} ID {self._actuator_id} ends in {primary}"
-            )
+        def test_state(state):
+            return [
+                "Idle",
+                "Testing positive",
+                "Positive wait 0",
+                "Testing negative",
+                "Negative wait 0",
+                "Passed",
+                "Failed",
+            ][min(state, 7) - 1]
+
+        primary = -1
+        with click.progressbar(
+            range(TIMEOUT),
+            label=click.style(f"Primary {self._actuator_id:03d}", bold=True),
+            item_show_func=lambda i: test_state(primary),
+            width=0,
+        ) as bar:
+            for b in bar:
+                data = await self.m1m3.evt_forceActuatorBumpTestStatus.aget()
+                primary = data.primaryTest[self._actuator_index]
+                if primary > 5:
+                    break
+
+                await asyncio.sleep(1)
 
         if primary != 6:
             self.failed["primary"].append(self._actuator_id)
@@ -92,62 +105,85 @@ class M13T002(asynctest.TestCase):
             return
 
         count = 0
-        while True:
-            secondary = self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
-                self._secondary_index
-            ]
-            if secondary > 5 or count > TIMEOUT:
-                break
 
-            await asyncio.sleep(1)
-            count += 1
-            print(
-                f"{count} M1M3 secondary actuator {self._secondary_index} ID {self._actuator_id} ends in {secondary}"
-            )
+        secondary = -1
+        with click.progressbar(
+            range(TIMEOUT),
+            label=click.style(f"Secondary {self._actuator_id:03d}", bold=True),
+            item_show_func=lambda i: test_state(secondary),
+            width=0,
+        ) as bar:
+            for b in bar:
+                secondary = (
+                    self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
+                        self._secondary_index
+                    ]
+                )
+                if secondary > 5:
+                    break
+
+                await asyncio.sleep(1)
 
         if secondary != 6:
             self.failed["secondary"].append(self._actuator_id)
 
+    async def startup(self):
+        with click.progressbar(range(7), label="Starting up..", width=0) as bar:
+            await self.m1m3.start_task
+            # await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
+            bar.update(1)
+
+            await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
+            bar.update(1)
+            await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+            bar.update(1)
+
+            await self.m1m3.cmd_enable.start()
+            bar.update(1)
+            await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
+            bar.update(1)
+
+            await self.m1m3.cmd_enterEngineering.start()
+            bar.update(1)
+            await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
+            bar.update(1)
+
     async def test_bump_test(self):
-        await self.m1m3.start_task
-        # await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
+        await self.startup()
 
-        await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
-        await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
-
-        await self.m1m3.cmd_enable.start()
-        await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
-
-        await self.m1m3.cmd_enterEngineering.start()
-        await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
-
-        print("Sleeping..")
-        await asyncio.sleep(20)
+        with click.progressbar(range(20), label="Waiting for mirror", width=0) as bar:
+            for b in bar:
+                await asyncio.sleep(1)
 
         secondary = 0
 
-        for actuator in forceActuatorTable[:3]:
-            self._actuator_index = actuator[0]
-            self._actuator_id = actuator[1]
-            if actuator[5] == "DAA":
-                self._secondary_index = secondary
-                secondary += 1
-            else:
-                self._secondary_index = None
+        with click.progressbar(
+            forceActuatorTable,
+            label=click.style("Actuators", fg="green"),
+            item_show_func=lambda a: "XXX" if a is None else str(a[1]),
+            width=0,
+        ) as bar:
+            for actuator in bar:
+                self._actuator_index = actuator[0]
+                self._actuator_id = actuator[1]
+                if actuator[5] == "DAA":
+                    self._secondary_index = secondary
+                    secondary += 1
+                else:
+                    self._secondary_index = None
 
-            print(
-                f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}"
-            )
-            await self.m1m3.cmd_forceActuatorBumpTest.set_start(
-                actuatorId=self._actuator_id,
-                testPrimary=True,
-                testSecondary=self._secondary_index is not None,
-            )
-            await self.wait_bump_test()
-
-        # let all running tasks finish
-        pending_tasks = [task for task in asyncio.Task.all_tasks() if not task.done()]
-        self.loop.run_until_complete(asyncio.gather(*pending_tasks))
+                click.echo(
+                    click.style(
+                        f"\nTesting actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}",
+                        fg="blue",
+                    )
+                )
+                await self.m1m3.cmd_forceActuatorBumpTest.set_start(
+                    actuatorId=self._actuator_id,
+                    testPrimary=True,
+                    testSecondary=self._secondary_index is not None,
+                )
+                await self.wait_bump_test()
 
         self.assertEqual(self.failed, self.emptyFailed)
 
