@@ -55,12 +55,20 @@ class M13T002(asynctest.TestCase):
     async def setUp(self):
         self.domain = salobj.Domain()
         self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
-        self.failedPrimary = []
-        self.failedSecondary = []
+        self.failed = {"primary": [], "secondary": []}
+        self.emptyFailed = self.failed
+
+    async def tearDown(self):
+        await self.m1m3.close()
+        await self.domain.close()
 
     async def assertM1M3State(self, state, wait=2):
         await asyncio.sleep(wait)
-        self.assertEqual(self.m1m3.evt_detailedState.get().detailedState, state)
+        self.assertEqual(
+            self.m1m3.evt_detailedState.get().detailedState,
+            state,
+            f"M1M3 SS is in wrong state",
+        )
 
     async def wait_bump_test(self):
         TIMEOUT = 26
@@ -78,7 +86,7 @@ class M13T002(asynctest.TestCase):
             )
 
         if primary != 6:
-            self.failedPrimary.append(self._actuator_id)
+            self.failed["primary"].append(self._actuator_id)
 
         if self._secondary_index is None:
             return
@@ -98,11 +106,11 @@ class M13T002(asynctest.TestCase):
             )
 
         if secondary != 6:
-            self.failedSecondary.append(self._actuator_id)
+            self.failed["secondary"].append(self._actuator_id)
 
     async def test_bump_test(self):
         await self.m1m3.start_task
-        #await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
+        # await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
 
         await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
         await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
@@ -113,7 +121,7 @@ class M13T002(asynctest.TestCase):
         await self.m1m3.cmd_enterEngineering.start()
         await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
 
-        print('Sleeping..')
+        print("Sleeping..")
         await asyncio.sleep(20)
 
         secondary = 0
@@ -137,8 +145,12 @@ class M13T002(asynctest.TestCase):
             )
             await self.wait_bump_test()
 
-        self.assertEqual(self.failedPrimary, [])
-        self.assertEqual(self.failedSecondary, [])
+        # let all running tasks finish
+        pending_tasks = [task for task in asyncio.Task.all_tasks() if not task.done()]
+        self.loop.run_until_complete(asyncio.gather(*pending_tasks))
+
+        self.assertEqual(self.failed, self.emptyFailed)
+
 
 if __name__ == "__main__":
     asynctest.main()
