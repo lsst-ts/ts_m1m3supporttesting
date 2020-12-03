@@ -51,6 +51,8 @@ from lsst.ts.idl.enums import MTM1M3
 
 
 class M13T002(asynctest.TestCase):
+    TIMEOUT = 260
+
     async def setUp(self):
         self.domain = salobj.Domain()
         self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
@@ -70,23 +72,23 @@ class M13T002(asynctest.TestCase):
         )
 
     async def wait_bump_test(self):
-        TIMEOUT = 26
-
         def test_state(state):
             return [
-                "Idle",
+                "Not tested",
+                "Testing start zero",
                 "Testing positive",
-                "Positive wait 0",
+                "Positive wait zero",
                 "Testing negative",
-                "Negative wait 0",
-                "Passed",
-                "Failed",
-            ][min(state, 7) - 1]
+                "Negative wait zero",
+                click.style("Passed", fg="green"),
+                click.style("Failed", fg="red"),
+            ][min(state, 7)]
 
         primary = -1
         with click.progressbar(
-            range(TIMEOUT),
-            label=click.style(f"Primary {self._actuator_id:03d}", bold=True),
+            range(self.TIMEOUT),
+            label=click.style(f"Primary {self._actuator_id:03d}", bold=True)
+            + click.style(" (% of timeout time)"),
             item_show_func=lambda i: test_state(primary),
             width=0,
         ) as bar:
@@ -94,11 +96,15 @@ class M13T002(asynctest.TestCase):
                 data = await self.m1m3.evt_forceActuatorBumpTestStatus.aget()
                 primary = data.primaryTest[self._actuator_index]
                 if primary > 5:
+                    bar.update(0)
                     break
 
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.1)
 
         if primary != 6:
+            click.echo(
+                click.style(f"Failed primary {self._actuator_id}", bg="red", bold=True)
+            )
             self.failed["primary"].append(self._actuator_id)
 
         if self._secondary_index is None:
@@ -108,8 +114,9 @@ class M13T002(asynctest.TestCase):
 
         secondary = -1
         with click.progressbar(
-            range(TIMEOUT),
-            label=click.style(f"Secondary {self._actuator_id:03d}", bold=True),
+            range(self.TIMEOUT),
+            label=click.style(f"Secondary {self._actuator_id:03d}", bold=True)
+            + click.style(" (% of timeout time)"),
             item_show_func=lambda i: test_state(secondary),
             width=0,
         ) as bar:
@@ -120,11 +127,17 @@ class M13T002(asynctest.TestCase):
                     ]
                 )
                 if secondary > 5:
+                    bar.update(0)
                     break
 
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.1)
 
         if secondary != 6:
+            click.echo(
+                click.style(
+                    f"Failed secondary {self._actuator_id}", bg="red", bold=True
+                )
+            )
             self.failed["secondary"].append(self._actuator_id)
 
     async def startup(self):
@@ -151,16 +164,25 @@ class M13T002(asynctest.TestCase):
     async def test_bump_test(self):
         await self.startup()
 
-        with click.progressbar(range(20), label="Waiting for mirror", width=0) as bar:
+        with click.progressbar(range(200), label="Waiting for mirror", width=0) as bar:
             for b in bar:
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.1)
 
         secondary = 0
+
+        click.echo(
+            click.style(
+                f"Tests progressbars total is time allocated for completion ({self.TIMEOUT / 10:.1f} sec)!!",
+                bold=True,
+                fg="cyan",
+            )
+        )
 
         with click.progressbar(
             forceActuatorTable,
             label=click.style("Actuators", fg="green"),
             item_show_func=lambda a: "XXX" if a is None else str(a[1]),
+            show_pos=True,
             width=0,
         ) as bar:
             for actuator in bar:
