@@ -1,3 +1,26 @@
+#!/usr/bin/env python3.8
+
+# This file is part of ts_salobj.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 ########################################################################
 # Test Numbers: M13T-004
 # Author:       CContaxis
@@ -16,153 +39,137 @@
 # - Transition from parked engineering to standby state
 ########################################################################
 
-import time
-import math
-from Utilities import *
-from SALPY_m1m3 import *
-from ForceActuatorTable import *
-from HardpointActuatorTable import *
-from Setup import *
+from MTM1M3Test import *
+from lsst.ts.idl.enums import MTM1M3
 
-class M13T004:
-    def Run(self, m1m3, sim, efd, header):
-        Header(header)
-        
-        # Transition to disabled state
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to parked state state
-        m1m3.Enable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to parked engineering state
-        m1m3.EnterEngineering()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Iterate through the 6 hardpoint actuators
-        for index in range(6):
-            actId = index + 1
-            SubHeader("Hardpoint Actuator #%d" % (actId))
-            
-            # Issue through a number of steps for each actuator
-            for step in [-999999999, 999999999]:
+import asyncio
+import asynctest
+import click
+
+
+class M13T004(MTM1M3Test):
+    async def hardpoint_test(self, hp):
+        click.echo(click.style(f"Hardpoint Actuator {hp}", bold=True, fg="cyan"))
+        hpIndex = hp - 1
+
+        # Issue through a number of steps for each actuator
+        with click.progressbar(
+            [-999999999, 999999999],
+            label=click.style("Stepping HP", fg="green"),
+            item_show_func=lambda a: str(a),
+            show_pos=True,
+            width=0,
+        ) as bar:
+            for step in bar:
                 # Give time for a sample
-                time.sleep(1)
-            
+                await asyncio.sleep(1)
+
                 # Get the start timestamp for collecting data from the EFD
-                result, data = m1m3.GetSampleHardpointActuatorData()
-                startTimestamp = data.Timestamp
-                
+                startTimestamp = self.m1m3.tel_hardpointActuatorData.get().timestamp
+
                 # Setup the simulator response (ignored if running at CAID)
-                sim.setHPForceAndStatus(actId, 0, 100 + index, 0)
-                sim.setILCStatus(actId, 0, 0x0000, 0)
-                                
+                # sim.setHPForceAndStatus(actId, 0, 100 + index, 0)
+                # sim.setILCStatus(actId, 0, 0x0000, 0)
+
                 # Wait a bit
-                time.sleep(1)
+                await asyncio.sleep(1)
 
                 # Command the steps
                 tmp = [0] * 6
-                tmp[index] = step
-                m1m3.MoveHardpointActuators(tmp)
-                
+                tmp[hpIndex] = step
+                await self.m1m3.cmd_moveHardpointActuators.set_start(steps=tmp)
+
                 # Verify the commanded actuator is moving
-                result, data = m1m3.GetEventHardpointActuatorState()
-                Equal("Actuator %d moving" % (actId), data.MotionState[index], 2)
-                
+                self.assertEqual(
+                    self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex],
+                    MTM1M3.HardpointActuatorMotionStates.STEPPING,
+                )
+
                 # Wait for moving to complete or a limit switch is hit
                 loopCount = 0
                 while True:
                     # Check if moving is complete
-                    result, data = m1m3.GetEventHardpointActuatorState()
-                    if result >= 0 and data.MotionState[index] == 0:
+                    if (
+                        self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex]
+                        == MTM1M3.HardpointActuatorMotionStates.STANDBY
+                    ):
                         break
+
                     # Check if limit switch is hit
-                    result, data = m1m3.GetEventHardpointActuatorWarning()
-                    if result >= 0 and (data.LimitSwitch1Operated[index] or data.LimitSwitch2Operated[index]):
+                    hpWarning = self.m1m3.evt_hardpointActuatorWarning.get()
+                    if (
+                        hpWarning.limitSwitch1Operated[hpIndex]
+                        or hpWarning.limitSwitch2Operated[hpIndex]
+                    ):
                         break
+
                     status = 0
+
                     # For simulation testing toggle a limit switch after 10 seconds
-                    result, data = m1m3.GetSampleHardpointActuatorData()
-                    currentTimestamp = data.Timestamp
-                    status1 = 0
-                    status2 = 0
-                    if abs(currentTimestamp - startTimestamp) >= 10.0:
-                        status1 = 0x04 + 0x08
-                        status2 = 0x0100 + 0x0200
-                    sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
-                    sim.setILCStatus(actId, 0, status2, 0)
-                    loopCount += 1
-                    time.sleep(0.5)
-                    
+                    # hpData = self.m1m3.tel_hardpointActuatorData.get()
+                    # currentTimestamp = hpData.timestamp
+                    # status1 = 0
+                    # status2 = 0
+                    # if abs(currentTimestamp - startTimestamp) >= 10.0:
+                    #    status1 = 0x04 + 0x08
+                    #    status2 = 0x0100 + 0x0200
+                    # sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
+                    # sim.setILCStatus(actId, 0, status2, 0)
+                    # loopCount += 1
+                    # time.sleep(0.5)
+
                 # Stop hardpoint motion
-                m1m3.StopHardpointMotion()
-                
+                await self.m1m3.cmd_stopHardpointMotion.start()
+
                 # Verify hardpoint motion has stopped
-                result, data = m1m3.GetEventHardpointActuatorState()
-                Equal("Actuator %d stopped" % (actId), data.MotionState[index], 0)
-                
+                self.assertEqual(
+                    self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex],
+                    MTM1M3.HardpointActuatorMotionStates.STANDBY,
+                )
+
                 # Give a little buffer room before completing this part of the test
-                time.sleep(1)
-                
+                await asyncio.sleep(1)
+
                 # Get the stop timestamp for collecting data from the EFD
-                result, data = m1m3.GetSampleHardpointActuatorData()
-                stopTimestamp = data.Timestamp
-                
+                stopTimestamp = self.m1m3.tel_hardpointActuatorData.get().timestamp
+
                 # Report the start and stop timestamps to the log
-                Log("Start Timestamp: %0.6f" % startTimestamp)
-                Log("Stop Timestamp:  %0.6f" % stopTimestamp)
+                click.echo(f"Start Timestamp: {startTimestamp:.0f}")
+                click.echo(f"Stop Timestamp: {stopTimestamp:.0f}")
 
                 # Generate the hardpoint monitor data file
-                rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-                path = GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId))
-                Log("File path: %s" % path)
-                file = open(path, "w+")
-                file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure\r\n")
-                rowCount = 0
-                for row in rows:
-                    rowCount += 1
-                    file.write("%0.3f,%0.9f,%0.9f,%0.3f\r\n" % (row[0], row[1], row[2], row[3]))
-                file.close()
-                Log("Got %d rows" % rowCount)
-                
+                # rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
+                # path = GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId))
+                # Log("File path: %s" % path)
+                # file = open(path, "w+")
+                # file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure\r\n")
+                # rowCount = 0
+                # for row in rows:
+                #    rowCount += 1
+                #    file.write("%0.3f,%0.9f,%0.9f,%0.3f\r\n" % (row[0], row[1], row[2], row[3]))
+                # file.close()
+                # Log("Got %d rows" % rowCount)
+
                 # Generate the hardpoint actuator data file
-                rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-                path = GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId))
-                Log("File path: %s" % path)
-                file = open(path, "w+")
-                file.write("Timestamp,MeasuredForce,Encoder,Displacement\r\n")
-                rowCount = 0
-                for row in rows:
-                    rowCount += 1
-                    file.write("%0.3f,%0.9f,%d,%0.9f\r\n" % (row[0], row[1], row[2], row[3]))
-                file.close()
-                Log("Got %d rows" % rowCount)
-       
-        # Transition to the disabled state
-        m1m3.Disable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to the standby state
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        
+                # rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
+                # path = GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId))
+                # Log("File path: %s" % path)
+                # file = open(path, "w+")
+                # file.write("Timestamp,MeasuredForce,Encoder,Displacement\r\n")
+                # rowCount = 0
+                # for row in rows:
+                #    rowCount += 1
+                #    file.write("%0.3f,%0.9f,%d,%0.9f\r\n" % (row[0], row[1], row[2], row[3]))
+                # file.close()
+                # Log("Got %d rows" % rowCount)
+
+    async def test_hardpoints(self):
+        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+
+        # Iterate through the 6 hardpoint actuators
+        for hp in range(1, 7):
+            await self.hardpoint_test(hp)
+
+
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T004().Run(m1m3, sim, efd, "M13T-004: Individual Hardpoint Breakaway Test")       
-    Shutdown(m1m3, sim, efd)
+    asynctest.main()
