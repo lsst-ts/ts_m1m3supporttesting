@@ -1,3 +1,24 @@
+# This file is part of ts_salobj.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 import asyncio
 import asynctest
 import click
@@ -15,16 +36,30 @@ class MTM1M3Test(asynctest.TestCase):
     """
 
     async def setUp(self):
+        """Setup tests. This methods is being called by asynctest.TestCase
+        before any test (test_XX) method is called. Creates connections to
+        MTM1M3."""
         self.domain = salobj.Domain()
         self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
-        self.failed = {"primary": [], "secondary": []}
-        self.emptyFailed = self.failed
 
     async def tearDown(self):
+        """Called by asynctest.TestCase after test is done. Correctly closes
+        salobj objects."""
         await self.m1m3.close()
         await self.domain.close()
 
     async def assertM1M3State(self, state, wait=2):
+        """Make sure M1M3 reaches given state.
+
+        Parameters
+        ----------
+        state : `int`, MTM1M3.DetailedState
+            Expected M1M3 state.
+
+        wait : `float`
+            Wait for given number of seconds before querying for state.
+        """
+
         await asyncio.sleep(wait)
         self.assertEqual(
             self.m1m3.evt_detailedState.get().detailedState,
@@ -33,6 +68,13 @@ class MTM1M3Test(asynctest.TestCase):
         )
 
     async def startup(self, target=MTM1M3.DetailedState.PARKED):
+        """Startsa MTM1M3, up to given target state.
+
+        Parameters
+        ----------
+        target : `int`, MTM1M3.DetailedState
+            Transition to this state.
+        """
         with click.progressbar(range(7), label="Starting up..", width=0) as bar:
             await self.m1m3.start_task
             # await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
