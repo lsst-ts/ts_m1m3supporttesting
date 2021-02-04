@@ -33,52 +33,27 @@
 # - Transition back to standby
 ########################################################################
 
-import asynctest
-import asyncio
-
-from lsst.ts import salobj
+from MTM1M3Test import *
 from lsst.ts.idl.enums import MTM1M3
 
+import asynctest
 
-class M13T001(asynctest.TestCase):
-    async def setUp(self):
-        self.domain = salobj.Domain()
-        self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
 
-    async def tearDown(self):
-        await self.m1m3.close()
-        await self.domain.close()
-
-    async def startup(self):
-        await self.m1m3.start_task
-
+class M13T001(MTM1M3Test):
     async def test_M1M3(self):
-        await self.startup()
+        await self.startup(MTM1M3.DetailedState.STANDBY)
 
         await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
-        await asyncio.sleep(1)
+        await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
 
         self.assertNotEqual(self.m1m3.evt_summaryState.get(), None)
         self.assertNotEqual(self.m1m3.evt_detailedState.get(), None)
 
-        self.assertEqual(
-            self.m1m3.evt_detailedState.get().detailedState,
-            MTM1M3.DetailedState.DISABLED,
-        )
-
         await self.m1m3.cmd_enable.start()
-        await asyncio.sleep(1)
-        self.assertEqual(
-            self.m1m3.evt_detailedState.get().detailedState,
-            MTM1M3.DetailedState.PARKED,
-        )
+        await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
 
         await self.m1m3.cmd_disable.start()
-        await asyncio.sleep(1)
-        self.assertEqual(
-            self.m1m3.evt_detailedState.get().detailedState,
-            MTM1M3.DetailedState.DISABLED,
-        )
+        await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
 
         # Check SAL Event
         # result, data = m1m3.GetEventDetailedState()
