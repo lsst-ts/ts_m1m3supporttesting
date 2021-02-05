@@ -82,23 +82,34 @@ class MTM1M3Test(asynctest.TestCase):
             if target == MTM1M3.DetailedState.STANDBY:
                 return
 
-            await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
-            bar.update(1)
-            await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
-            bar.update(1)
-            if target == MTM1M3.DetailedState.DISABLED:
-                return
+            # see our state..
+            try:
+                startState = self.m1m3.evt_detailedState.get().detailedState
+            except AttributeError:
+                startState = -1
 
-            await self.m1m3.cmd_enable.start()
-            bar.update(1)
-            await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
-            bar.update(1)
-            if target == MTM1M3.DetailedState.PARKED:
-                return
+            if startState == -1:
+                await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
+                bar.update(1)
+                await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+                bar.update(1)
+                if target == MTM1M3.DetailedState.DISABLED:
+                    return
+                startState = MTM1M3.DetailedState.DISABLED
 
-            if target == MTM1M3.DetailedState.PARKEDENGINEERING:
-                await self.m1m3.cmd_enterEngineering.start()
-                bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
-                bar.update(1)
-                return
+            if startState == MTM1M3.DetailedState.DISABLED:
+               await self.m1m3.cmd_enable.start()
+               bar.update(1)
+               await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
+               bar.update(1)
+               if target == MTM1M3.DetailedState.PARKED:
+                   return
+               startState = MTM1M3.DetailedState.PARKED
+
+            if startState == MTM1M3.DetailedState.PARKED:
+               if target == MTM1M3.DetailedState.PARKEDENGINEERING:
+                   await self.m1m3.cmd_enterEngineering.start()
+                   bar.update(1)
+                   await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
+                   bar.update(1)
+                   return
