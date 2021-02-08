@@ -107,9 +107,23 @@ class MTM1M3Test(asynctest.TestCase):
                startState = MTM1M3.DetailedState.PARKED
 
             if startState == MTM1M3.DetailedState.PARKED:
-               if target == MTM1M3.DetailedState.PARKEDENGINEERING:
+               if target == MTM1M3.DetailedState.PARKEDENGINEERING or target == MTM1M3.DetailedState.ACTIVEENGINEERING:
                    await self.m1m3.cmd_enterEngineering.start()
                    bar.update(1)
                    await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
                    bar.update(1)
                    return
+
+        if (target == MTM1M3.DetailedState.ACTIVE and startState == MTM1M3.DetailedState.PARKED) or (target == MTM1M3.DetailedState.ACTIVEENGINEERING and startState == MTM1M3.DetailedState.PARKEDENGINEERING):
+            await self.m1m3.cmd_raiseM1M3.set_start(raiseM1M3=True, bypassReferencePosition=False)
+            lastPercents = 0
+            with click.progressbar(range(100), label="Raising", width=0) as bar:
+                while True:
+                   await asyncio.sleep(0.1)
+                   pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
+                   if pct - lastPercents > 1:
+                       bar.update(1)
+                       lastPercents = pct
+                   if self.m1m3.evt_detailedState.get().detailedState != MTM1M3.DetailedState.RAISING and self.m1m3.evt_detailedState.get().detailedState != MTM1M3.DetailedState.RAISINGENGINEERING:
+                       break
+            await self.assertM1M3State(target, 0)
