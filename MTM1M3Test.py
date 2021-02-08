@@ -132,12 +132,23 @@ class MTM1M3Test(asynctest.TestCase):
             await self.m1m3.cmd_raiseM1M3.set_start(
                 raiseM1M3=True, bypassReferencePosition=False
             )
+            pct = 0
             lastPercents = 0
-            with click.progressbar(range(100), label="Raising", width=0) as bar:
+            with click.progressbar(
+                range(100),
+                label="Raising",
+                width=0,
+                item_show_func=lambda i: f"{pct:.01f}%"
+                if pct < 100
+                else click.style("chasing HP", fg="blue"),
+                show_percent=False,
+            ) as bar:
                 while True:
                     await asyncio.sleep(0.1)
-                    pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
-                    diff = (pct - lastPercents) * 100.0
+                    pct = (
+                        self.m1m3.evt_forceActuatorState.get().supportPercentage * 100.0
+                    )
+                    diff = pct - lastPercents
                     if diff > 0.1:
                         bar.update(diff)
                         lastPercents = pct
