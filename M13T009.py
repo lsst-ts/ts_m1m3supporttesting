@@ -22,7 +22,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ########################################################################
-# Test Numbers: M13T-009  
+# Test Numbers: M13T-009
 # Author:       AClements
 # Description:  Mirror Support System Active Motion Range
 # Steps:
@@ -30,7 +30,7 @@
 # - Raise Mirror in Active Engineering Mode
 # - Confirm Mirror in Reference Position
 # - Follow the motion matrix below, where +X = 6.13mm, -X = 6.13mm, +Y = 6.13mm, -Y = -6.13mm, +Z = 4.07mm  & -Z = -5.57mm
-#   +X, 0, 0 
+#   +X, 0, 0
 #   -X, 0, 0
 #   0,+Y, 0
 #   0, -Y, 0
@@ -71,9 +71,12 @@ ROTATION_TOLERANCE = 0.00000209
 LOAD_PATH_FORCE = 0.0
 LOAD_PATH_TOLERANCE = 0.0
 
+
 class M13T009(MTM1M3Test):
-    def _check_position(self, position, tolerance=POSITION_TOLERANCE, checkForces=False):
-        data = m1m3.tel_hardpointActuatorData.get()
+    def _check_position(
+        self, position, tolerance=POSITION_TOLERANCE, checkForces=False
+    ):
+        data = self.m1m3.tel_hardpointActuatorData.get()
         self.assertAlmostEqual(data.xPosition, position[0], delta=tolerance)
         self.assertAlmostEqual(data.yPosition, position[1], delta=tolerance)
         self.assertAlmostEqual(data.zPosition, position[2], delta=tolerance)
@@ -89,7 +92,7 @@ class M13T009(MTM1M3Test):
             self.assertAlmostEqual(data.my, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
             self.assertAlmostEqual(data.mz, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
 
-        imsData = m1m3.tel_imsData.get()
+        imsData = self.m1m3.tel_imsData.get()
         self.assertAlmostEqual(imsData.xPosition, position[0], delta=tolerance)
         self.assertAlmostEqual(imsData.yPosition, position[1], delta=tolerance)
         self.assertAlmostEqual(imsData.zPosition, position[2], delta=tolerance)
@@ -106,59 +109,217 @@ class M13T009(MTM1M3Test):
                         await asyncio.sleep(0.1)
                         continue
                 break
+
         waitFor(MTM1M3.HardpointActuatorMotionStates.STEPPING)
         waitFor(MTM1M3.HardpointActuatorMotionStates.STANDBY)
 
-
     async def test_movements(self):
-        click.echo(click.style("M13T-009: Mirror Support System Active Motion Range", bold=True, fg="cyan"))
+        click.echo(
+            click.style(
+                "M13T-009: Mirror Support System Active Motion Range",
+                bold=True,
+                fg="cyan",
+            )
+        )
 
         await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
 
         # make sure the HardpointCorrection is disabled.
-        await self.m1m3.cmd_disableHardpointCorrections.start
+        await self.m1m3.cmd_disableHardpointCorrections.start()
         await asyncio.sleep(5.0)
-        
+
         # confirm mirror at reference position.
         self._check_position(REFERENCE)
-        
+
         ##########################################################
         # Command the mirror to the matrix positions.  Check to make sure it reaches those positions.
-            
+
         testTable = [
-            ["(+X, 0, 0, 0, 0, 0)", REFERENCE[0] + TRAVEL_POSITION, REFERENCE[1], REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(-X, 0, 0, 0, 0, 0)", REFERENCE[0] - TRAVEL_POSITION, REFERENCE[1], REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, +Y, 0, 0, 0, 0)", REFERENCE[0], REFERENCE[1] + TRAVEL_POSITION, REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, -Y, 0, 0, 0, 0)", REFERENCE[0], REFERENCE[1] - TRAVEL_POSITION, REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, 0, +Z, 0, 0, 0)", REFERENCE[0], REFERENCE[1], REFERENCE[2] + POS_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, 0, -Z, 0, 0, 0)", REFERENCE[0], REFERENCE[1], REFERENCE[2] -NEG_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(+X, +Y, 0, 0, 0, 0)", REFERENCE[0] + TRAVEL_POSITION, REFERENCE[1] + TRAVEL_POSITION, REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(+X, -Y, 0, 0, 0, 0)", REFERENCE[0] + TRAVEL_POSITION, REFERENCE[1] - TRAVEL_POSITION, REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(-X, +Y, 0, 0, 0, 0)", REFERENCE[0] - TRAVEL_POSITION, REFERENCE[1] + TRAVEL_POSITION, REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(-X, -Y, 0, 0, 0, 0)", REFERENCE[0] - TRAVEL_POSITION, REFERENCE[1] - TRAVEL_POSITION, REFERENCE[2], REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(+X, 0, +Z, 0, 0, 0)", REFERENCE[0] + TRAVEL_POSITION, REFERENCE[1], REFERENCE[2] + POS_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(+X, 0, -Z, 0, 0, 0)", REFERENCE[0] + TRAVEL_POSITION, REFERENCE[1], REFERENCE[2] - NEG_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(-X, 0, +Z, 0, 0, 0)", REFERENCE[0] - TRAVEL_POSITION, REFERENCE[1], REFERENCE[2] + POS_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(-X, 0, -Z, 0, 0, 0)", REFERENCE[0] - TRAVEL_POSITION, REFERENCE[1], REFERENCE[2] - NEG_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, +Y, +Z, 0, 0, 0)", REFERENCE[0], REFERENCE[1] + TRAVEL_POSITION, REFERENCE[2] + POS_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, +Y, -Z, 0, 0, 0)", REFERENCE[0], REFERENCE[1] + TRAVEL_POSITION, REFERENCE[2] - NEG_Z_TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, -Y, +Z, 0, 0, 0)", REFERENCE[0], REFERENCE[1] - TRAVEL_POSITION, REFERENCE[2] + TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
-            ["(0, -Y, -Z, 0, 0, 0)", REFERENCE[0], REFERENCE[1] - TRAVEL_POSITION, REFERENCE[2] - TRAVEL_POSITION, REFERENCE[3], REFERENCE[4], REFERENCE[5]],
+            [
+                "(+X, 0, 0, 0, 0, 0)",
+                REFERENCE[0] + TRAVEL_POSITION,
+                REFERENCE[1],
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(-X, 0, 0, 0, 0, 0)",
+                REFERENCE[0] - TRAVEL_POSITION,
+                REFERENCE[1],
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, +Y, 0, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1] + TRAVEL_POSITION,
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, -Y, 0, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1] - TRAVEL_POSITION,
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, 0, +Z, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1],
+                REFERENCE[2] + POS_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, 0, -Z, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1],
+                REFERENCE[2] - NEG_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(+X, +Y, 0, 0, 0, 0)",
+                REFERENCE[0] + TRAVEL_POSITION,
+                REFERENCE[1] + TRAVEL_POSITION,
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(+X, -Y, 0, 0, 0, 0)",
+                REFERENCE[0] + TRAVEL_POSITION,
+                REFERENCE[1] - TRAVEL_POSITION,
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(-X, +Y, 0, 0, 0, 0)",
+                REFERENCE[0] - TRAVEL_POSITION,
+                REFERENCE[1] + TRAVEL_POSITION,
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(-X, -Y, 0, 0, 0, 0)",
+                REFERENCE[0] - TRAVEL_POSITION,
+                REFERENCE[1] - TRAVEL_POSITION,
+                REFERENCE[2],
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(+X, 0, +Z, 0, 0, 0)",
+                REFERENCE[0] + TRAVEL_POSITION,
+                REFERENCE[1],
+                REFERENCE[2] + POS_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(+X, 0, -Z, 0, 0, 0)",
+                REFERENCE[0] + TRAVEL_POSITION,
+                REFERENCE[1],
+                REFERENCE[2] - NEG_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(-X, 0, +Z, 0, 0, 0)",
+                REFERENCE[0] - TRAVEL_POSITION,
+                REFERENCE[1],
+                REFERENCE[2] + POS_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(-X, 0, -Z, 0, 0, 0)",
+                REFERENCE[0] - TRAVEL_POSITION,
+                REFERENCE[1],
+                REFERENCE[2] - NEG_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, +Y, +Z, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1] + TRAVEL_POSITION,
+                REFERENCE[2] + POS_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, +Y, -Z, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1] + TRAVEL_POSITION,
+                REFERENCE[2] - NEG_Z_TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, -Y, +Z, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1] - TRAVEL_POSITION,
+                REFERENCE[2] + TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
+            [
+                "(0, -Y, -Z, 0, 0, 0)",
+                REFERENCE[0],
+                REFERENCE[1] - TRAVEL_POSITION,
+                REFERENCE[2] - TRAVEL_POSITION,
+                REFERENCE[3],
+                REFERENCE[4],
+                REFERENCE[5],
+            ],
         ]
-            
+
         for row in testTable:
-            await self.m1m3.cmd_positionM1M3xPosition.set_start(xPosition=row[1], yPosition=row[2], zPosition=row[3], xRotation=row[4], yRotation=row[5], zRotation=row[6])
+            await self.m1m3.cmd_positionM1M3xPosition.set_start(
+                xPosition=row[1],
+                yPosition=row[2],
+                zPosition=row[3],
+                xRotation=row[4],
+                yRotation=row[5],
+                zRotation=row[6],
+            )
             self._waitHP()
-            
+
             time.sleep(3.0)
 
             self._check_position(row[1:7], checkForces=True)
-            
+
         #######################
         # Lower the mirror, put back in standby state.
 
         # Lower mirror.
-        await self.m1m3.cmd_lowerM1M3.start
-        
+        await self.m1m3.cmd_lowerM1M3.start()
+
+
 if __name__ == "__main__":
     asynctest.main()
