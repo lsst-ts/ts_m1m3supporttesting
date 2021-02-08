@@ -300,7 +300,7 @@ class M13T009(MTM1M3Test):
         ]
 
         for row in testTable:
-            await self.m1m3.cmd_positionM1M3xPosition.set_start(
+            await self.m1m3.cmd_positionM1M3.set_start(
                 xPosition=row[1],
                 yPosition=row[2],
                 zPosition=row[3],
