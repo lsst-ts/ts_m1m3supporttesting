@@ -126,6 +126,9 @@ class MTM1M3Test(asynctest.TestCase):
             target == MTM1M3.DetailedState.ACTIVEENGINEERING
             and startState == MTM1M3.DetailedState.PARKEDENGINEERING
         ):
+            click.echo(
+                click.style("Waiting for mirror to be raised", bold=True, fg="green")
+            )
             await self.m1m3.cmd_raiseM1M3.set_start(
                 raiseM1M3=True, bypassReferencePosition=False
             )
@@ -134,8 +137,9 @@ class MTM1M3Test(asynctest.TestCase):
                 while True:
                     await asyncio.sleep(0.1)
                     pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
-                    if pct - lastPercents > 1:
-                        bar.update(1)
+                    diff = (pct - lastPercents) * 100.0
+                    if diff > 0.1:
+                        bar.update(diff)
                         lastPercents = pct
                     if (
                         self.m1m3.evt_detailedState.get().detailedState
