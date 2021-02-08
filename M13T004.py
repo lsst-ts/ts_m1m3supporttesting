@@ -50,12 +50,20 @@ import os
 
 
 class M13T004(MTM1M3Test):
-
     async def hardpoint_move(self, step):
-        self.recordFile = open(f'{datetime.now().strftime("%Y-%m-%dT%T")}-hardpoint{self.hp}-{step}.csv', 'w')
+        self.recordFile = open(
+            f'{datetime.now().strftime("%Y-%m-%dT%T")}-hardpoint{self.hp}-{step}.csv',
+            "w",
+        )
         self.recordCounter = 0
-        click.echo(click.style(f"Saving data to {os.path.abspath(self.recordFile.name)}", fg="blue"))
-        self.recordFile.write(f"Timestamp,BreakawayLVDTi {hp},DisplacementLVDT {hp},BreakawayPressure {hp}\n")
+        click.echo(
+            click.style(
+                f"Saving data to {os.path.abspath(self.recordFile.name)}", fg="blue"
+            )
+        )
+        self.recordFile.write(
+            f"Timestamp,BreakawayLVDTi {hp},DisplacementLVDT {hp},BreakawayPressure {hp}\n"
+        )
         self.m1m3.tel_hardpointMonitorData.callback = self.record_data
 
         # Give time for a sample
@@ -165,11 +173,11 @@ class M13T004(MTM1M3Test):
         # file.close()
         # Log("Got %d rows" % rowCount)
 
-
-
     async def record_data(self, data):
         hpIndex = self.hp - 1
-        self.recordFile.write(f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}\n")
+        self.recordFile.write(
+            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}\n"
+        )
         self.recordCounter += 1
         if self.recordCounter > 10:
             self.recordFile.flush()
