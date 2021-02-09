@@ -122,13 +122,29 @@ class MTM1M3Test(asynctest.TestCase):
                         return
                     startState = MTM1M3.DetailedState.PARKEDENGINEERING
 
-        if (
-            target == MTM1M3.DetailedState.ACTIVE
-            and startState == MTM1M3.DetailedState.PARKED
-        ) or (
-            target == MTM1M3.DetailedState.ACTIVEENGINEERING
-            and startState == MTM1M3.DetailedState.PARKEDENGINEERING
+        if target in (
+            MTM1M3.DetailedState.ACTIVE,
+            MTM1M3.DetailedState.ACTIVEENGINEERING,
         ):
+            if startState == target:
+                return
+
+            if (
+                startState == MTM1M3.DetailedState.ACTIVEENGINEERING
+                and target == MTM1M3.DetailedState.ACTIVE
+            ):
+                await self.m1m3.cmd_exitEngineering.start()
+                await self.assertM1M3State(target)
+                return
+
+            if (
+                startState == MTM1M3.DetailedState.ACTIVE
+                and target == MTM1M3.DetailedState.ACTIVEENGINEERING
+            ):
+                await self.m1m3.cmd_enterEngineering.start()
+                await self.assertM1M3State(target)
+                return
+
             click.echo(
                 click.style("Waiting for mirror to be raised", bold=True, fg="green")
             )
@@ -163,7 +179,7 @@ class MTM1M3Test(asynctest.TestCase):
             await self.assertM1M3State(target, 0)
             return
 
-        self.fail("Unknown/unsupported target startup state: {target}")
+        self.fail(f"Unknown/unsupported target startup state: {target}")
 
     async def shutdown(self, target=MTM1M3.DetailedState.STANDBY):
         """Closes mirror test cycle, commands its state to the given state.
