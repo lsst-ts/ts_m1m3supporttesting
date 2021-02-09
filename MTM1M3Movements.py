@@ -97,12 +97,24 @@ class MTM1M3Movements(MTM1M3Test):
         self.assertAlmostEqual(data.zRotation, position[5], delta=tolerance)
         if checkForces:
             # Verify there are no unintended load paths.
-            self.assertAlmostEqual(data.fx, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
-            self.assertAlmostEqual(data.fy, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
-            self.assertAlmostEqual(data.fz, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
-            self.assertAlmostEqual(data.mx, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
-            self.assertAlmostEqual(data.my, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
-            self.assertAlmostEqual(data.mz, LOAD_PATH_FORCE, delta=LOAD_PATH_TOLERANCE)
+            self.assertAlmostEqual(
+                data.fx, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+            )
+            self.assertAlmostEqual(
+                data.fy, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+            )
+            self.assertAlmostEqual(
+                data.fz, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+            )
+            self.assertAlmostEqual(
+                data.mx, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+            )
+            self.assertAlmostEqual(
+                data.my, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+            )
+            self.assertAlmostEqual(
+                data.mz, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+            )
 
         self.assertAlmostEqual(imsData.xPosition, position[0], delta=tolerance)
         self.assertAlmostEqual(imsData.yPosition, position[1], delta=tolerance)
@@ -112,17 +124,28 @@ class MTM1M3Movements(MTM1M3Test):
         self.assertAlmostEqual(imsData.zRotation, position[5], delta=tolerance)
 
     async def _wait_HP(self):
-        async def wait_for(state):
+        async def wait_for(states, timeout=100):
             while True:
-                data = self.m1m3.tel_hardpointActuatorData.get()
+                data = self.m1m3.evt_hardpointActuatorState.get()
+                not_met = 0
                 for hp in range(6):
-                    if data.motionState[hp] != state:
-                        await asyncio.sleep(0.1)
-                        continue
-                break
+                    if data.motionState[hp] not in states:
+                        not_met += 1
+                if not_met == 0 or timeout < 0:
+                    break
+                await asyncio.sleep(0.1)
+                timeout -= 0.1
 
-        wait_for(MTM1M3.HardpointActuatorMotionStates.STEPPING)
-        wait_for(MTM1M3.HardpointActuatorMotionStates.STANDBY)
+        await wait_for(
+            (
+                MTM1M3.HardpointActuatorMotionStates.STEPPING,
+                MTM1M3.HardpointActuatorMotionStates.CHASING,
+                MTM1M3.HardpointActuatorMotionStates.QUICKPOSITIONING,
+                MTM1M3.HardpointActuatorMotionStates.FINEPOSITIONING,
+            ),
+            1,
+        )
+        await wait_for((MTM1M3.HardpointActuatorMotionStates.STANDBY,))
 
     async def do_movements(
         self,
@@ -134,7 +157,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         Parameters
         ----------
-        offsets : array of 6 members float tupples
+        offsets : array of 6 members float tuples
             Movements (from 0 position) as X, Y, Z and Rx, Ry and Rz (rotation). Position shall be specified in u.m or similar, rotation as u.deg or similar.
         start_state : `int`, MTM1M3.DetailedState
             Starts tests at this state
@@ -167,18 +190,18 @@ class MTM1M3Movements(MTM1M3Test):
             position = (
                 list(map(lambda x: x.to(u.m).value, row[:3]))
                 + list(map(lambda y: y.to(u.deg).value, row[3:]))
-            ) + REFERENCE
+            ) + self.REFERENCE
             await self.m1m3.cmd_positionM1M3.set_start(
-                xPosition=row[0],
-                yPosition=row[1],
-                zPosition=row[2],
-                xRotation=row[3],
-                yRotation=row[4],
-                zRotation=row[5],
+                xPosition=row[0].to(u.m).value,
+                yPosition=row[1].to(u.m).value,
+                zPosition=row[2].to(u.m).value,
+                xRotation=row[3].to(u.rad).value,
+                yRotation=row[4].to(u.rad).value,
+                zRotation=row[5].to(u.rad).value,
             )
-            self._wait_HP()
+            await self._wait_HP()
 
-            time.sleep(3.0)
+            await asyncio.sleep(3.0)
 
             self._check_position(position, checkForces=True)
 
