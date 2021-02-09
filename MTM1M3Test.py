@@ -32,7 +32,8 @@ __all__ = ["MTM1M3Test"]
 class MTM1M3Test(asynctest.TestCase):
     """Common parent of M1M3 tests.
 
-    Provides setUp and tearDown methods to create connection to M1M3.
+    Provides setUp and tearDown methods to create connection to M1M3. `startup`
+    and `shutdown` methods can be used to progress mirror to a given state.
     """
 
     async def setUp(self):
@@ -165,12 +166,12 @@ class MTM1M3Test(asynctest.TestCase):
         self.fail("Unknown/unsupported target startup state: {target}")
 
     async def shutdown(self, target=MTM1M3.DetailedState.STANDBY):
-        """Closes mirror test cycle, commands its state to the given position.
+        """Closes mirror test cycle, commands its state to the given state.
 
         Parameters
         ----------
         target : `int`, MTM1M3.DetailedState
-            Changes mirror state to the given position.
+            Transition to this state.
         """
         currentState = self.m1m3.evt_detailedState.get().detailedState
 
