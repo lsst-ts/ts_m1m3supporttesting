@@ -131,4 +131,4 @@ class MTM1M3Movements(MTM1M3Test):
         # Lower the mirror, put back in standby state.
 
         # Lower mirror.
-        await self.m1m3.cmd_lowerM1M3.start()
+        await self.shutdown(MTM1M3.DetailedState.STANDBY)
