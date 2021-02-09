@@ -1,4 +1,4 @@
-# This file is part of ts_salobj.
+# This file is part of M1M3 Support System test suite.
 #
 # Developed for the LSST Telescope and Site Systems.
 # This product includes software developed by the LSST Project
@@ -88,7 +88,7 @@ class MTM1M3Test(asynctest.TestCase):
             except AttributeError:
                 startState = -1
 
-            if startState == -1:
+            if startState == -1 or startState == MTM1M3.DetailedState.STANDBY:
                 await self.m1m3.cmd_start.set_start(
                     settingsToApply="Default", timeout=60
                 )
@@ -117,7 +117,9 @@ class MTM1M3Test(asynctest.TestCase):
                     bar.update(1)
                     await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
                     bar.update(1)
-                    return
+                    if target == MTM1M3.DetailedState.PARKEDENGINEERING:
+                        return
+                    startState = MTM1M3.DetailedState.PARKEDENGINEERING
 
         if (
             target == MTM1M3.DetailedState.ACTIVE
