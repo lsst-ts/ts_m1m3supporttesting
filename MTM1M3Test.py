@@ -86,6 +86,8 @@ class MTM1M3Test(asynctest.TestCase):
             # see our state..
             try:
                 startState = self.m1m3.evt_detailedState.get().detailedState
+                if startState == target:
+                    return
             except AttributeError:
                 startState = -1
 
@@ -126,9 +128,6 @@ class MTM1M3Test(asynctest.TestCase):
             MTM1M3.DetailedState.ACTIVE,
             MTM1M3.DetailedState.ACTIVEENGINEERING,
         ):
-            if startState == target:
-                return
-
             if (
                 startState == MTM1M3.DetailedState.ACTIVEENGINEERING
                 and target == MTM1M3.DetailedState.ACTIVE
@@ -190,6 +189,8 @@ class MTM1M3Test(asynctest.TestCase):
             Transition to this state.
         """
         currentState = self.m1m3.evt_detailedState.get().detailedState
+        if currentState == target:
+            return
 
         if currentState in (
             MTM1M3.DetailedState.ACTIVE,
