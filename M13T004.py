@@ -61,8 +61,9 @@ class M13T004(MTM1M3Test):
                 f"Saving data to {os.path.abspath(self.recordFile.name)}", fg="blue"
             )
         )
-        self.recordFile.write(
-            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}\n"
+        print(
+            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}",
+            file=self.recordFile,
         )
         self.m1m3.tel_hardpointMonitorData.callback = self.record_data
 
@@ -82,6 +83,7 @@ class M13T004(MTM1M3Test):
         tmp = [0] * 6
         tmp[hpIndex] = step
         await self.m1m3.cmd_moveHardpointActuators.set_start(steps=tmp)
+        click.echo(click.style(f"Moving {self.hp} {step}", fg="green"))
 
         # Wait a bit
         await asyncio.sleep(1)
@@ -108,6 +110,12 @@ class M13T004(MTM1M3Test):
                 hpWarning.limitSwitch1Operated[hpIndex]
                 or hpWarning.limitSwitch2Operated[hpIndex]
             ):
+                click.echo(
+                    click.style(
+                        f"Limit switch on HP {self.hp} reached - 1: {hpWarning.limitSwitch1Operated[hpIndex]} 2: {hpWarning.limitSwitch2Operated[hpIndex]}",
+                        fg="bright_yellow",
+                    )
+                )
                 break
 
             status = 0
@@ -175,8 +183,9 @@ class M13T004(MTM1M3Test):
 
     async def record_data(self, data):
         hpIndex = self.hp - 1
-        self.recordFile.write(
-            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}\n"
+        print(
+            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}",
+            file=self.recordFile,
         )
         self.recordCounter += 1
         if self.recordCounter > 10:
