@@ -62,7 +62,7 @@ class M13T004(MTM1M3Test):
             )
         )
         self.recordFile.write(
-            f"Timestamp,BreakawayLVDTi {hp},DisplacementLVDT {hp},BreakawayPressure {hp}\n"
+            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}\n"
         )
         self.m1m3.tel_hardpointMonitorData.callback = self.record_data
 
