@@ -70,7 +70,7 @@
 # - Transition back to standby
 ########################################################################
 
-import astopy.units as u
+import astropy.units as u
 
 import asynctest
 
