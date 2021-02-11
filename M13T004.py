@@ -106,14 +106,13 @@ class M13T004(MTM1M3Test):
 
             # Check if limit switch is hit
             hpWarning = self.m1m3.evt_hardpointActuatorWarning.get()
-            if (
-                hpWarning.limitSwitch1Operated[hpIndex]
-                or hpWarning.limitSwitch2Operated[hpIndex]
+            if (hpWarning.limitSwitch1Operated[hpIndex] and step > 0) or (
+                hpWarning.limitSwitch2Operated[hpIndex] and step < 0
             ):
                 click.echo(
                     click.style(
-                        f"Limit switch on HP {self.hp} reached - 1: {hpWarning.limitSwitch1Operated[hpIndex]} 2: {hpWarning.limitSwitch2Operated[hpIndex]}",
-                        fg="bright_yellow",
+                        f"Limit switch on HP {self.hp} reached on {step} command - 1: {hpWarning.limitSwitch1Operated[hpIndex]} 2: {hpWarning.limitSwitch2Operated[hpIndex]}",
+                        fg="yellow",
                     )
                 )
                 break
@@ -131,7 +130,8 @@ class M13T004(MTM1M3Test):
             # sim.setHPForceAndStatus(actId, status1, loopCount, loopCount * 2)
             # sim.setILCStatus(actId, 0, status2, 0)
             # loopCount += 1
-            # time.sleep(0.5)
+
+            await asyncio.sleep(0.5)
 
         # Stop hardpoint motion
         await self.m1m3.cmd_stopHardpointMotion.start()
