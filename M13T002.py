@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.8
 
 # This file is part of ts_salobj.
 #
@@ -19,7 +19,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ########################################################################
 # Test Numbers: M13T-002
@@ -42,34 +42,22 @@
 # - Transition from parked engineering state to standby
 ########################################################################
 
-import asynctest
-import asyncio
-import click
+from MTM1M3Test import *
 from ForceActuatorTable import *
-from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
 
+import asyncio
+import asynctest
+import click
 
-class M13T002(asynctest.TestCase):
+
+class M13T002(MTM1M3Test):
     TIMEOUT = 260
 
     async def setUp(self):
-        self.domain = salobj.Domain()
-        self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
+        await super().setUp()
         self.failed = {"primary": [], "secondary": []}
         self.emptyFailed = self.failed
-
-    async def tearDown(self):
-        await self.m1m3.close()
-        await self.domain.close()
-
-    async def assertM1M3State(self, state, wait=2):
-        await asyncio.sleep(wait)
-        self.assertEqual(
-            self.m1m3.evt_detailedState.get().detailedState,
-            state,
-            click.style("M1M3 SS is in wrong state", bold=True, bg="red"),
-        )
 
     async def wait_bump_test(self):
         def test_state(state):
@@ -121,11 +109,9 @@ class M13T002(asynctest.TestCase):
             width=0,
         ) as bar:
             for b in bar:
-                secondary = (
-                    self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
-                        self._secondary_index
-                    ]
-                )
+                secondary = self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
+                    self._secondary_index
+                ]
                 if secondary > 5:
                     bar.update(0)
                     break
@@ -140,29 +126,8 @@ class M13T002(asynctest.TestCase):
             )
             self.failed["secondary"].append(self._actuator_id)
 
-    async def startup(self):
-        with click.progressbar(range(7), label="Starting up..", width=0) as bar:
-            await self.m1m3.start_task
-            # await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
-            bar.update(1)
-
-            await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
-            bar.update(1)
-            await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
-            bar.update(1)
-
-            await self.m1m3.cmd_enable.start()
-            bar.update(1)
-            await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
-            bar.update(1)
-
-            await self.m1m3.cmd_enterEngineering.start()
-            bar.update(1)
-            await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
-            bar.update(1)
-
     async def test_bump_test(self):
-        await self.startup()
+        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
         with click.progressbar(range(200), label="Waiting for mirror", width=0) as bar:
             for b in bar:

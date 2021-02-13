@@ -1,3 +1,26 @@
+#!/usr/bin/env python3.8
+
+# This file is part of ts_salobj.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 ########################################################################
 # Test Numbers: M13T-001
 # Author:       CContaxis
@@ -10,53 +33,53 @@
 # - Transition back to standby
 ########################################################################
 
-from Utilities import *
-from SALPY_m1m3 import *
-from Setup import *
-import MySQLdb
+from MTM1M3Test import *
+from lsst.ts.idl.enums import MTM1M3
 
-class M13T001:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-001: M1M3 & EFD Interface")
-        
-        # Issue a command to generate a command, event, and telemetry
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
+import asynctest
+
+
+class M13T001(MTM1M3Test):
+    async def test_M1M3(self):
+        await self.startup(MTM1M3.DetailedState.STANDBY)
+
+        await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
+        await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+
+        self.assertNotEqual(self.m1m3.evt_summaryState.get(), None)
+        self.assertNotEqual(self.m1m3.evt_detailedState.get(), None)
+
+        await self.m1m3.cmd_enable.start()
+        await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
+
+        await self.m1m3.cmd_disable.start()
+        await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+
         # Check SAL Event
-        result, data = m1m3.GetEventDetailedState()
-        eventTimestamp = data.Timestamp
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        
+        # result, data = m1m3.GetEventDetailedState()
+        # eventTimestamp = data.Timestamp
+        # Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedS
+
         # Check EFD Command
-        row = efd.QueryOne("SELECT Start, SettingsToApply FROM m1m3_command_Start ORDER BY date_time DESC LIMIT 1")
-        Equal("EFD m1m3_command_Start.Start", int(row[0]), 1)
-        Equal("EFD m1m3_command_Start.SettingsToApply", row[1], "Default")
-        
+        # row = efd.QueryOne("SELECT Start, SettingsToApply FROM m1m3_command_Start ORDER BY date_time DES
+        # Equal("EFD m1m3_command_Start.Start", int(row[0]), 1)
+        # Equal("EFD m1m3_command_Start.SettingsToApply", row[1], "Default")
+
         # Check EFD Event
-        row = efd.QueryOne("SELECT Timestamp, DetailedState FROM m1m3_logevent_DetailedState WHERE Timestamp <= %0.3f ORDER BY Timestamp DESC LIMIT 1" % (eventTimestamp + 0.001))
-        InTolerance("EFD m1m3_logevent_DetailedState.Timestamp", float(row[0]), data.Timestamp, 0.001)
-        Equal("EFD m1m3_logevent_DetailedState.DetailedState", int(row[1]), data.DetailedState)
-                
+        # row = efd.QueryOne("SELECT Timestamp, DetailedState FROM m1m3_logevent_DetailedState WHERE Times
+        # InTolerance("EFD m1m3_logevent_DetailedState.Timestamp", float(row[0]), data.Timestamp, 0.001)
+        # Equal("EFD m1m3_logevent_DetailedState.DetailedState", int(row[1]), data.DetailedState)
+
         # Check SAL Telemetry
-        result, data = m1m3.GetSampleInclinometerData()
-        telemetryTimestamp = data.Timestamp
-        GreaterThan("SAL m1m3_InclinometerData.Timestamp", data.Timestamp, eventTimestamp)
-        
+        # result, data = m1m3.GetSampleInclinometerData()
+        # telemetryTimestamp = data.Timestamp
+        # GreaterThan("SAL m1m3_InclinometerData.Timestamp", data.Timestamp, eventTimestamp)
+
         # Check EFD Telemetry
-        row = efd.QueryOne("SELECT Timestamp, InclinometerAngle FROM m1m3_InclinometerData WHERE Timestamp <= %0.3f ORDER BY Timestamp DESC LIMIT 1" % (telemetryTimestamp + 0.001))
-        InTolerance("EFD m1m3_InclinometerData.Timestamp", float(row[0]), data.Timestamp, 0.001)
-        InTolerance("EFD m1m3_InclinometerData.InclinometerAngle", float(row[1]), data.InclinometerAngle, 0.001)
-        
-        # Get back into StandbyState
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        
+        # row = efd.QueryOne("SELECT Timestamp, InclinometerAngle FROM m1m3_InclinometerData WHERE Timesta
+        # InTolerance("EFD m1m3_InclinometerData.Timestamp", float(row[0]), data.Timestamp, 0.001)
+        # InTolerance("EFD m1m3_InclinometerData.InclinometerAngle", float(row[1]), data.InclinometerAngle
+
+
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T001().Run(m1m3, sim, efd)
-    Shutdown(m1m3, sim, efd)
+    asynctest.main()
