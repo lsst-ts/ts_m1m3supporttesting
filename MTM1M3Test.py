@@ -89,14 +89,19 @@ class MTM1M3Test(asynctest.TestCase):
                 if startState == target:
                     return
             except AttributeError:
+                click.echo(
+                    click.style(
+                        "State not received. Assuming it's not started.", fg="red"
+                    )
+                )
                 startState = -1
 
-            if startState == -1 or startState == MTM1M3.DetailedState.STANDBY:
+            if startState in (-1, MTM1M3.DetailedState.STANDBY):
                 await self.m1m3.cmd_start.set_start(
                     settingsToApply="Default", timeout=60
                 )
                 bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+                await self.assertM1M3State(MTM1M3.DetailedState.DISABLED, 10)
                 bar.update(1)
                 startState = MTM1M3.DetailedState.DISABLED
 
