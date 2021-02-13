@@ -306,7 +306,7 @@ class MTM1M3Movements(MTM1M3Test):
 
             await asyncio.sleep(3.0)
 
-            await self._check_position(position)
+            await self._check_position(position, check_forces=False)
 
         #######################
         # Lower the mirror, put back in standby state.
