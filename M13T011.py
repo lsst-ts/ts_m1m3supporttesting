@@ -22,7 +22,7 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ########################################################################
-# Test Numbers: M13T-011  
+# Test Numbers: M13T-011
 # Author:       AClements
 # Description:  Position Stability During Active Mode Operation
 # Steps:
@@ -32,7 +32,7 @@
 # - Confirm Mirror in Reference Position
 # - Follow the motion matrix below, where X, Y & Z are 1.0 mm
 # - Wait 15 seconds between each movement to let control take measurements.
-#   +X, 0, 0 
+#   +X, 0, 0
 #   -X, 0, 0
 #   0,+Y, 0
 #   0, -Y, 0
@@ -84,21 +84,81 @@ SAMPLE_TIME = 15.0
 ZERO_M = 0 * u.m
 ZERO_DEG = 0 * u.deg
 
-def convert(raw, sensitivity):
-    return (raw * 1000.0) / sensitivity
 
 class M13T011(MTM1M3Movements):
     def _log_data(self, data, imsData):
         startTimestamp = imsData.Timestamp
         timestamp = startTimestamp
 
+        self.m1m3.tel_imsData.flush()
+        self.vms.tel_m1m3.flush()
+
+        startTimestamp = None
+        timestamp = None
+
+        while True:
+            imsData = self.m1m3.tel_imsData.next()
+            vmsData = self.vms.tel_m1m3.next()
+
+            timestamp = imsData.timestamp
+            if startTimestamp is None:
+                startTimestamp = timestamp
+            elif (timestamp - startTimestamp) > SAMPLE_TIME:
+                break
+
+            print(
+                imsData.timestamp,
+                ",",
+                imsData.xPosition,
+                ",",
+                imsData.zPosition,
+                ",",
+                imsData.xRotation,
+                ",",
+                imsData.yRotation,
+                ",",
+                imsData.zRotation,
+                file=self.LOG_FILE[0],
+            )
+            self.LOG_FILE[0].flush()
+
+            def convert(raw, sensitivity):
+                return (raw * 1000.0) / sensitivity
+
+            vmsTimestamp = vmsData.timestamp
+
+            for j in range(50):
+                print(
+                    vmsTimestamp,
+                    convert(vmsData.sensor1XAcceleration[j], X1Sensitivity),
+                    ",",
+                    convert(vmsData.sensor1YAcceleration[j], Y1Sensitivity),
+                    ",",
+                    convert(vmsData.sensor1ZAcceleration[j], Z1Sensitivity),
+                    ",",
+                    convert(vmsData.sensor2XAcceleration[j], X2Sensitivity),
+                    ",",
+                    convert(vmsData.sensor2YAcceleration[j], Y2Sensitivity),
+                    ",",
+                    convert(vmsData.sensor2ZAcceleration[j], Z2Sensitivity),
+                    ",",
+                    convert(vmsData.sensor3XAcceleration[j], X3Sensitivity),
+                    ",",
+                    convert(vmsData.sensor3YAcceleration[j], Y3Sensitivity),
+                    ",",
+                    convert(vmsData.sensor3ZAcceleration[j], Z3Sensitivity),
+                    file=self.LOG_FILE[1],
+                )
+                vmsTimestamp += 0.001
+
+            self.LOG_FILE[1].flush()
+
     def test_movements(self):
         # Setup VMS
         self.vms = salobj.Remote(self.domain, "MTVMS")
-        
+
         offsets = [
             [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-
             [+TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
             [-TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
             [ZERO_M, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
@@ -119,63 +179,29 @@ class M13T011(MTM1M3Movements):
             [ZERO_M, -TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
         ]
 
-        self.LOG_FILE = open(
-            f'M13T012-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w"
+        self.LOG_FILE = [
+            open(f'M13T012-IMS-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w"),
+            open(f'M13T012-VMS-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w"),
+        ]
+
+        print(
+            "Timestamp,xPosition,yPosition,zPosition,xRotation,yRotation,zRotation",
+            file=self.LOG_FILE[0],
+        )
+        print(
+            "Timestamp (s),X1 (m/s^2),Y1 (m/s^2),Z1 (m/s^2),X2 (m/s^2),Y2 (m/s^2),Z2 (m/s^2),X3 (m/s^2),Y3 (m/s^2),Z3 (m/s^2)",
+            file=self.LOG_FILE[1],
         )
 
-        # The martix need to be tested 3 times
-        await self.do_movements(offsets, "M13T-011: Position Stability During Active Mode Operation", end_state=MTM1M3.DetailedState.STANDBY, moved_callback = self._log_data)
+        # The matrix need to be tested 3 times
+        for i in range(3):
+            await self.do_movements(
+                offsets,
+                "M13T-011: Position Stability During Active Mode Operation",
+                end_state=MTM1M3.DetailedState.STANDBY,
+                moved_callback=self._log_data,
+            )
 
-                # Flush VMS data
-                vmsData = vms_M1M3C()
-                result = vms.getNextSample_M1M3(vmsData)
-                while result >= 0:
-                    vmsData = vms_M1M3C()
-                    result = vms.getNextSample_M1M3(vmsData)
 
-                # Mark times
-                startTimestamp = imsData.Timestamp
-                timestamp = startTimestamp
-
-                # Sample data for the configured sample time
-                while (timestamp - startTimestamp) < SAMPLE_TIME:
-                    result, imsData = m1m3.GetNextSampleIMSData()
-                    if result >= 0:
-                        timestamp = imsData.Timestamp
-                        imsDatas.append(imsData)
-                    vmsData = vms_M1M3C()
-                    result = vms.getNextSample_M1M3(vmsData)
-                    if result >= 0:
-                        vmsDatas.append(vmsData)
-
-                # Write the IMS data to a file
-                path = GetFilePath("M13T011-%s-%d-IMS-%d.csv" % (row[0], (i+1), int(startTimestamp)))
-                file = open(path, "w+")
-                file.write("Timestamp,XPosition,YPosition,ZPosition,XRotation,YRotation,ZRotation\r\n")
-                for imsData in imsDatas:
-                    file.write("%0.3f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f,%0.12f\r\n" % (imsData.Timestamp, imsData.XPosition, imsData.YPosition, imsData.ZPosition, imsData.XRotation, imsData.YRotation, imsData.ZRotation))
-                file.close()
-
-                # Write the VMS data to a file
-                path = GetFilePath("M13T011-%s-%d-VMS-%d.csv" % (row[0], (i+1), int(startTimestamp)))
-                file = open(path, "w+")
-                file.write("Timestamp (s),X1 (m/s^2),Y1 (m/s^2),Z1 (m/s^2),X2 (m/s^2),Y2 (m/s^2),Z2 (m/s^2),X3 (m/s^2),Y3 (m/s^2),Z3 (m/s^2)\r\n")
-                for vmsData in vmsDatas:
-                    newTimestamp = vmsData.Timestamp
-                    for j in range(50):
-                        file.write("%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f,%0.6f\r\n" % (
-                            newTimestamp, 
-                            convert(vmsData.Sensor1XAcceleration[j], X1Sensitivity),
-                            convert(vmsData.Sensor1YAcceleration[j], Y1Sensitivity),
-                            convert(vmsData.Sensor1ZAcceleration[j], Z1Sensitivity),
-                            convert(vmsData.Sensor2XAcceleration[j], X2Sensitivity),
-                            convert(vmsData.Sensor2YAcceleration[j], Y2Sensitivity),
-                            convert(vmsData.Sensor2ZAcceleration[j], Z2Sensitivity),
-                            convert(vmsData.Sensor3XAcceleration[j], X3Sensitivity),
-                            convert(vmsData.Sensor3YAcceleration[j], Y3Sensitivity),
-                            convert(vmsData.Sensor3ZAcceleration[j], Z3Sensitivity)))
-                        newTimestamp += 0.001
-                file.close()               
-        
 if __name__ == "__main__":
     asynctest.main()
