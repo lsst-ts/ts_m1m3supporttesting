@@ -235,7 +235,7 @@ class MTM1M3Test(asynctest.TestCase):
             if currentState == MTM1M3.DetailedState.PARKEDENGINEERING:
                 await self.m1m3.cmd_exitEngineering.start()
                 bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+                await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.PARKED
 
