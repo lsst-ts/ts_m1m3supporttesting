@@ -276,5 +276,9 @@ class MTM1M3Movements(MTM1M3Test):
 
     def close_log_file(self):
         self.moved_callback = None
-        self.LOG_FILE.close()
+        if isinstance(self.LOG_FILE, list):
+            for f in self.LOG_FILE:
+                f.close()
+        else:
+            self.LOG_FILE.close()
         self.LOG_FILE = None
