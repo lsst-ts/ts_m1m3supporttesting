@@ -52,85 +52,57 @@ class MTM1M3Movements(MTM1M3Test):
             self.close_log_file()
         await super().tearDown()
 
-    def _check_position(
+    async def _check_position(
         self,
         position,
-        positionTolerance=POSITION_TOLERANCE,
-        rotationTolerance=ROTATION_TOLERANCE,
-        checkForces=False,
-        checkIMS=True,
+        position_tolerance=POSITION_TOLERANCE,
+        rotation_tolerance=ROTATION_TOLERANCE,
+        check_forces=False,
+        check_IMS=True,
     ):
         data = self.m1m3.tel_hardpointActuatorData.get()
         imsData = self.m1m3.tel_imsData.get()
 
-        if self.LOG_FILE:
-            print(
-                self.LOG_MOVEMENT,
-                ",",
-                data.xPosition,
-                ",",
-                data.yPosition,
-                ",",
-                data.zPosition,
-                ",",
-                data.xRotation,
-                ",",
-                data.yRotation,
-                ",",
-                data.zRotation,
-                ",",
-                imsData.xPosition,
-                ",",
-                imsData.yPosition,
-                ",",
-                imsData.zPosition,
-                ",",
-                imsData.xRotation,
-                ",",
-                imsData.yRotation,
-                ",",
-                imsData.zRotation,
-                file=self.LOG_FILE,
-            )
-            self.LOG_FILE.flush()
+        if self.moved_callback is not None:
+            await self.moved_callback(data, imsData)
 
         self.assertAlmostEqual(
             data.xPosition,
             position[0],
-            delta=positionTolerance,
+            delta=position_tolerance,
             msg="HP xPosition out of limit",
         )
         self.assertAlmostEqual(
             data.yPosition,
             position[1],
-            delta=positionTolerance,
+            delta=position_tolerance,
             msg="HP yPosition out of limit",
         )
         self.assertAlmostEqual(
             data.zPosition,
             position[2],
-            delta=positionTolerance,
+            delta=position_tolerance,
             msg="HP zPosition out of limit",
         )
         self.assertAlmostEqual(
             data.xRotation,
             position[3],
-            delta=rotationTolerance,
+            delta=rotation_tolerance,
             msg="HP xRotation out of limit",
         )
         self.assertAlmostEqual(
             data.yRotation,
             position[4],
-            delta=rotationTolerance,
+            delta=rotation_tolerance,
             msg="HP yRotation out of limit",
         )
         self.assertAlmostEqual(
             data.zRotation,
             position[5],
-            delta=rotationTolerance,
+            delta=rotation_tolerance,
             msg="HP zRotation out of limit",
         )
-        if checkForces:
+        if check_forces:
             # Verify there are no unintended load paths.
             self.assertAlmostEqual(
                 data.fx,
@@ -169,43 +141,43 @@ class MTM1M3Movements(MTM1M3Test):
                 msg="MZ out of limit",
             )
 
-        if checkIMS is False:
+        if check_IMS is False:
             return
 
         self.assertAlmostEqual(
             imsData.xPosition,
             position[0],
-            delta=positionTolerance,
+            delta=position_tolerance,
             msg="IMS X out of limit",
         )
         self.assertAlmostEqual(
             imsData.yPosition,
             position[1],
-            delta=positionTolerance,
+            delta=position_tolerance,
             msg="IMS Y out of limit",
         )
         self.assertAlmostEqual(
             imsData.zPosition,
             position[2],
-            delta=positionTolerance,
+            delta=position_tolerance,
             msg="IMS Z out of limit",
         )
         self.assertAlmostEqual(
             imsData.xRotation,
             position[3],
-            delta=rotationTolerance,
+            delta=rotation_tolerance,
             msg="IMS rotation X out of limit",
         )
         self.assertAlmostEqual(
             imsData.yRotation,
             position[4],
-            delta=rotationTolerance,
+            delta=rotation_tolerance,
             msg="IMS rotation Y out of limit",
         )
         self.assertAlmostEqual(
             imsData.zRotation,
             position[5],
-            delta=rotationTolerance,
+            delta=rotation_tolerance,
             msg="IMS rotation Z out of limit",
         )
 
@@ -236,9 +208,11 @@ class MTM1M3Movements(MTM1M3Test):
     async def do_movements(
         self,
         offsets,
+        header,
         start_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
         end_state=MTM1M3.DetailedState.PARKED,
         check_forces=True,
+        moved_callback=None,
     ):
         """Run tests movements.
 
@@ -246,19 +220,19 @@ class MTM1M3Movements(MTM1M3Test):
         ----------
         offsets : array of 6 members float tuples
             Movements (from 0 position) as X, Y, Z and Rx, Ry and Rz (rotation). Position shall be specified in u.m or similar, rotation as u.deg or similar.
-        start_state : `int`, MTM1M3.DetailedState
+        header : `str`
+            Test header. Echoed at test startup.
+        start_state : `int`, MTM1M3.DetailedState, optional
             Starts tests at this state
-        end_state : `int`, MTM1M3.DetailedState
+        end_state : `int`, MTM1M3.DetailedState, optional
             When tests are successfully finished, transition mirror to this state.
+        moved_callback : `function`, optional
+            If not None, called after mirror moved to new position.
         """
 
-        click.echo(
-            click.style(
-                "M13T-009: Mirror Support System Active Motion Range",
-                bold=True,
-                fg="cyan",
-            )
-        )
+        self.moved_callback = moved_callback
+
+        click.echo(click.style(header, bold=True, fg="cyan"))
 
         await self.startup(start_state)
 
@@ -268,16 +242,11 @@ class MTM1M3Movements(MTM1M3Test):
 
         # confirm mirror at reference position.
         self.LOG_MOVEMENT = "startup reference"
-        self._check_position(self.REFERENCE, checkForces=check_forces)
+        await self._check_position(self.REFERENCE, check_forces=check_forces)
 
         for row in offsets:
             self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
-            click.echo(
-                click.style(
-                    f"Moving {self.LOG_MOVEMENT}",
-                    fg="bright_blue",
-                )
-            )
+            click.echo(click.style(f"Moving {self.LOG_MOVEMENT}", fg="bright_blue",))
 
             position = (
                 list(map(lambda x: x.to(u.m).value, row[:3]))
@@ -295,7 +264,7 @@ class MTM1M3Movements(MTM1M3Test):
 
             await asyncio.sleep(3.0)
 
-            self._check_position(position, checkForces=False)
+            await self._check_position(position)
 
         #######################
         # Lower the mirror, put back in standby state.
@@ -303,13 +272,9 @@ class MTM1M3Movements(MTM1M3Test):
         # Lower mirror.
         await self.shutdown(end_state)
 
-    def set_log_file(self, path):
-        self.LOG_FILE = open(path, "w")
-        print(
-            "Movement,HP xPosition, HP yPostion, HP zPosition, HP xRotation, HP yRotation, HP zRotation, IMS xPosition, IMS yPosition, IMS zPosition, IMS xRotation, IMS yRotation, IMS zRotation",
-            file=self.LOG_FILE,
-        )
+        self.moved_callback = None
 
     def close_log_file(self):
+        self.moved_callback = None
         self.LOG_FILE.close()
         self.LOG_FILE = None

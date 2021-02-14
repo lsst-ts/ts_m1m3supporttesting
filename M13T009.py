@@ -88,8 +88,7 @@ class M13T009(MTM1M3Movements):
             [ZERO_M, -TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
         ]
 
-        await self.do_movements(offsets)
-
+        await self.do_movements(offsets, "M13T-009: Mirror Support System Active Motion Range")
 
 if __name__ == "__main__":
     asynctest.main()

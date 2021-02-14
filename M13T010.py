@@ -124,7 +124,9 @@ class M13T010(MTM1M3Movements):
             [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, -TRAVEL_ROTATION, -TRAVEL_ROTATION,],
         ]
 
-        await self.do_movements(offsets, check_forces=False)
+        await self.do_movements(
+            offsets, "M13T-010: Position System Requirements", check_forces=False
+        )
 
 
 if __name__ == "__main__":

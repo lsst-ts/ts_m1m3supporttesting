@@ -55,20 +55,15 @@
 # - Pull data from EFD to generate RMS values specified by the test.
 ########################################################################
 
-from Utilities import *
-from SALPY_m1m3 import *
-from SALPY_vms import *
-from Setup import *
-import MySQLdb
-import time
+import astropy.units as u
+import asynctest
+import click
 
-# edit the defined reference positions as needed.
-REFERENCE_X_POSITION = 0.0
-REFERENCE_Y_POSITION = 0.0
-REFERENCE_Z_POSITION = 0.0
-REFERENCE_X_ROTATION = 0.0
-REFERENCE_Y_ROTATION = 0.0
-REFERENCE_Z_ROTATION = 0.0
+from lsst.ts import salobj
+from lsst.ts.idl.enums import MTM1M3
+
+from MTM1M3Movements import MTM1M3Movements
+
 
 X1Sensitivity = 51.459
 Y1Sensitivity = 52.061
@@ -82,109 +77,54 @@ X3Sensitivity = 52.183
 Y3Sensitivity = 52.015
 Z3Sensitivity = 51.908
 
-TRAVEL_POSITION = 0.001
-TRAVEL_ROTATION = 0.00024435
-POSITION_TOLERANCE = 0.000008
-ROTATION_TOLERANCE = 0.00000209
-WAIT_UNTIL_TIMEOUT = 600
+TRAVEL_POSITION = 1 * u.mm
 SETTLE_TIME = 3.0
 SAMPLE_TIME = 15.0
+
+ZERO_M = 0 * u.m
+ZERO_DEG = 0 * u.deg
 
 def convert(raw, sensitivity):
     return (raw * 1000.0) / sensitivity
 
-class M13T011:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-011: Position Stability During Active Mode Operation")
+class M13T011(MTM1M3Movements):
+    def _log_data(self, data, imsData):
+        startTimestamp = imsData.Timestamp
+        timestamp = startTimestamp
 
+    def test_movements(self):
         # Setup VMS
-        vms = SAL_vms()
-        vms.salTelemetrySub("vms_M1M3")
+        self.vms = salobj.Remote(self.domain, "MTVMS")
         
-        ########################################
-        # Enable the mirror, Raise it.
+        offsets = [
+            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
 
-        # Bring mirror into Disabled state.
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Place mirror into Enabled state.
-        m1m3.Enable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_EnabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to parked engineering state
-        m1m3.EnterEngineering()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Raise mirror (therefore entering the Raised Engineering State).
-        m1m3.RaiseM1M3(False)
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ActiveState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until active engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
-        
-        # wait 5 seconds
-        time.sleep(5)
+            [+TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [-TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [+TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [+TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [-TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [-TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [+TRAVEL_POSITION, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [+TRAVEL_POSITION, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [-TRAVEL_POSITION, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [-TRAVEL_POSITION, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, +TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, +TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, -TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            [ZERO_M, -TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+        ]
 
-        skipFirstMove = True
+        self.LOG_FILE = open(
+            f'M13T012-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w"
+        )
 
         # The martix need to be tested 3 times
-        for i in range(0,3):
-            testTable = [
-                ["REF", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+X", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-X", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+Y", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-Y", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+X+Y", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+X-Y", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-X+Y", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-X-Y", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+X+Z", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+X-Z", REFERENCE_X_POSITION + TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-X+Z", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-X-Z", REFERENCE_X_POSITION - TRAVEL_POSITION, REFERENCE_Y_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+Y+Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["+Y-Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION + TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-Y+Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION + TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION],
-                ["-Y-Z", REFERENCE_X_POSITION, REFERENCE_Y_POSITION - TRAVEL_POSITION, REFERENCE_Z_POSITION - TRAVEL_POSITION, REFERENCE_X_ROTATION, REFERENCE_Y_ROTATION, REFERENCE_Z_ROTATION]]
-
-            for row in testTable:
-                # Dont attempt to move to reference position unless we have moved previously
-                if not skipFirstMove:
-                    # Perform the requested motion
-                    rtn, data = m1m3.GetEventHardpointActuatorState()
-                    m1m3.PositionM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
-
-                    # Wait for the requested motion to complete
-                    WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x != 0))
-                    WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(m1m3, lambda x: x == 0))
-                else:
-                    skipFirstMove = False
-
-                # Allow some settling time
-                time.sleep(SETTLE_TIME)
-
-                # Prepare to sample data
-                imsDatas = []
-                vmsDatas = []
-
-                # Flush IMS data
-                result, imsData = m1m3.GetSampleIMSData()
+        await self.do_movements(offsets, "M13T-011: Position Stability During Active Mode Operation", end_state=MTM1M3.DetailedState.STANDBY, moved_callback = self._log_data)
 
                 # Flush VMS data
                 vmsData = vms_M1M3C()
@@ -236,41 +176,6 @@ class M13T011:
                             convert(vmsData.Sensor3ZAcceleration[j], Z3Sensitivity)))
                         newTimestamp += 0.001
                 file.close()               
-
-        #######################
-        # Lower the mirror, put back in standby state.
-
-        # Lower mirror.
-        m1m3.LowerM1M3()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_LoweringEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until active engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
-        
-        # Bring mirror into Disabled state.
-        m1m3.Disable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Get back into StandbyState
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)   
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SAL m1m3_logevent_SummaryState.SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        
-    def checkMotionStateEquals(self, m1m3, eval):
-        rtn, data = m1m3.GetNextEventHardpointActuatorState()
-        if rtn >= 0:
-            return eval(sum(data.MotionState))
-        return False        
         
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T011().Run(m1m3, sim, efd)
-    Shutdown(m1m3, sim, efd)
+    asynctest.main()
