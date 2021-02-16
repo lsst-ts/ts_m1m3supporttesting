@@ -195,9 +195,9 @@ class MTM1M3Movements(MTM1M3Test):
                 xPosition=row[0].to(u.m).value,
                 yPosition=row[1].to(u.m).value,
                 zPosition=row[2].to(u.m).value,
-                xRotation=row[3].to(u.rad).value,
-                yRotation=row[4].to(u.rad).value,
-                zRotation=row[5].to(u.rad).value,
+                xRotation=row[3].to(u.deg).value,
+                yRotation=row[4].to(u.deg).value,
+                zRotation=row[5].to(u.deg).value,
             )
             await self._wait_HP()
 
