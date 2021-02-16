@@ -1,3 +1,26 @@
+#!/usr/bin/env python3.8
+
+# This file is part of M1M3 SS test suite.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 ########################################################################
 # Test Numbers: M13T-013 
 # Author:       CContaxis
@@ -21,64 +44,31 @@
 # - Transition from active engineering state to standby
 ########################################################################
 
-from Utilities import *
-from SALPY_m1m3 import *
-from Setup import *
-import MySQLdb
-import time
+import asyncio
+import asynctest
 
+from lsst.ts.idl.enum import MTM1M3
 
 TRANSLATION_STEP = 0.0001
 ROTATION_STEP = 0.000024435
-SETTLE_TIME = 3.0
-SAMPLE_TIME = 1.0
 
-WAIT_UNTIL_TIMEOUT = 600
+class M13T013(MTM1M3Movements):
+    SETTLE_TIME = 3.0
+    SAMPLE_TIME = 1.0
 
-class M13T013:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-013: Determination of X, Y, Z, Zero Coordinate")
-        
-#        # Transition to disabled state
-#        m1m3.Start("Default")
-#        result, data = m1m3.GetEventDetailedState()
-#        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-#        result, data = m1m3.GetEventSummaryState()
-#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-#        
-#        # Transition to parked state
-#        m1m3.Enable()
-#        result, data = m1m3.GetEventDetailedState()
-#        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
-#        result, data = m1m3.GetEventSummaryState()
-#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-#        
-#        # Transition to parked engineering state
-#        m1m3.EnterEngineering()
-#        result, data = m1m3.GetEventDetailedState()
-#        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-#        result, data = m1m3.GetEventSummaryState()
-#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-#        
-#        # Raise mirror (therefore entering the Raised Engineering State).
-#        m1m3.RaiseM1M3(False)
-#        result, data = m1m3.GetEventDetailedState()
-#        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingEngineeringState)
-#        result, data = m1m3.GetEventSummaryState()
-#        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-#        
-#        # Wait until active engineering state
-#        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
+    async def test_zero_coordinates_determination(self):
+        self.printHeader("M13T-013: Determination of X, Y, Z, Zero Coordinate")
+
+        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
         
         # Disable hardpoint corrections
-        m1m3.DisableHardpointCorrections()
+        await self.m1m3.cmd_disableHardpointCorrections.start()
         
         # Get start timestamp
-        rtn, data = m1m3.GetSampleHardpointActuatorData()
-        startTimestamp = data.Timestamp
+        startTimestamp = self.m1m3.tel_hardpointActuatorData.get().timestamp
         
         # Wait for corrections to go away
-        time.sleep(SETTLE_TIME)
+        await asyncio.sleep(SETTLE_TIME)
         
         testTable = [
             ["X Pos Position", TRANSLATION_STEP, 0.0, 0.0, 0.0, 0.0, 0.0, 1200, 1200, 1200, 800, 800, 800],
@@ -98,7 +88,7 @@ class M13T013:
         detailTable = []
         for row in testTable:
             # Settle for a bit before taking a baseline
-            time.sleep(SETTLE_TIME)
+            await asyncio.sleep(SETTLE_TIME)
             
             # Get baseline data
             datas = self.sampleHP(m1m3)
@@ -118,15 +108,21 @@ class M13T013:
             # Loop until force / moment triggers are hit
             while abs(dFx) < row[7] and abs(dFy) < row[8] and abs(dFz) < row[9] and abs(dMx) < row[10] and abs(dMy) < row[11] and abs(dMz) < row[12]:
                 # Clear HP states
-                rtn, data = m1m3.GetEventHardpointActuatorState()
+                rtn, data = self.m1m3.GetEventHardpointActuatorState()
                 
                 # Make a step
-                m1m3.TranslateM1M3(row[1], row[2], row[3], row[4], row[5], row[6])
-                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Moving" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x != 0))
-                WaitUntil("SAL %s m1m3_HardpointActuatorState.MotionState Standby" % row[0], WAIT_UNTIL_TIMEOUT, lambda: self.checkMotionStateEquals(lambda x: x == 0))
+                await self.m1m3.cmd_translateM1M3.set_start(
+                        xPosition=row[1], 
+                        yPosition=row[2],
+                        zPosition=row[3],
+                        xRotation=row[4],
+                        yRotation=row[5],
+                        zRotation=row[6]
+                )
+                await self.waitHP()
                 
                 # Wait for motion to complete
-                time.sleep(SETTLE_TIME)
+                await asyncio.sleep(SETTLE_TIME)
                 
                 # Get step data
                 datas = self.sampleHP(m1m3)
@@ -234,6 +230,4 @@ class M13T013:
         
         
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T013().Run(m1m3, sim, efd)
-    Shutdown(m1m3, sim, efd)
+    asynctest.main()
