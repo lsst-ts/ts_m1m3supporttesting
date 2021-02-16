@@ -22,7 +22,6 @@
 import asyncio
 import asynctest
 import click
-from datetime import datetime
 import numpy as np
 
 from lsst.ts import salobj
@@ -269,7 +268,7 @@ class MTM1M3Test(asynctest.TestCase):
 
             self.fail(f"Unknown shutdown target state {target}.")
 
-    async def sampleData(self, topic_name, time, flush=True):
+    async def sampleData(self, topic_name, sampling_time, flush=True):
         """Samples given M1M3 data.
 
         Parameters
@@ -288,15 +287,13 @@ class MTM1M3Test(asynctest.TestCase):
         """
 
         topic = getattr(self.m1m3, topic_name)
-        if flush:
-            topic.flush()
 
-        data = await topic.next()
+        data = await topic.next(flush=flush)
         ret = [data]
         startTimestamp = data.timestamp
 
         while data.timestamp - startTimestamp < sampling_time:
-            data = await topic.next()
+            data = await topic.next(flush=False)
             ret.append(data)
 
         return ret
