@@ -371,19 +371,9 @@ class M13T013(MTM1M3Movements):
             print(
                 self.LOG_MOVEMENT
                 + ","
-                + ",".join(
-                    map(
-                        lambda m: f"{m * u.m.to(u.mm):.04f}",
-                        v[:3],
-                    )
-                )
+                + ",".join(map(lambda m: f"{m * u.m.to(u.mm):.04f}", v[:3],))
                 + ","
-                + ",".join(
-                    map(
-                        lambda m: f"{m * u.deg.to(u.arcsec):.02f}",
-                        v[3:],
-                    )
-                )
+                + ",".join(map(lambda m: f"{m * u.deg.to(u.arcsec):.02f}", v[3:],))
                 + ","
                 + ",".join(map(lambda m: f"{m:.1f}", averages_encoders["encoder"])),
                 file=resultFile,
