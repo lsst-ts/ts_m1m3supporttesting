@@ -163,9 +163,7 @@ class MTM1M3Test(asynctest.TestCase):
             ) as bar:
                 while True:
                     await asyncio.sleep(0.1)
-                    pct = (
-                        self.m1m3.evt_forceActuatorState.get().supportPercentage * 100.0
-                    )
+                    pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
                     diff = pct - lastPercents
                     if diff > 0.1:
                         bar.update(diff)
@@ -210,9 +208,7 @@ class MTM1M3Test(asynctest.TestCase):
             ) as bar:
                 while True:
                     await asyncio.sleep(0.1)
-                    pct = (
-                        self.m1m3.evt_forceActuatorState.get().supportPercentage * 100.0
-                    )
+                    pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
                     diff = lastPercents - pct
                     if diff > 0.1:
                         bar.update(diff)
