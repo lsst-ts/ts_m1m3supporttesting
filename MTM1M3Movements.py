@@ -281,6 +281,29 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.moved_callback = None
 
+    async def openCSV(self, name):
+        """Opens CVS log file.
+
+        Parameters
+        ----------
+        name : `str`
+            File start name. Filename is contructed using this and timestamp.
+
+        Returns
+        -------
+        cvsfile : `file`
+            File descriptor opened for writing.
+        """
+        f = await open(f'{name}-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w")
+        if self.LOG_FILE is None:
+            self.LOG_FILE = f
+        elif isinstance(self.LOG_FILE, list):
+            self.LOG_FILE.append(f)
+        else:
+            self.LOG_FILE = [self.LOG_FILE, f]
+
+        return f
+
     def close_log_file(self):
         self.moved_callback = None
         if isinstance(self.LOG_FILE, list):

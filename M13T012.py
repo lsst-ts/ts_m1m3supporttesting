@@ -47,7 +47,6 @@
 
 import astropy.units as u
 import asynctest
-from datetime import datetime
 
 from lsst.ts.idl.enums import MTM1M3
 
@@ -109,9 +108,8 @@ class M13T012(MTM1M3Movements):
         self.POSITION_TOLERANCE = POSITION_TOLERANCE
         self.ROTATION_TOLERANCE = ROTATION_TOLERANCE
 
-        self.LOG_FILE = open(
-            f'M13T012-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w"
-        )
+        await self.openCSV("M13T012")
+
         print(
             "Movement,HP xPosition, HP yPostion, HP zPosition, HP xRotation, HP yRotation, HP zRotation, IMS xPosition, IMS yPosition, IMS zPosition, IMS xRotation, IMS yRotation, IMS zRotation",
             file=self.LOG_FILE,

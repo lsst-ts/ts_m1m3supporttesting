@@ -22,6 +22,8 @@
 import asyncio
 import asynctest
 import click
+from datetime import datetime
+import numpy as np
 
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
@@ -266,3 +268,57 @@ class MTM1M3Test(asynctest.TestCase):
                 return
 
             self.fail(f"Unknown shutdown target state {target}.")
+
+    async def sampleData(self, topic_name, time, flush=True):
+        """Samples given M1M3 data.
+
+        Parameters
+        ----------
+        topic_name : `str`
+           Event or telemetry topic name (e.g. tel_hardpointActuatorData, evt_detailedState).
+        sampling_time : `float`
+           Sample time (seconds).
+        flush : `bool`, optional
+           Flush data before sampling. Defaults to True.
+
+        Returns
+        -------
+        data : `array`
+           Array of sampled data.
+        """
+
+        topic = getattr(self.m1m3, topic_name)
+        if flush:
+            topic.flush()
+
+        data = await topic.next()
+        ret = [data]
+        startTimestamp = data.timestamp
+
+        while data.timestamp - startTimestamp < sampling_time:
+            data = await topic.next()
+            ret.append(data)
+
+        return ret
+
+    def average(self, data, topics_names, axis=0):
+        """Calculate averages from given data.
+
+        Parameters
+        ----------
+        data : `array`
+            Input values.
+        topic_names : `array[str]`
+            Names of members to use from data.
+        axis : `int`, optional
+            Axis for np.average. Defaults to 0.
+
+        Returns
+        -------
+        ret : `dict`
+            Dictionary with collected averages.
+        """
+        ret = {}
+        for n in topics_names:
+            ret[n] = np.average([getattr(d, n) for d in data], axis=axis)
+        return ret
