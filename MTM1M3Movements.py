@@ -181,7 +181,9 @@ class MTM1M3Movements(MTM1M3Test):
             msg="IMS rotation Z out of limit",
         )
 
-    async def _wait_HP(self):
+    async def waitHP(self):
+        """Wait for HP to go through Moving to Idle states."""
+
         async def wait_for(states, timeout=100):
             while True:
                 data = self.m1m3.evt_hardpointActuatorState.get()
@@ -204,6 +206,11 @@ class MTM1M3Movements(MTM1M3Test):
             1,
         )
         await wait_for((MTM1M3.HardpointActuatorMotionStates.STANDBY,))
+
+    def printHeader(self, header):
+        """Prints header text.
+        """
+        click.echo(click.style(header, bold=True, fg="cyan"))
 
     async def do_movements(
         self,
@@ -232,7 +239,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.moved_callback = moved_callback
 
-        click.echo(click.style(header, bold=True, fg="cyan"))
+        self.printHeader(header)
 
         await self.startup(start_state)
 
@@ -260,7 +267,7 @@ class MTM1M3Movements(MTM1M3Test):
                 yRotation=row[4].to(u.deg).value,
                 zRotation=row[5].to(u.deg).value,
             )
-            await self._wait_HP()
+            await self.waitHP()
 
             await asyncio.sleep(3.0)
 
