@@ -247,11 +247,6 @@ class MTM1M3Movements(MTM1M3Test):
         )
         await wait_for((MTM1M3.HardpointActuatorMotionStates.STANDBY,))
 
-    def printHeader(self, header):
-        """Prints header text.
-        """
-        click.echo(click.style(header, bold=True, fg="cyan"))
-
     async def do_movements(
         self,
         offsets,
