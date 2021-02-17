@@ -40,7 +40,7 @@ class MTM1M3Movements(MTM1M3Test):
     REFERENCE = np.array([0.0] * 6)
 
     POSITION_TOLERANCE = 8 * u.um.to(u.m)
-    ROTATION_TOLERANCE = 1.45 * u.arcsec.to(u.rad)
+    ROTATION_TOLERANCE = 1.45 * u.arcsec.to(u.deg)
     LOAD_PATH_FORCE = 0.0
     LOAD_PATH_TOLERANCE = 0.0
 
@@ -207,11 +207,6 @@ class MTM1M3Movements(MTM1M3Test):
         )
         await wait_for((MTM1M3.HardpointActuatorMotionStates.STANDBY,))
 
-    def printHeader(self, header):
-        """Prints header text.
-        """
-        click.echo(click.style(header, bold=True, fg="cyan"))
-
     async def do_movements(
         self,
         offsets,
@@ -253,7 +248,12 @@ class MTM1M3Movements(MTM1M3Test):
 
         for row in offsets:
             self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
-            click.echo(click.style(f"Moving {self.LOG_MOVEMENT}", fg="bright_blue",))
+            click.echo(
+                click.style(
+                    f"Moving {self.LOG_MOVEMENT}",
+                    fg="bright_blue",
+                )
+            )
 
             position = (
                 list(map(lambda x: x.to(u.m).value, row[:3]))

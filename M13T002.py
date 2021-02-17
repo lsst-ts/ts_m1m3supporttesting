@@ -109,9 +109,11 @@ class M13T002(MTM1M3Test):
             width=0,
         ) as bar:
             for b in bar:
-                secondary = self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
-                    self._secondary_index
-                ]
+                secondary = (
+                    self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
+                        self._secondary_index
+                    ]
+                )
                 if secondary > 5:
                     bar.update(0)
                     break
@@ -161,7 +163,7 @@ class M13T002(MTM1M3Test):
 
                 click.echo(
                     click.style(
-                        f"\nTesting actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}",
+                        f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}",
                         fg="blue",
                     )
                 )

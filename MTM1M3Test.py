@@ -35,7 +35,29 @@ class MTM1M3Test(asynctest.TestCase):
 
     Provides setUp and tearDown methods to create connection to M1M3. `startup`
     and `shutdown` methods can be used to progress mirror to a given state.
+    Also contains functions to collect measurements during tests, and prints tests
+    progress.
     """
+
+    def printHeader(self, header):
+        """Prints header text.
+
+        Parameters
+        ----------
+        header : `str`
+            String to print as header.
+        """
+        click.echo(click.style(header, bold=True, fg="cyan"))
+
+    def printTest(self, test):
+        """Prints test progress.
+
+        Parameters
+        ----------
+        test : `str`
+            String to print with test header style.
+        """
+        click.echo(click.style(test, fg="blue"))
 
     async def setUp(self):
         """Setup tests. This methods is being called by asynctest.TestCase
