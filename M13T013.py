@@ -275,7 +275,7 @@ class M13T013(MTM1M3Movements):
             file=detailsFile,
         )
 
-        for row in testTable:
+        for row in testTable[:2]:
             # Settle for a bit before taking a baseline
             await asyncio.sleep(self.SETTLE_TIME)
 
@@ -300,6 +300,7 @@ class M13T013(MTM1M3Movements):
                 # Clear HP states
                 data = self.m1m3.evt_hardpointActuatorState.get()
 
+                probing = list(map(lambda v: abs(v) > 0, row[:6])).index(True)
                 self.LOG_MOVEMENT = ("+" if row[probing] > 0 else "-") + [
                     "Tx",
                     "Ty",
