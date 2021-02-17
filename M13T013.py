@@ -275,7 +275,7 @@ class M13T013(MTM1M3Movements):
             file=detailsFile,
         )
 
-        for row in testTable:
+        for row in testTable[:2]:
             # Settle for a bit before taking a baseline
             await asyncio.sleep(self.SETTLE_TIME)
 
