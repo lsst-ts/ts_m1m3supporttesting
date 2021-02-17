@@ -29,7 +29,7 @@ import time
 import click
 import numpy as np
 import astropy.units as u
-
+from datetime import datetime
 
 __all__ = ["MTM1M3Movements"]
 
@@ -39,8 +39,8 @@ class MTM1M3Movements(MTM1M3Test):
     # XYZ in m, R[XYZ] in deg
     REFERENCE = np.array([0.0] * 6)
 
-    POSITION_TOLERANCE = (8 * u.um).to(u.m).value
-    ROTATION_TOLERANCE = (1.45 * u.arcsec).to(u.rad).value
+    POSITION_TOLERANCE = 8 * u.um.to(u.m)
+    ROTATION_TOLERANCE = 1.45 * u.arcsec.to(u.rad)
     LOAD_PATH_FORCE = 0.0
     LOAD_PATH_TOLERANCE = 0.0
 
@@ -281,7 +281,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.moved_callback = None
 
-    async def openCSV(self, name):
+    def openCSV(self, name):
         """Opens CVS log file.
 
         Parameters
@@ -294,7 +294,7 @@ class MTM1M3Movements(MTM1M3Test):
         cvsfile : `file`
             File descriptor opened for writing.
         """
-        f = await open(f'{name}-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w")
+        f = open(f'{name}-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w")
         if self.LOG_FILE is None:
             self.LOG_FILE = f
         elif isinstance(self.LOG_FILE, list):

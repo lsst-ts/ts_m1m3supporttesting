@@ -47,6 +47,7 @@
 import asyncio
 import asynctest
 import astropy.units as u
+import click
 
 from lsst.ts.idl.enums import MTM1M3
 
@@ -89,11 +90,11 @@ class M13T013(MTM1M3Movements):
         await self.m1m3.cmd_disableHardpointCorrections.start()
 
         # Wait for corrections to go away
-        await asyncio.sleep(SETTLE_TIME)
+        await asyncio.sleep(self.SETTLE_TIME)
 
         testTable = [
             [
-                TRANSLATION_STEP,
+                self.TRANSLATION_STEP,
                 0.0,
                 0.0,
                 0.0,
@@ -107,7 +108,7 @@ class M13T013(MTM1M3Movements):
                 800,
             ],
             [
-                -TRANSLATION_STEP,
+                -self.TRANSLATION_STEP,
                 0.0,
                 0.0,
                 0.0,
@@ -122,7 +123,7 @@ class M13T013(MTM1M3Movements):
             ],
             [
                 0.0,
-                TRANSLATION_STEP,
+                self.TRANSLATION_STEP,
                 0.0,
                 0.0,
                 0.0,
@@ -136,7 +137,7 @@ class M13T013(MTM1M3Movements):
             ],
             [
                 0.0,
-                -TRANSLATION_STEP,
+                -self.TRANSLATION_STEP,
                 0.0,
                 0.0,
                 0.0,
@@ -151,7 +152,7 @@ class M13T013(MTM1M3Movements):
             [
                 0.0,
                 0.0,
-                TRANSLATION_STEP,
+                self.TRANSLATION_STEP,
                 0.0,
                 0.0,
                 0.0,
@@ -165,7 +166,7 @@ class M13T013(MTM1M3Movements):
             [
                 0.0,
                 0.0,
-                -TRANSLATION_STEP,
+                -self.TRANSLATION_STEP,
                 0.0,
                 0.0,
                 0.0,
@@ -180,7 +181,7 @@ class M13T013(MTM1M3Movements):
                 0.0,
                 0.0,
                 0.0,
-                ROTATION_STEP,
+                self.ROTATION_STEP,
                 0.0,
                 0.0,
                 1000,
@@ -194,7 +195,7 @@ class M13T013(MTM1M3Movements):
                 0.0,
                 0.0,
                 0.0,
-                -ROTATION_STEP,
+                -self.ROTATION_STEP,
                 0.0,
                 0.0,
                 1000,
@@ -209,7 +210,7 @@ class M13T013(MTM1M3Movements):
                 0.0,
                 0.0,
                 0.0,
-                ROTATION_STEP,
+                self.ROTATION_STEP,
                 0.0,
                 1000,
                 1000,
@@ -223,7 +224,7 @@ class M13T013(MTM1M3Movements):
                 0.0,
                 0.0,
                 0.0,
-                -ROTATION_STEP,
+                -self.ROTATION_STEP,
                 0.0,
                 1000,
                 1000,
@@ -238,7 +239,7 @@ class M13T013(MTM1M3Movements):
                 0.0,
                 0.0,
                 0.0,
-                ROTATION_STEP,
+                self.ROTATION_STEP,
                 1000,
                 1000,
                 1000,
@@ -252,7 +253,7 @@ class M13T013(MTM1M3Movements):
                 0.0,
                 0.0,
                 0.0,
-                -ROTATION_STEP,
+                -self.ROTATION_STEP,
                 1000,
                 1000,
                 1000,
@@ -262,13 +263,13 @@ class M13T013(MTM1M3Movements):
             ],
         ]
 
-        resultFile = await self.openCSV("M13T013")
+        resultFile = self.openCSV("M13T013")
         print(
             "Test,XPosition,YPosition,ZPosition,XRotation,YRotation,ZRotation,HP1Encoder,HP2Encoder,HP3Encoder,HP4Encoder,HP5Encoder,HP6Encoder",
             file=resultFile,
         )
 
-        detailsFile = await self.openSCV("M13T013-details")
+        detailsFile = self.openCSV("M13T013-details")
         print(
             "Test,XPosition,YPosition,ZPosition,XRotation,YRotation,ZRotation,Fx,Fy,Fz,Mx,My,Mz",
             file=detailsFile,
@@ -276,12 +277,10 @@ class M13T013(MTM1M3Movements):
 
         for row in testTable:
             # Settle for a bit before taking a baseline
-            await asyncio.sleep(SETTLE_TIME)
+            await asyncio.sleep(self.SETTLE_TIME)
 
             # Get baseline data
-            data = await self.sampleData(
-                "tel_hardpointActuatorData", SAMPLE_TIME, False
-            )
+            data = await self.sampleData("tel_hardpointActuatorData", self.SAMPLE_TIME)
             baseline = self.average(data, self.HARDPOINT_TOPICS)
 
             diffs = {n: 0 for n in self.HARDPOINT_FORCES}
@@ -295,15 +294,22 @@ class M13T013(MTM1M3Movements):
                 return False
 
             # Loop until force / moment triggers are hit
-            while triggers_hit(diffs, row[7:]) is False:
+            while triggers_hit(diffs, row[6:]) is False:
                 # Clear HP states
                 data = self.m1m3.evt_hardpointActuatorState.get()
 
+                M2MM = u.m.to(u.mm)
+                D2ARCSEC = u.deg.to(u.arcsec)
+
+                self.LOG_MOVEMENT = f"x {row[0]*M2MM} y {row[1]*M2MM} z {row[2]*M2MM} Rx {row[3]*D2ARCSEC} Ry {row[4]*D2ARCSEC} Rz {row[5]*D2ARCSEC}"
+
+                click.echo(click.style("Translating " + self.LOG_MOVEMENT, fg="blue"))
+
                 # Make a step
                 await self.m1m3.cmd_translateM1M3.set_start(
-                    xPosition=row[0],
-                    yPosition=row[1],
-                    zPosition=row[2],
+                    xTranslation=row[0],
+                    yTranslation=row[1],
+                    zTranslation=row[2],
                     xRotation=row[3],
                     yRotation=row[4],
                     zRotation=row[5],
@@ -311,25 +317,27 @@ class M13T013(MTM1M3Movements):
                 await self.waitHP()
 
                 # Wait for motion to complete
-                await asyncio.sleep(SETTLE_TIME)
+                await asyncio.sleep(self.SETTLE_TIME)
 
                 # Get step data
                 data = await self.sampleData(
-                    "tel_hardpointActuatorData", SAMPLE_TIME, False
+                    "tel_hardpointActuatorData", self.SAMPLE_TIME
                 )
                 averages = self.average(
-                    data, self.HARDPOINT_POSITIONS + HARDPOINT_FORCES
+                    data, self.HARDPOINT_POSITIONS + self.HARDPOINT_FORCES
                 )
-                diffs = {n: averages[n] - baseline[n] for n in HARDPOINT_FORCES}
+                diffs = {n: averages[n] - baseline[n] for n in self.HARDPOINT_FORCES}
 
                 print(
-                    ",".join(map(str, averages.values())), file=detailsFile,
+                    self.LOG_MOVEMENT,
+                    ",",
+                    ",".join(map(str, averages.values())),
+                    file=detailsFile,
                 )
+                detailsFile.flush()
 
             # Get position data
-            data = await self.sampleData(
-                "tel_hardpointActuatorData", SAMPLE_TIME, False
-            )
+            data = await self.sampleData("tel_hardpointActuatorData", self.SAMPLE_TIME)
             averages = self.average(data, HARDPOINT_POSITIONS + ["encoder"])
             averages_encoders = self.average(data, ["encoder"])
 
@@ -340,6 +348,7 @@ class M13T013(MTM1M3Movements):
                 ",".join(map(str, averages_encodersi["encoder"])),
                 file=resultFile,
             )
+            resultFile.flush()
 
             # Reset position
             await self.m1m3.cmd_positionM1M3(

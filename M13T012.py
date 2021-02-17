@@ -54,8 +54,8 @@ from MTM1M3Movements import *
 
 TRAVEL_POSITION = 1 * u.mm
 TRAVEL_ROTATION = 50.4 * u.arcsec
-POSITION_TOLERANCE = (40 * u.um).to(u.m).value
-ROTATION_TOLERANCE = 0.00000209
+POSITION_TOLERANCE = 40 * u.um.to(u.m)
+ROTATION_TOLERANCE = 0.4 * u.arcsec.to(u.deg)
 
 ZERO_M = 0 * u.m
 ZERO_DEG = 0 * u.deg
@@ -108,7 +108,7 @@ class M13T012(MTM1M3Movements):
         self.POSITION_TOLERANCE = POSITION_TOLERANCE
         self.ROTATION_TOLERANCE = ROTATION_TOLERANCE
 
-        await self.openCSV("M13T012")
+        self.openCSV("M13T012")
 
         print(
             "Movement,HP xPosition, HP yPostion, HP zPosition, HP xRotation, HP yRotation, HP zRotation, IMS xPosition, IMS yPosition, IMS zPosition, IMS xRotation, IMS yRotation, IMS zRotation",
