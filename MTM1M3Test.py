@@ -223,14 +223,14 @@ class MTM1M3Test(asynctest.TestCase):
             MTM1M3.DetailedState.ACTIVEENGINEERING,
         ):
             await self.m1m3.cmd_lowerM1M3.start()
-            pct = 0
-            lastPercents = 0
+            pct = 100
+            lastPercents = 100
             with click.progressbar(
                 range(100),
-                label="Raising",
+                label="Lowering",
                 width=0,
                 item_show_func=lambda i: f"{pct:.01f}%"
-                if pct < 100
+                if pct > 0
                 else click.style("chasing HP", fg="blue"),
                 show_percent=False,
             ) as bar:
