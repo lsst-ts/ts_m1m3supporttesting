@@ -69,7 +69,7 @@ import asynctest
 import asyncio
 
 TEST_PERCENTAGE = 1.15
-TEST_SETTLE_TIME = 3.0
+TEST_SETTLE_TIME = 8.0
 TEST_TOLERANCE = 5.0
 TEST_SAMPLES_TO_AVERAGE = 10
 
@@ -365,7 +365,82 @@ class M13T027(MTM1M3Test):
         yApplied = [0] * 100
         zApplied = [0] * 156
 
-        def set_scaled(scale):
+        async def verify(preclipped=True):
+            await asyncio.sleep(0.5)
+
+            if preclipped:
+                # Verify the preclipped forces match the commanded values
+                data = self.m1m3.evt_preclippedForces.get()
+
+                self.assertListAlmostEqual(
+                    data.xForces,
+                    xForces,
+                    delta=TEST_TOLERANCE,
+                    msg="X preclipped forces don't match",
+                )
+                self.assertListAlmostEqual(
+                    data.yForces,
+                    yForces,
+                    delta=TEST_TOLERANCE,
+                    msg="Y preclipped forces don't match",
+                )
+                self.assertListAlmostEqual(
+                    data.zForces,
+                    zForces,
+                    delta=TEST_TOLERANCE,
+                    msg="Z preclipped forces don't match",
+                )
+
+            # Verify the applied mirror forces match the expected value
+            data = self.m1m3.evt_appliedForces.get()
+
+            self.assertListAlmostEqual(
+                data.xForces,
+                xApplied,
+                delta=TEST_TOLERANCE,
+                msg="X applied forces don't match",
+            )
+            self.assertListAlmostEqual(
+                data.yForces,
+                yApplied,
+                delta=TEST_TOLERANCE,
+                msg="Y applied forces don't match",
+            )
+            self.assertListAlmostEqual(
+                data.zForces,
+                zApplied,
+                delta=TEST_TOLERANCE,
+                msg="Z applied forces don't match",
+            )
+
+            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
+            await asyncio.sleep(TEST_SETTLE_TIME)
+
+            # Check force actuator force
+            data = await self.sampleData(
+                "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+            )
+            averages = self.average(data, ["xForce", "yForce", "zForce"])
+            self.assertListAlmostEqual(
+                averages["xForce"],
+                xApplied,
+                delta=TEST_TOLERANCE,
+                msg="X measured forces sample don't match",
+            )
+            self.assertListAlmostEqual(
+                averages["yForce"],
+                yApplied,
+                delta=TEST_TOLERANCE,
+                msg="Y measured forces sample don't match",
+            )
+            self.assertListAlmostEqual(
+                averages["zForce"],
+                zApplied,
+                delta=TEST_TOLERANCE,
+                msg="Z measured forces sample don't match",
+            )
+
+        async def set_scaled(scale, run_test=True):
             """Sets [xyz]Forces and [xyz]Applied.
 
             Parameters
@@ -374,93 +449,58 @@ class M13T027(MTM1M3Test):
                 Scale. 1 for maximum force, -1 for minimum force, 0 for no force.
             """
             minMax = forceActuatorLimitMax if scale > 0 else forceActuatorLimitMin
+            use = abs(scale)
+
             if fa_type == "X":
-                xApplied[fa_id] = scale * forceActuatorXLimitTable[fa_id][minMax]
+                xApplied[fa_id] = use * forceActuatorXLimitTable[fa_id][minMax]
                 xForces[fa_id] = xApplied[fa_id] * TEST_PERCENTAGE
+                self.printTest(
+                    f"FA {self.id} X {fa_id}: will apply {xForces[fa_id]:.02f}N, expect to see {xApplied[fa_id]:.02f}N"
+                )
             elif fa_type == "Y":
-                yApplied[fa_id] = scale * forceActuatorYLimitTable[fa_id][minMax]
+                yApplied[fa_id] = use * forceActuatorYLimitTable[fa_id][minMax]
                 yForces[fa_id] = yApplied[fa_id] * TEST_PERCENTAGE
+                self.printTest(
+                    f"FA {self.id} Y {fa_id}: will apply {yForces[fa_id]:.02f}N, expect to see {yApplied[fa_id]:.02f}N"
+                )
             elif fa_type == "Z":
-                zApplied[fa_id] = scale * forceActuatorZLimitTable[fa_id][minMax]
+                zApplied[fa_id] = use * forceActuatorZLimitTable[fa_id][minMax]
                 zForces[fa_id] = zApplied[fa_id] * TEST_PERCENTAGE
+                self.printTest(
+                    f"FA {self.id} Z {fa_id}: will apply {zForces[fa_id]:.02f}N, expect to see {zApplied[fa_id]:.02f}N"
+                )
             else:
                 raise RuntimeError(f"Invalid FA type (only XYZ accepted): {fa_type}")
 
-        async def verify():
-            # Verify the preclipped forces match the commanded values
-            data = self.m1m3.evt_preclippedStaticForces.get()
+            if run_test is False:
+                return
 
-            self.assertListAlmostEqual(
-                data.xForces, xForces, delta=0, msg="X preclipped forces don't match"
-            )
-            self.assertListAlmostEqual(
-                data.yForces, yForces, delta=0, msg="Y preclipped forces don't match"
-            )
-            self.assertListAlmostEqual(
-                data.zForces, zForces, delta=0, msg="Z preclipped forces don't match"
+            # Apply the offset force
+            await self.m1m3.cmd_applyOffsetForces.set_start(
+                xForces=xForces, yForces=yForces, zForces=zForces
             )
 
-            # Verify the applied mirror forces match the expected value
-            data = self.m1m3.evt_appliedForces.get()
+            # Set the simulatored force actuator's load cells to the correct value
+            # primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, xForces[x], 0, 0)
+            # sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
 
-            self.assertListAlmostEqual(
-                data.xForces, xApplied, delta=0, msg="X applied forces don't match"
-            )
-            self.assertListAlmostEqual(
-                data.yForces, yApplied, delta=0, msg="Y applied forces don't match"
-            )
-            self.assertListAlmostEqual(
-                data.zForces, zApplied, delta=0, msg="Z applied forces don't match"
-            )
+            await verify()
 
-            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-            await asyncio.sleep(TEST_SETTLE_TIME)
-
-            # Check force actuator force
-            data = self.sampleData(
-                "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
-            )
-            self.assertListAlmostEqual(
-                data.xForces, xApplied, delta=0, msg="X sampled forces don't match"
-            )
-            self.assertListAlmostEqual(
-                data.yForces, yApplied, delta=0, msg="Y sampled forces don't match"
-            )
-            self.assertListAlmostEqual(
-                data.zForces, zApplied, delta=0, msg="Z sampled forces don't match"
-            )
-
-        set_scaled(1)
-
-        # Apply the X only offset force
-        await self.m1m3.cmd_applyOffsetForces.set_start(
-            xForces=xForces, yForces=yForces, zForces=zForces
-        )
-
-        # Set the simulatored force actuator's load cells to the correct value
-        # primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, xForces[x], 0, 0)
-        # sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-
-        await verify()
-
-        set_scaled(-1)
-
-        # Set the simulatored force actuator's load cells to the correct value
-        # primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, xForces[x], 0, 0)
-        # sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
-
-        await verify()
+        await set_scaled(1)
+        await set_scaled(-1)
 
         # Clear force setpoint for this actuator
-        set_scaled(0)
-
+        await set_scaled(0, False)
         # Clear offset forces
         await self.m1m3.cmd_clearOffsetForces.start()
-
-        await verify()
+        await verify(False)
 
     async def test_actuator_force_limits(self):
         self.printHeader("M13T-027: Actuator Force Limits")
+        self.printWarning(
+            "This test requires you to switch M1M3 SS CsC configuration - ForceLimit[XYZ]Table.csv needs to be replaced with ForceLimit[XYZ]TableSmall.csv. Best is to edit on cRIO ForceActuatorSetting.xml"
+        )
+
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
         x = 0  # X index for data access
@@ -469,10 +509,10 @@ class M13T027(MTM1M3Test):
         # Iterate through all 156 force actuators
         for row in forceActuatorTable:
             z = row[forceActuatorTableIndexIndex]
-            id = row[forceActuatorTableIDIndex]
+            self.id = row[forceActuatorTableIDIndex]
             orientation = row[forceActuatorTableOrientationIndex]
 
-            self.printTest(f"Verify Force Actuator {id} Commands and Telemetry")
+            self.printTest(f"Verify Force Actuator {self.id} Commands and Telemetry")
 
             # Run X tests for DDA X
             if orientation in ["+X", "-X"]:
