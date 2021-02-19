@@ -368,3 +368,8 @@ class MTM1M3Test(asynctest.TestCase):
         for n in topics_names:
             ret[n] = np.average([getattr(d, n) for d in data], axis=axis)
         return ret
+
+    def assertListAlmostEqual(self, l1, l2, msg=None, **kwargs):
+        self.assertEqual(len(l1), len(l2), msg=msg)
+        for i in range(len(l1)):
+            self.assertAlmostEqual(l1[i], l2[i], msg=msg, **kwargs)

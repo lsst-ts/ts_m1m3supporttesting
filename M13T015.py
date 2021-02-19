@@ -1,3 +1,26 @@
+#!/usr/bin/env python3.8
+
+# This file is part of M1M3 SS test suite.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 ########################################################################
 # Test Numbers: M13T-015
 # Author:       CContaxis
@@ -5,75 +28,108 @@
 # Steps:
 ########################################################################
 
-import time
-import math
-from Utilities import *
-from SALPY_m1m3 import *
-from ForceActuatorTable import *
-from HardpointActuatorTable import *
-from Setup import *
+from MTM1M3Movements import *
+from lsst.ts.idl.enums import MTM1M3
 import CalculateBendingModeForces
 
-TEST_FORCE = 222.0
+import asyncio
+import asynctest
+
 TEST_SETTLE_TIME = 3.0
 TEST_TOLERANCE = 0.1
-TEST_SAMPLES_TO_AVERAGE = 10
-WAIT_UNTIL_TIMEOUT = 300
 
-class M13T015:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-015: Active Optic Bending Mode Offsets")
-        
-        # Transition to disabled state
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to parked state
-        m1m3.Enable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to parked engineering state
-        m1m3.EnterEngineering()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
 
-        # Raise mirror (therefore entering the Raised Engineering State).
-        m1m3.RaiseM1M3(False)
-        result, data = m1m3.GetEventDetailedState()
-        Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until active engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
+class M13T015(MTM1M3Movements):
+    async def test_active_optic_bending_mode_offsets(self):
+        self.printHeader("M13T-015: Active Optic Bending Mode Offsets")
+
+        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
 
         # Wait a bit
-        time.sleep(2.0)
+        await asyncio.sleep(2.0)
 
         # Enable hardpoint corrections
-        m1m3.EnableHardpointCorrections()
+        await self.m1m3.cmd_enableHardpointCorrections.start()
 
         # Wait a bit more
-        time.sleep(2.0)
-        
+        await asyncio.sleep(2.0)
+
         # Prepare force data
         bm = [0] * 22
-        xIndex = 0
-        yIndex = 0
-        sIndex = 0
-        
+
         bmTests = [
-            [5.00, 3.00, 1.50, 0.50, 0.10, 0.20, 0.05, 0.60, 0.10, 0.05, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-            [1.00, 2.00, 3.00, 0.50, 0.10, 1.00, 0.20, 0.60, 0.05, 0.05, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-            [0.00, 0.00, 0.00, 0.00, 0.00, 0.20, 0.00, 0.00, 0.00, 0.00, 0.00, 0.10, 0.10, 0.00, 0.00, 0.00, 0.10, 0.00, 0.00, 0.00, 0.00, 0.00]
+            [
+                5.00,
+                3.00,
+                1.50,
+                0.50,
+                0.10,
+                0.20,
+                0.05,
+                0.60,
+                0.10,
+                0.05,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+            ],
+            [
+                1.00,
+                2.00,
+                3.00,
+                0.50,
+                0.10,
+                1.00,
+                0.20,
+                0.60,
+                0.05,
+                0.05,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+            ],
+            [
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.20,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.10,
+                0.10,
+                0.00,
+                0.00,
+                0.00,
+                0.10,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+                0.00,
+            ],
         ]
 
         # Iterate through all 156 force actuators
@@ -81,65 +137,43 @@ class M13T015:
             # Calculate expected forces
             targetForces = CalculateBendingModeForces.CalculateBendingModeForces(bm)
 
-            Header("Bending Mode %s" % bm)
+            self.printTest(f"Bending Mode {bm}")
 
             # Apply bending mode
-            m1m3.ApplyActiveOpticForcesByBendingModes(bm)
+            await self.m1m3.cmd_applyActiveOpticForcesByBendingModes.set_start(coefficients=bm)
 
             # Wait for bending mode forces
-            time.sleep(TEST_SETTLE_TIME)
+            await asyncio.sleep(TEST_SETTLE_TIME)
 
-            # I hate this script
-            rtn, data = m1m3.GetEventAppliedActiveOpticForces()
+            data = self.m1m3.evt_appliedActiveOpticForces.get()
+            self.assertListAlmostEqual(
+                data.zForces,
+                targetForces,
+                delta=TEST_TOLERANCE,
+                msg="Applied bending modes produces same forces as calculated",
+            )
 
-            # Verify forces
-            for i in range(156):
-                InTolerance("m1m3_logevent_AppliedActiveOpticForces.ZForces[%d]" % i, data.ZForces[i], targetForces[i], TEST_TOLERANCE)
-
-        Header("Clear Bending Mode")
+        self.printTest("Clear Bending Mode")
 
         # Clear bending mode forces
-        bm = [0] * 22
-        targetForces = CalculateBendingModeForces.CalculateBendingModeForces(bm)
+        targetForces = CalculateBendingModeForces.CalculateBendingModeForces([0] * 22)
 
         # Clear bending mode
-        m1m3.ClearActiveOpticForces()
+        await self.m1m3.cmd_clearActiveOpticForces.start()
 
         # Wait for bending mode forces
-        time.sleep(TEST_SETTLE_TIME)
+        await asyncio.sleep(TEST_SETTLE_TIME)
 
-        # I hate this script
-        rtn, data = m1m3.GetEventAppliedActiveOpticForces()
+        data = self.m1m3.evt_appliedActiveOpticForces.get()
+        self.assertListAlmostEqual(
+            data.zForces,
+            targetForces,
+            delta=TEST_TOLERANCE,
+            msg="Cleared bending forces",
+        )
 
-        # Verify forces
-        for i in range(156):
-            InTolerance("m1m3_logevent_AppliedActiveOpticForces.ZForces[%d]" % i, data.ZForces[i], targetForces[i], TEST_TOLERANCE)
+        await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
-        # Lower mirror.
-        m1m3.LowerM1M3()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_LoweringEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until parked engineering state
-        WaitUntil("DetailedState", WAIT_UNTIL_TIMEOUT, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
-            
-        # Transition to disabled state
-        m1m3.Disable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to standby state
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        
+
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T015().Run(m1m3, sim, efd)
-    Shutdown(m1m3, sim, efd)
+    asynctest.main()
