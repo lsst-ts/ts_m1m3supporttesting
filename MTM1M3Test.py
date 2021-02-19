@@ -317,15 +317,17 @@ class MTM1M3Test(asynctest.TestCase):
 
             self.fail(f"Unknown shutdown target state {target}.")
 
-    async def sampleData(self, topic_name, sampling_time, flush=True):
-        """Samples given M1M3 data.
+    async def sampleData(self, topic_name, sampling_time, sampling_size=None, flush=True):
+        """Samples given M1M3 data for given seconds.
 
         Parameters
         ----------
         topic_name : `str`
            Event or telemetry topic name (e.g. tel_hardpointActuatorData, evt_detailedState).
-        sampling_time : `float`
+        sampling_time : `float`, 
            Sample time (seconds).
+        sampling_size : `float`, optional
+           Size of collected samples. When 
         flush : `bool`, optional
            Flush data before sampling. Defaults to True.
 
@@ -333,6 +335,10 @@ class MTM1M3Test(asynctest.TestCase):
         -------
         data : `array`
            Array of sampled data.
+
+        Throws
+        ------
+        Runtime error if given number of samples cannot be collected.
         """
 
         topic = getattr(self.m1m3, topic_name)
@@ -341,9 +347,12 @@ class MTM1M3Test(asynctest.TestCase):
         ret = [data]
         startTimestamp = data.timestamp
 
-        while data.timestamp - startTimestamp < sampling_time:
+        while data.timestamp - startTimestamp < sampling_time or len(ret) < sampling_size:
             data = await topic.next(flush=False)
             ret.append(data)
+
+        if len(ret) < sampling_size:
+            raise RuntimeError(f"Only {len(ret)} of requested {sampling_size} collected.")
 
         return ret
 
