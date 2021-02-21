@@ -21,6 +21,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+# !!!! PLEASE NOTE !!!!
+#
+# This test requires you to switch M1M3 SS CsC configuration -
+# ForceLimit[XYZ]Table.csv needs to be replaced with
+# ForceLimit[XYZ]TableSmall.csv. Best is to edit on cRIO / simulator
+# ForceActuatorSetting.xml and change:
+#
+#   <ForceLimitXTablePath>Tables/ForceLimitXTable.csv</ForceLimitXTablePath>
+#   <ForceLimitYTablePath>Tables/ForceLimitYTable.csv</ForceLimitYTablePath>
+#   <ForceLimitZTablePath>Tables/ForceLimitZTable.csv</ForceLimitZTablePath>
+#
+# to
+#
+#   <ForceLimitXTablePath>Tables/ForceLimitXTableSmall.csv</ForceLimitXTablePath>
+#   <ForceLimitYTablePath>Tables/ForceLimitYTableSmall.csv</ForceLimitYTablePath>
+#   <ForceLimitZTablePath>Tables/ForceLimitZTableSmall.csv</ForceLimitZTablePath>
+#
+# and restart CsC before running the test.
+
 ########################################################################
 # Test Numbers: M13T-027
 # Author:       CContaxis
