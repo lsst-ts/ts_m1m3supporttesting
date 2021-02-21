@@ -88,7 +88,7 @@ import asynctest
 import asyncio
 
 TEST_PERCENTAGE = 1.15
-TEST_SETTLE_TIME = 8.0
+TEST_SETTLE_TIME = 3.0
 TEST_TOLERANCE = 5.0
 TEST_SAMPLES_TO_AVERAGE = 10
 
@@ -390,6 +390,11 @@ class M13T027(MTM1M3Test):
             if preclipped:
                 # Verify the preclipped forces match the commanded values
                 data = self.m1m3.evt_preclippedForces.get()
+
+                if data is None:
+                    self.fail(
+                        "Cannot retrieve preclipped data. Most likely you forgot to change Limit tables to *Small?"
+                    )
 
                 self.assertListAlmostEqual(
                     data.xForces,

@@ -28,6 +28,8 @@ import time
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
 
+from ForceActuatorTable import *
+
 __all__ = ["MTM1M3Test"]
 
 
@@ -399,3 +401,34 @@ class MTM1M3Test(asynctest.TestCase):
         self.assertEqual(len(l1), len(l2), msg=msg)
         for i in range(len(l1)):
             self.assertAlmostEqual(l1[i], l2[i], msg=msg, **kwargs)
+
+    async def runActuators(self, function):
+        """Runs function for all actuators (XYZ).
+
+        Parameters
+        ----------
+        function : `func(int,int)`
+            Function called for all actuators. The parameters are fa_type (X,Y
+            or Z) and force actuator ID (0 based from the first actuator with a given type)"""
+
+        x = 0  # X index for data access
+        y = 0  # Y index for data access
+
+        # Iterate through all 156 force actuators
+        for row in forceActuatorTable:
+            z = row[forceActuatorTableIndexIndex]
+            self.id = row[forceActuatorTableIDIndex]
+            orientation = row[forceActuatorTableOrientationIndex]
+
+            self.printTest(f"Verify Force Actuator {self.id}")
+
+            # Run X tests for DDA X
+            if orientation in ["+X", "-X"]:
+                await function("X", x)
+                x += 1
+            # Run Y tests for DDA X
+            elif orientation in ["+Y", "-Y"]:
+                await function("Y", y)
+                y += 1
+
+            await function("Z", z)
