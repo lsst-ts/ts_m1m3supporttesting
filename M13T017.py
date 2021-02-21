@@ -50,6 +50,9 @@ from MTM1M3Test import *
 
 from lsst.ts.idl.enums import MTM1M3
 
+import asyncio
+import asynctest
+
 TEST_MODE = [
     0.0,
     0.0,
@@ -102,21 +105,22 @@ class M13T017(MTM1M3Test):
         async def clear_and_verify():
             await self.m1m3.cmd_clearActiveOpticForces.start()
             await asyncio.sleep(1.0)
-            self.verifyForces([0] * 156)
+            verifyForces([0] * 156)
             await asyncio.sleep(1.0)
 
         # Clear active optic forces and verify
         await clear_and_verify()
 
+        self.printTest("Apply test forces")
+
         # Apply active optic force and verify
-        await self.m1m3.cmd_applyActiveOpticForces.set_start(
-            zForces=TEST_FORCE, xForces=[0] * 6, yForces=[0] * 100
-        )
+        await self.m1m3.cmd_applyActiveOpticForces.set_start(zForces=TEST_FORCE)
         await asyncio.sleep(1.0)
-        self.verifyForces(TEST_FORCE)
+        verifyForces(TEST_FORCE)
         await asyncio.sleep(1.0)
 
         for i in range(2):
+            self.printTest(f"Active + zero step {i}")
             # Clear active optic forces and verify
             await clear_and_verify()
 
@@ -125,21 +129,21 @@ class M13T017(MTM1M3Test):
                 coefficients=TEST_MODE
             )
             await asyncio.sleep(1.0)
-            self.verifyForces(CalculateBendingModeForces(TEST_MODE))
+            verifyForces(CalculateBendingModeForces(TEST_MODE))
             await asyncio.sleep(1.0)
 
+        self.printTest("Shutting down")
+
         # Apply active optic force and verify
-        await self.m1m3.cmd_applyActiveOpticForces.set_start(
-            zForces=TEST_FORCE, xForces=[0] * 6, yForces=[0] * 100
-        )
+        await self.m1m3.cmd_applyActiveOpticForces.set_start(zForces=TEST_FORCE)
         await asyncio.sleep(1.0)
-        self.verifyForces(TEST_FORCE)
+        verifyForces(TEST_FORCE)
         await asyncio.sleep(1.0)
 
         # Clear active optic forces and verify
         await clear_and_verify()
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        # await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
 
 if __name__ == "__main__":
