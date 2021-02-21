@@ -1,113 +1,83 @@
+#!/usr/bin/env python3.8
+
+# This file is part of M1M3 SS test suite.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 ########################################################################
 # Test Numbers: M13T-018
 # Author:       CContaxis
 # Description:  Bump test raised
 # Steps:
 # - Transition from standby to active engineering state
-# - Perform the following steps for each force actuator
-#   - If the force actuator has an X component
-#     - Apply a pure X force offset
-#     - Verify the pure X force is being applied
-#     - Verify the pure X force is being measured
-#     - Clear offset forces
-#     - Verify the pure X force is no longer being applied
-#     - Verify the pure X force is no longer being measured
-#     - Apply a pure -X force offset
-#     - Verify the pure -X force is being applied
-#     - Verify the pure -X force is being measured
-#     - Clear offset forces
-#     - Verify the pure -X force is no longer being applied
-#     - Verify the pure -X force is no longer being measured
-#   - If the force actuator has an Y component
-#     - Apply a pure Y force offset
-#     - Verify the pure Y force is being applied
-#     - Verify the pure Y force is being measured
-#     - Clear offset forces
-#     - Verify the pure Y force is no longer being applied
-#     - Verify the pure Y force is no longer being measured
-#     - Apply a pure -Y force offset
-#     - Verify the pure -Y force is being applied
-#     - Verify the pure -Y force is being measured
-#     - Clear offset forces
-#     - Verify the pure -Y force is no longer being applied
-#     - Verify the pure -Y force is no longer being measured
-#   - Apply a pure Z force offset
-#   - Verify the pure Z force is being applied
-#   - Verify the pure Z force is being measured
+# - Perform the following steps for each force actuator and each of its force component (X or Y and Z)
+#   - Apply a pure force offset
+#   - Verify the pure force is being applied
+#   - Verify the pure force is being measured
 #   - Clear offset forces
-#   - Verify the pure Z force is no longer being applied
-#   - Verify the pure Z force is no longer being measured
-#   - Apply a pure -Z force offset
-#   - Verify the pure -Z force is being applied
-#   - Verify the pure -Z force is being measured
+#   - Verify the pure force is no longer being applied
+#   - Verify the pure force is no longer being measured
+#   - Apply a pure -force offset
+#   - Verify the pure -force is being applied
+#   - Verify the pure -force is being measured
 #   - Clear offset forces
-#   - Verify the pure -Z force is no longer being applied
-#   - Verify the pure -Z force is no longer being measured
+#   - Verify the pure -force is no longer being applied
+#   - Verify the pure -force is no longer being measured
 # - Transition from active engineering state to standby
 ########################################################################
 
-import time
-import math
-from Utilities import *
-from SALPY_m1m3 import *
 from ForceActuatorTable import *
-from HardpointActuatorTable import *
-from Setup import *
+from MTM1M3Test import *
+
+from lsst.ts.idl.enums import MTM1M3
+
+import asyncio
+import asynctest
 
 TEST_FORCE = 222.0
 TEST_SETTLE_TIME = 3.0
 TEST_TOLERANCE = 5.0
 TEST_SAMPLES_TO_AVERAGE = 10
 
-class M13T018:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-018: Bump Test Raised")
-        
-        # Transition to disabled state
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to parked state
-        m1m3.Enable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to parked engineering state
-        m1m3.EnterEngineering()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to raising engineering state
-        m1m3.RaiseM1M3(False)
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until active engineering state
-        WaitUntil("DetailedState", 600, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
-        
-        # Disable hardpoint corrections to keep forces good
-        m1m3.DisableHardpointCorrections()
-        
+class M13T018(MTM1M3Test):
+    async def _test_actuator(self, fa_type, fa_id):
         # Prepare force data
         xForces = [0] * 12
         yForces = [0] * 100
         zForces = [0] * 156
-        xIndex = 0
-        yIndex = 0
-        sIndex = 0
+
+        self.printHeader(f"Verify Force Actuator {self.id} {fa_type}")
+
+    async def test_bump_raised(self):
+        self.printHeader("M13T-018: Bump Test Raised")
+
+        await self.startup(MTM1M3Test.DetailedState.ACTIVEENGINEERING)
+        
+        # Disable hardpoint corrections to keep forces good
+        await self.m1m3.cmd_disableHardpointCorrections.start()
+        
+        await self.runActuators(self._test_actuator)
         
         # Iterate through all 156 force actuators
         for row in forceActuatorTable:
-            index = row[forceActuatorTableIndexIndex]
+            z = row[forceActuatorTableIndexIndex]
             id = row[forceActuatorTableIDIndex]
             orientation = row[forceActuatorTableOrientationIndex]
             x = -1        # X index for data access, if -1 no X data available
@@ -384,41 +354,8 @@ class M13T018:
             if y != -1:
                 InTolerance("FA%03d -Z0 ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY, TEST_TOLERANCE)
             InTolerance("FA%03d -Z0 ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
-        
-        # Transition to lowering engineering state
-        m1m3.LowerM1M3()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_LoweringEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until active engineering state
-        WaitUntil("DetailedState", 600, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
-        
-        # Transition to disabled state
-        m1m3.Disable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to standby state
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        
-    def SampleForceActuators(self, m1m3):
-        # Get force actuator data
-        datas = []
-        while len(datas) < TEST_SAMPLES_TO_AVERAGE:
-            result, data = m1m3.GetSampleForceActuatorData()
-            if result >= 0:
-                datas.append(data)
-        return datas
+
+        await self.shutdown(MTM1M3.DetailedState.STANDBY)
         
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T018().Run(m1m3, sim, efd)
-    Shutdown(m1m3, sim, efd)
+    asynctest.main()
