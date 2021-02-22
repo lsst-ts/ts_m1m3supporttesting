@@ -67,8 +67,8 @@ class M13T018(MTM1M3Test):
         zForces = [0] * 156
 
         with click.progressbar(
-            range(9),
-            label="Bump test steps",
+            length=9,
+            label=f"Bump testing {self.id} ({fa_type}{fa_id})",
             width=0,
             item_show_func=lambda i: "Starting"
             if i is None
@@ -92,24 +92,13 @@ class M13T018(MTM1M3Test):
             )
             baseline = self.average(data, ("xForce", "yForce", "zForce"))
 
-            #self.printHeader(f"Verify Force Actuator {self.id} {fa_type}")
-
             def setForce(force):
                 if fa_type == "X":
                     xForces[fa_id] = force
-                    self.printTest(
-                        f"FA {self.id} X {fa_id}: will apply {xForces[fa_id]:.02f}N"
-                    )
                 elif fa_type == "Y":
                     yForces[fa_id] = force
-                    self.printTest(
-                        f"FA {self.id} Y {fa_id}: will apply {yForces[fa_id]:.02f}N"
-                    )
                 elif fa_type == "Z":
                     zForces[fa_id] = force
-                    self.printTest(
-                        f"FA {self.id} Z {fa_id}: will apply {zForces[fa_id]:.02f}N"
-                    )
                 else:
                     raise RuntimeError(
                         f"Invalid FA type (only XYZ accepted): {fa_type}"
@@ -117,8 +106,6 @@ class M13T018(MTM1M3Test):
 
             async def applyAndVerify(force, last=False):
                 setForce(force)
-
-                self.m1m3.evt_appliedOffsetForces.flush()
 
                 if force == 0:
                     await self.m1m3.cmd_clearOffsetForces.start()
@@ -128,11 +115,11 @@ class M13T018(MTM1M3Test):
                         xForces=xForces, yForces=yForces, zForces=zForces
                     )
 
+                await asyncio.sleep(0.3)
+
                 bar.update(1)
 
-                data = await self.m1m3.evt_appliedOffsetForces.next(
-                    flush=False, timeout=1
-                )
+                data = self.m1m3.evt_appliedOffsetForces.get()
 
                 self.assertFalse(
                     data is None, msg="Cannot retrieve evt_appliedOffsetForces"
@@ -187,19 +174,20 @@ class M13T018(MTM1M3Test):
                     msg="Z measured force  - baseline != Z offsets",
                 )
 
-            await applyAndVerify(TEST_FORCE)
+            await applyAndVerify(0)
+            await verifyMeasured()
 
+            await applyAndVerify(TEST_FORCE)
             await verifyMeasured()
 
             await applyAndVerify(0)
-
             await verifyMeasured()
 
             await applyAndVerify(-TEST_FORCE)
-
             await verifyMeasured()
 
             await applyAndVerify(0, False)
+            await verifyMeasured()
 
     async def test_bump_raised(self):
         self.printHeader("M13T-018: Bump Test Raised")
