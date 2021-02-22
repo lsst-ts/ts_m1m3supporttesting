@@ -51,6 +51,7 @@ from lsst.ts.idl.enums import MTM1M3
 import asyncio
 import asynctest
 import click
+import time
 import numpy as np
 
 TEST_FORCE = 222.0
@@ -104,7 +105,7 @@ class M13T018(MTM1M3Test):
                         f"Invalid FA type (only XYZ accepted): {fa_type}"
                     )
 
-            async def applyAndVerify(force, last=False):
+            async def applyAndVerify(force):
                 setForce(force)
 
                 if force == 0:
@@ -146,33 +147,54 @@ class M13T018(MTM1M3Test):
 
                 bar.update(1)
 
-                if last is False:
-                    await asyncio.sleep(TEST_SETTLE_TIME)
-
             async def verifyMeasured():
-                data = await self.sampleData(
-                    "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
-                )
-                averages = self.average(data, ("xForce", "yForce", "zForce"))
+                test_started = time.monotonic()
+                duration = 0
+                failed = 0
 
-                self.assertListAlmostEqual(
-                    np.array(averages["xForce"]) - np.array(baseline["xForce"]),
-                    xForces,
-                    delta=TEST_TOLERANCE,
-                    msg="X measured force - baseline != X offsets",
+                while duration < TEST_SETTLE_TIME * 4:
+                    data = await self.sampleData(
+                        "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+                    )
+                    duration = time.monotonic() - test_started
+                    averages = self.average(data, ("xForce", "yForce", "zForce"))
+
+                    if (
+                        np.allclose(
+                            np.array(averages["xForce"]) - np.array(baseline["xForce"]),
+                            xForces,
+                            atol=TEST_TOLERANCE,
+                        )
+                        and np.allclose(
+                            np.array(averages["yForce"]) - np.array(baseline["yForce"]),
+                            yForces,
+                            atol=TEST_TOLERANCE,
+                        )
+                        and np.allclose(
+                            np.array(averages["zForce"]) - np.array(baseline["zForce"]),
+                            zForces,
+                            atol=TEST_TOLERANCE,
+                        )
+                    ):
+                        if duration > TEST_SETTLE_TIME:
+                            break
+                    else:
+                        failed += 1
+
+                self.assertLessEqual(
+                    duration,
+                    TEST_SETTLE_TIME * 4,
+                    msg=f"Actuator {self.id} ({fa_type}{fa_id}) tooks {duration:.02f}s and wasn't settled, failed {failed} times",
                 )
-                self.assertListAlmostEqual(
-                    np.array(averages["yForce"]) - np.array(baseline["yForce"]),
-                    yForces,
-                    delta=TEST_TOLERANCE,
-                    msg="Y measured force - baseline != Y offsets",
-                )
-                self.assertListAlmostEqual(
-                    np.array(averages["zForce"]) - np.array(baseline["zForce"]),
-                    zForces,
-                    delta=TEST_TOLERANCE,
-                    msg="Z measured force  - baseline != Z offsets",
-                )
+
+                if duration > TEST_SETTLE_TIME + 1:
+                    self.printWarning(
+                        f"Actuator {self.id} ({fa_type}{fa_id}) tooks {duration:.02f}s to settled down, failed {failed} times"
+                    )
+                elif failed > 0:
+                    self.printTest(
+                        f"Actuator {self.id} ({fa_type}{fa_id}) failed {failed} times before settling down"
+                    )
 
             await applyAndVerify(0)
             await verifyMeasured()
@@ -186,7 +208,7 @@ class M13T018(MTM1M3Test):
             await applyAndVerify(-TEST_FORCE)
             await verifyMeasured()
 
-            await applyAndVerify(0, False)
+            await applyAndVerify(0)
             await verifyMeasured()
 
     async def test_bump_raised(self):
