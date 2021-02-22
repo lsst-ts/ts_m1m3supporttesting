@@ -56,7 +56,7 @@ import asyncio
 import asynctest
 
 MIRROR_WEIGHT = 170000.0
-TEST_FORCE = (MIRROR_WEIGHT / 156.0) + 50.0
+TEST_FORCE = (MIRROR_WEIGHT / 156)
 TEST_SETTLE_TIME = 1.0
 
 NEIGHBOR_TABLE = [
@@ -225,7 +225,7 @@ class M13T028(MTM1M3Test):
             "M13T-028: Actuator to Actuator Force Delta for 6 nearest neighbors"
         )
 
-        await self.startup(MTM1M3Test.DetailedState.PARKEDENGINEERING)
+        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
         # Prepare force data
         xForces = [0] * 12
@@ -243,7 +243,7 @@ class M13T028(MTM1M3Test):
             id = row[forceActuatorTableIDIndex]
 
             async def apply_z_offset(force, z_indices):
-                self.printTest(f"Verify Force Actuator {id} with {force}N")
+                self.printTest(f"Verify Force Actuator {id} with {force:.02f}N")
                 # Apply the force offset
                 for i in z_indices:
                     zForces[i] = force
