@@ -143,7 +143,7 @@ class M13T017(MTM1M3Test):
         # Clear active optic forces and verify
         await clear_and_verify()
 
-        # await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
 
 if __name__ == "__main__":
