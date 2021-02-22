@@ -86,6 +86,8 @@ from lsst.ts.idl.enums import MTM1M3
 
 import asynctest
 import asyncio
+import numpy as np
+import time
 
 TEST_PERCENTAGE = 1.15
 TEST_SETTLE_TIME = 3.0
@@ -437,32 +439,40 @@ class M13T027(MTM1M3Test):
                 msg="Z applied forces don't match",
             )
 
-            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-            await asyncio.sleep(TEST_SETTLE_TIME)
+            test_start = time.monotonic()
+            duration = 0
+            failed_count = 0
 
-            # Check force actuator force
-            data = await self.sampleData(
-                "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+            while duration < TEST_SETTLE_TIME * 4:
+                # Check force actuator force
+                data = await self.sampleData(
+                    "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+                )
+                averages = self.average(data, ["xForce", "yForce", "zForce"])
+
+                duration = time.monotonic() - test_start
+                if (
+                    np.allclose(averages["xForce"], xApplied, atol=TEST_TOLERANCE)
+                    and np.allclose(averages["yForce"], yApplied, atol=TEST_TOLERANCE)
+                    and np.allclose(averages["zForce"], zApplied, atol=TEST_TOLERANCE)
+                ):
+                    if duration > TEST_SETTLE_TIME:
+                        break
+                else:
+                    failed_count += 1
+
+            self.assertLessEqual(
+                duration,
+                TEST_SETTLE_TIME * 4,
+                msg=f"Actuator {self.id} ({fa_type}{fa_id}) doesn't settle within 4 times {TEST_SETTLE_TIME}",
             )
-            averages = self.average(data, ["xForce", "yForce", "zForce"])
-            self.assertListAlmostEqual(
-                averages["xForce"],
-                xApplied,
-                delta=TEST_TOLERANCE,
-                msg="X measured forces sample don't match",
-            )
-            self.assertListAlmostEqual(
-                averages["yForce"],
-                yApplied,
-                delta=TEST_TOLERANCE,
-                msg="Y measured forces sample don't match",
-            )
-            self.assertListAlmostEqual(
-                averages["zForce"],
-                zApplied,
-                delta=TEST_TOLERANCE,
-                msg="Z measured forces sample don't match",
-            )
+
+            if duration > TEST_SETTLE_TIME + 1:
+                self.printWarning(
+                    f"Testing {self.id} ({fa_type}{fa_id}) took {duration:.02f}s to settle down"
+                )
+            else:
+                self.printTest(f"Testing {self.id} ({fa_type}{fa_id}) took {duration:.02f}s with {failed_count} fails")
 
         async def set_scaled(scale, run_test=True):
             """Sets [xyz]Forces and [xyz]Applied.
