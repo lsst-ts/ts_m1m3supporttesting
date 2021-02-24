@@ -23,6 +23,7 @@ import asyncio
 import asynctest
 import click
 import numpy as np
+import time
 
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
@@ -72,21 +73,31 @@ class MTM1M3Test(asynctest.TestCase):
         await self.m1m3.close()
         await self.domain.close()
 
-    async def assertM1M3State(self, state, wait=2):
-        """Make sure M1M3 reaches given state.
+    async def switchM1M3State(self, command, state, wait=2, **kwargs):
+        """Switch M1M3 state by executing a command and make sure M1M3 reaches
+        given state.
 
         Parameters
         ----------
+        command : `str`
+            M1M3 command (as string, without cmd_ or any other prefix).
         state : `int`, MTM1M3.DetailedState
-            Expected M1M3 state.
-
-        wait : `float`
-            Wait for given number of seconds before querying for state.
+            Expected M1M3 state after command is performed.
+        wait : `float`, optional
+            Wait for given number of seconds for state switch. Defaults to 2.
+        **kwargs : dict
+            Arguments passed to the command.
         """
 
-        await asyncio.sleep(wait)
+        self.m1m3.evt_detailedState.flush()
+        stateAfter = asyncio.create_task(
+            self.m1m3.evt_detailedState.next(flush=False, timeout=wait)
+        )
+
+        await getattr(self.m1m3, "cmd_" + command).set_start(**kwargs)
+
         self.assertEqual(
-            self.m1m3.evt_detailedState.get().detailedState,
+            (await stateAfter).detailedState,
             state,
             click.style("M1M3 SS is in wrong state", bold=True, bg="red"),
         )
@@ -99,9 +110,8 @@ class MTM1M3Test(asynctest.TestCase):
         target : `int`, MTM1M3.DetailedState
             Transition to this state.
         """
-        with click.progressbar(range(7), label="Starting up..", width=0) as bar:
+        with click.progressbar(range(4), label="Starting up..", width=0) as bar:
             await self.m1m3.start_task
-            # await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
             bar.update(1)
             if target == MTM1M3.DetailedState.STANDBY:
                 return
@@ -117,23 +127,23 @@ class MTM1M3Test(asynctest.TestCase):
                         "State not received. Assuming it's not started.", fg="red"
                     )
                 )
-                startState = -1
+                startState = MTM1M3.DetailedState.STANDBY
 
-            if startState in (-1, MTM1M3.DetailedState.STANDBY):
-                await self.m1m3.cmd_start.set_start(
-                    settingsToApply="Default", timeout=60
+            if startState == MTM1M3.DetailedState.STANDBY:
+                await self.switchM1M3State(
+                    "start",
+                    MTM1M3.DetailedState.DISABLED,
+                    wait=10,
+                    settingsToApply="Default",
+                    timeout=60,
                 )
-                bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.DISABLED, 10)
                 bar.update(1)
                 startState = MTM1M3.DetailedState.DISABLED
 
             if startState == MTM1M3.DetailedState.DISABLED:
                 if target == MTM1M3.DetailedState.DISABLED:
                     return
-                await self.m1m3.cmd_enable.start()
-                bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
+                await self.switchM1M3State("enable", MTM1M3.DetailedState.PARKED)
                 bar.update(1)
                 startState = MTM1M3.DetailedState.PARKED
 
@@ -144,9 +154,9 @@ class MTM1M3Test(asynctest.TestCase):
                     MTM1M3.DetailedState.PARKEDENGINEERING,
                     MTM1M3.DetailedState.ACTIVEENGINEERING,
                 ):
-                    await self.m1m3.cmd_enterEngineering.start()
-                    bar.update(1)
-                    await self.assertM1M3State(MTM1M3.DetailedState.PARKEDENGINEERING)
+                    await self.switchM1M3State(
+                        "enterEngineering", MTM1M3.DetailedState.PARKEDENGINEERING
+                    )
                     bar.update(1)
                     if target == MTM1M3.DetailedState.PARKEDENGINEERING:
                         return
@@ -160,23 +170,32 @@ class MTM1M3Test(asynctest.TestCase):
                 startState == MTM1M3.DetailedState.ACTIVEENGINEERING
                 and target == MTM1M3.DetailedState.ACTIVE
             ):
-                await self.m1m3.cmd_exitEngineering.start()
-                await self.assertM1M3State(target)
+                await self.switchM1M3State("exitEngineering", target)
                 return
 
             if (
                 startState == MTM1M3.DetailedState.ACTIVE
                 and target == MTM1M3.DetailedState.ACTIVEENGINEERING
             ):
-                await self.m1m3.cmd_enterEngineering.start()
-                await self.assertM1M3State(target)
+                await self.switchM1M3State("enterEngineering", target)
                 return
 
             click.echo(
                 click.style("Waiting for mirror to be raised", bold=True, fg="green")
             )
-            await self.m1m3.cmd_raiseM1M3.set_start(
-                raiseM1M3=True, bypassReferencePosition=False
+
+            raisingState = (
+                MTM1M3.DetailedState.RAISING
+                if target == MTM1M3.DetailedState.ACTIVE
+                else MTM1M3.DetailedState.RAISINGENGINEERING
+            )
+
+            await self.switchM1M3State(
+                "raiseM1M3",
+                raisingState,
+                wait=2,
+                raiseM1M3=True,
+                bypassReferencePosition=False,
             )
             pct = 0
             lastPercents = 0
@@ -189,19 +208,24 @@ class MTM1M3Test(asynctest.TestCase):
                 else click.style("chasing HP", fg="blue"),
                 show_percent=False,
             ) as bar:
-                while True:
+                startTime = time.monotonic()
+                while time.monotonic() - startTime < 300:
                     await asyncio.sleep(0.1)
                     pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
                     diff = pct - lastPercents
                     if diff > 0.1:
                         bar.update(diff)
                         lastPercents = pct
-                    if self.m1m3.evt_detailedState.get().detailedState not in (
-                        MTM1M3.DetailedState.RAISING,
-                        MTM1M3.DetailedState.RAISINGENGINEERING,
+                    if not (
+                        self.m1m3.evt_detailedState.get().detailedState == raisingState
                     ):
                         break
-            await self.assertM1M3State(target, 0)
+
+            self.assertEqual(
+                self.m1m3.evt_detailedState.get().detailedState,
+                target,
+                msg="Mirror raise didn't finish in time",
+            )
             return
 
         self.fail(f"Unknown/unsupported target startup state: {target}")
@@ -222,7 +246,14 @@ class MTM1M3Test(asynctest.TestCase):
             MTM1M3.DetailedState.ACTIVE,
             MTM1M3.DetailedState.ACTIVEENGINEERING,
         ):
-            await self.m1m3.cmd_lowerM1M3.start()
+            if currentState == MTM1M3.DetailedState.ACTIVE:
+                loweringState = MTM1M3.DetailedState.LOWERING
+                parkedState = MTM1M3.DetailedState.PARKED
+            else:
+                loweringState = MTM1M3.DetailedState.LOWERINGENGINEERING
+                parkedState = MTM1M3.DetailedState.PARKEDENGINEERING
+
+            await self.switchM1M3State("lowerM1M3", loweringState)
             pct = 100
             lastPercents = 100
             with click.progressbar(
@@ -234,56 +265,52 @@ class MTM1M3Test(asynctest.TestCase):
                 else click.style("chasing HP", fg="blue"),
                 show_percent=False,
             ) as bar:
-                while True:
+                startTime = time.monotonic()
+                while time.monotonic() - startTime < 300:
                     await asyncio.sleep(0.1)
                     pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
                     diff = lastPercents - pct
                     if diff > 0.1:
                         bar.update(diff)
                         lastPercents = pct
-                    if self.m1m3.evt_detailedState.get().detailedState not in (
-                        MTM1M3.DetailedState.LOWERING,
-                        MTM1M3.DetailedState.LOWERINGENGINEERING,
+                    if not (
+                        self.m1m3.evt_detailedState.get().detailedState == loweringState
                     ):
                         break
-            if currentState == MTM1M3.DetailedState.ACTIVE:
-                currentState = MTM1M3.DetailedState.PARKED
-            else:
-                currentState = MTM1M3.DetailedState.PARKEDENGINEERING
 
-            await self.assertM1M3State(currentState, 0)
+            self.assertEqual(
+                self.m1m3.evt_detailedState.get().detailedState,
+                parkedState,
+                msg="Mirror doesn't lower to correct state",
+            )
+            currentState = parkedState
 
-        with click.progressbar(range(8), label="Shutdown", width=0) as bar:
+        with click.progressbar(range(4), label="Shutdown", width=0) as bar:
 
             if currentState == MTM1M3.DetailedState.PARKEDENGINEERING:
-                await self.m1m3.cmd_exitEngineering.start()
-                bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
+                await self.switchM1M3State(
+                    "exitEngineering", MTM1M3.DetailedState.PARKED
+                )
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.PARKED
 
             if currentState == MTM1M3.DetailedState.PARKED:
                 if target == MTM1M3.DetailedState.PARKED:
                     return
-                await self.m1m3.cmd_disable.start()
-                bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+                await self.switchM1M3State("disable", MTM1M3.DetailedState.DISABLED)
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.DISABLED
 
             if currentState == MTM1M3.DetailedState.DISABLED:
                 if target == MTM1M3.DetailedState.DISABLED:
                     return
-                await self.m1m3.cmd_standby.start()
-                bar.update(1)
-                await self.assertM1M3State(MTM1M3.DetailedState.STANDBY)
+                await self.switchM1M3State("standby", MTM1M3.DetailedState.STANDBY)
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.STANDBY
 
             if currentState == MTM1M3.DetailedState.STANDBY:
                 if target == MTM1M3.DetailedState.STANDBY:
                     return
-                bar.update(1)
                 await self.m1m3.cmd_exitControl.start()
                 bar.update(1)
                 return
