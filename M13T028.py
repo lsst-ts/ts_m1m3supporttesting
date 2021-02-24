@@ -21,6 +21,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+# !!!! PLEASE NOTE !!!!
+#
+# This test requires you to switch M1M3 SS CsC configuration - disable fault on
+# NearNeighborCheck. To do that, edit SafetyControllerSettings.xml in actually
+# used set, switch:
+#
+#        <FaultOnNearNeighborCheck>1</FaultOnNearNeighborCheck>
+#
+# to
+#
+#        <FaultOnNearNeighborCheck>0</FaultOnNearNeighborCheck>
+#
+# and restart CsC before running the test.
+
 ########################################################################
 # Test Numbers: M13T-028
 # Author:       CContaxis
@@ -225,6 +239,10 @@ class M13T028(MTM1M3Test):
             "M13T-028: Actuator to Actuator Force Delta for 6 nearest neighbors"
         )
 
+        self.printWarning(
+            "This tests will run only with FaultOnNearNeighborCheck disabled. Please see test source code for instructions."
+        )
+
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
         # Iterate through all 156 force actuators
@@ -248,20 +266,27 @@ class M13T028(MTM1M3Test):
                 # Apply the force offset
                 for i in z_indices:
                     zForces[i] = force
+
+                self.m1m3.evt_forceSetpointWarning.flush()
+
                 await self.m1m3.cmd_applyOffsetForces.set_start(
                     xForces=xForces, yForces=yForces, zForces=zForces
                 )
 
-                # Wait some time for the force to settle
-                await asyncio.sleep(TEST_SETTLE_TIME)
-
                 # Check for near neighbor warning
-                data = self.m1m3.evt_forceSetpointWarning.get()
-                self.assertEqual(
-                    data.nearNeighborWarning[z],
-                    1,
-                    f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied",
+                data = await self.m1m3.evt_forceSetpointWarning.next(
+                    flush=False, timeout=TEST_SETTLE_TIME
                 )
+                if data.nearNeighborWarning[z] == 0:
+                    detailedState = self.m1m3.evt_detailedState.get().detailedState
+                    if detailedState == MTM1M3.DetailedState.FAULT:
+                        self.fail(
+                            f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied and mirror is faulted. Most likely configuration of FaultOnNearNeighborCheck wasn't changed"
+                        )
+                    else:
+                        self.fail(
+                            f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied and mirror is not faulted. Most likely check problem."
+                        )
 
                 # Clear the force offset
                 for i in z_indices:
