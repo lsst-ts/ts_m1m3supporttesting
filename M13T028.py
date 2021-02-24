@@ -269,6 +269,16 @@ class M13T028(MTM1M3Test):
 
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
+        data = await self.m1m3.evt_forceSetpointWarning.next(
+            flush=False, timeout=TEST_SETTLE_TIME
+        )
+        for i in range(len(forceActuatorTable)):
+            self.assertEqual(
+                data.nearNeighborWarning[i],
+                False,
+                msg=f"Near neighbor warning for index {i} is True. Was the previous test reseted?",
+            )
+
         # Iterate through all 156 force actuators
         for row in forceActuatorTable:
             z = row[
@@ -311,23 +321,10 @@ class M13T028(MTM1M3Test):
                     MTM1M3.DetailedState.FAULT,
                     msg=f"Mirror faulted when force applied for {id}. Most probably configuration error - were FaultOnNearNeighborCheck and FaultOnFarNeighborCheck set to 0?",
                 )
-                if data.nearNeighborWarning[z] == 0:
-                    detailedState = self.m1m3.evt_detailedState.get().detailedState
-                    if detailedState == MTM1M3.DetailedState.FAULT:
-                        self.fail(
-                            f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied and mirror is faulted. Most likely configuration of FaultOnNearNeighborCheck wasn't changed"
-                        )
-                    else:
-                        self.fail(
-                            f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied and mirror is not faulted. Most likely check problem."
-                        )
 
                 # Clear the force offset
                 for i in z_indices:
                     zForces[i] = 0.0
-
-                self.m1m3.evt_forceSetpointWarning.flush()
-
                 await self.m1m3.cmd_clearOffsetForces.start()
 
                 await asyncio.sleep(TEST_SETTLE_TIME)
