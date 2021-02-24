@@ -63,7 +63,7 @@ class MTM1M3Test(asynctest.TestCase):
         click.echo(click.style(test, fg="blue"))
 
     def printWarning(self, warn):
-        """Prints test progress.
+        """Prints test warning.
 
         Parameters
         ----------
@@ -71,6 +71,16 @@ class MTM1M3Test(asynctest.TestCase):
             String to print with warning style.
         """
         click.echo(click.style(warn, fg="yellow", bg="black"))
+
+    def printError(self, err):
+        """Prints test error or another important message.
+
+        Parameters
+        ----------
+        err : `str`
+            String to print with error style.
+        """
+        click.echo(click.style(err, fg="black", bg="red"))
 
     async def setUp(self):
         """Setup tests. This methods is being called by asynctest.TestCase
