@@ -57,9 +57,6 @@ TRAVEL_ROTATION = 50.4 * u.arcsec
 POSITION_TOLERANCE = 40 * u.um.to(u.m)
 ROTATION_TOLERANCE = 0.4 * u.arcsec.to(u.deg)
 
-ZERO_M = 0 * u.m
-ZERO_DEG = 0 * u.deg
-
 
 class M13T012(MTM1M3Movements):
     async def _log_data_ims(self, data, imsData):
@@ -95,14 +92,13 @@ class M13T012(MTM1M3Movements):
 
     async def test_repeatibility(self):
         offsets = [
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [+TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [-TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, ZERO_M, TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [-TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            offset(),
+            offset(x=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION),
+            offset(z=+TRAVEL_POSITION),
+            offset(z=-TRAVEL_POSITION),
         ]
 
         self.POSITION_TOLERANCE = POSITION_TOLERANCE

@@ -62,7 +62,7 @@ import click
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import MTM1M3Movements
+from MTM1M3Movements import *
 
 
 X1Sensitivity = 51.459
@@ -81,29 +81,23 @@ TRAVEL_POSITION = 1 * u.mm
 SETTLE_TIME = 3.0
 SAMPLE_TIME = 15.0
 
-ZERO_M = 0 * u.m
-ZERO_DEG = 0 * u.deg
+M2MM = u.m.to(u.mm)
 
 
 class M13T011(MTM1M3Movements):
     def _log_data(self, data, imsData):
-        startTimestamp = imsData.Timestamp
-        timestamp = startTimestamp
-
         self.m1m3.tel_imsData.flush()
         self.vms.tel_m1m3.flush()
 
         startTimestamp = None
-        timestamp = None
 
         while True:
             imsData = self.m1m3.tel_imsData.next()
             vmsData = self.vms.tel_m1m3.next()
 
-            timestamp = imsData.timestamp
             if startTimestamp is None:
-                startTimestamp = timestamp
-            elif (timestamp - startTimestamp) > SAMPLE_TIME:
+                startTimestamp = imsData.timestamp
+            elif (imsData.timestamp - startTimestamp) > SAMPLE_TIME:
                 break
 
             print(
@@ -123,7 +117,7 @@ class M13T011(MTM1M3Movements):
             self.LOG_FILE[0].flush()
 
             def convert(raw, sensitivity):
-                return (raw * 1000.0) / sensitivity
+                return (raw * M2MM) / sensitivity
 
             vmsTimestamp = vmsData.timestamp
 
@@ -153,30 +147,30 @@ class M13T011(MTM1M3Movements):
 
             self.LOG_FILE[1].flush()
 
-    def test_movements(self):
+    async def test_movements(self):
         # Setup VMS
         self.vms = salobj.Remote(self.domain, "MTVMS")
 
         offsets = [
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [+TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [-TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [+TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [+TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [-TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [-TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [+TRAVEL_POSITION, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [+TRAVEL_POSITION, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [-TRAVEL_POSITION, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [-TRAVEL_POSITION, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, +TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, +TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, -TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
-            [ZERO_M, -TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG],
+            offset(),
+            offset(x=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION),
+            offset(z=+TRAVEL_POSITION),
+            offset(z=-TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, y=+TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, y=-TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, y=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, y=-TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, z=-TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, z=-TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION, z=-TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION, z=-TRAVEL_POSITION),
         ]
 
         self.LOG_FILE = [

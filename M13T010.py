@@ -71,57 +71,53 @@
 ########################################################################
 
 import astropy.units as u
-
 import asynctest
 
-from MTM1M3Movements import MTM1M3Movements
+from MTM1M3Movements import *
 
 TRAVEL_POSITION = 1 * u.mm
 TRAVEL_ROTATION = 50.4 * u.arcsec
-
-ZERO_M = 0 * u.m
-ZERO_DEG = 0 * u.deg
 
 
 class M13T010(MTM1M3Movements):
     async def test_movements(self):
         offsets = [
-            [+TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, ZERO_M, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, ZERO_M, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, +TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, +TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, -TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, -TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, +TRAVEL_ROTATION, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, -TRAVEL_ROTATION, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, +TRAVEL_ROTATION, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, -TRAVEL_ROTATION, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, +TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, -TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, +TRAVEL_ROTATION, +TRAVEL_ROTATION, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, -TRAVEL_ROTATION, +TRAVEL_ROTATION, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, +TRAVEL_ROTATION, -TRAVEL_ROTATION, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, -TRAVEL_ROTATION, -TRAVEL_ROTATION, ZERO_DEG,],
-            [ZERO_M, ZERO_M, ZERO_M, +TRAVEL_ROTATION, ZERO_DEG, +TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, -TRAVEL_ROTATION, ZERO_DEG, +TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, +TRAVEL_ROTATION, ZERO_DEG, -TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, -TRAVEL_ROTATION, ZERO_DEG, -TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, +TRAVEL_ROTATION, +TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, +TRAVEL_ROTATION, -TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, -TRAVEL_ROTATION, +TRAVEL_ROTATION,],
-            [ZERO_M, ZERO_M, ZERO_M, ZERO_DEG, -TRAVEL_ROTATION, -TRAVEL_ROTATION,],
+            offset(x=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION),
+            offset(z=+TRAVEL_POSITION),
+            offset(z=-TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, y=+TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, y=-TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, y=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, y=-TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, z=-TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, z=-TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION, z=-TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION, z=+TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION, z=-TRAVEL_POSITION),
+            offset(rx=+TRAVEL_ROTATION),
+            offset(rx=-TRAVEL_ROTATION),
+            offset(ry=+TRAVEL_ROTATION),
+            offset(ry=-TRAVEL_ROTATION),
+            offset(rz=+TRAVEL_ROTATION),
+            offset(rz=-TRAVEL_ROTATION),
+            offset(rx=+TRAVEL_ROTATION, ry=+TRAVEL_ROTATION),
+            offset(rx=+TRAVEL_ROTATION, ry=-TRAVEL_ROTATION),
+            offset(rx=-TRAVEL_ROTATION, ry=+TRAVEL_ROTATION),
+            offset(rx=-TRAVEL_ROTATION, ry=-TRAVEL_ROTATION),
+            offset(rx=+TRAVEL_ROTATION, rz=+TRAVEL_ROTATION),
+            offset(rx=+TRAVEL_ROTATION, rz=-TRAVEL_ROTATION),
+            offset(rx=-TRAVEL_ROTATION, rz=+TRAVEL_ROTATION),
+            offset(rx=-TRAVEL_ROTATION, rz=-TRAVEL_ROTATION),
+            offset(ry=+TRAVEL_ROTATION, rz=+TRAVEL_ROTATION),
+            offset(ry=+TRAVEL_ROTATION, rz=-TRAVEL_ROTATION),
+            offset(ry=-TRAVEL_ROTATION, rz=+TRAVEL_ROTATION),
+            offset(ry=-TRAVEL_ROTATION, rz=-TRAVEL_ROTATION),
         ]
 
         await self.do_movements(
