@@ -269,16 +269,6 @@ class M13T028(MTM1M3Test):
 
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
-        data = await self.m1m3.evt_forceSetpointWarning.next(
-            flush=False, timeout=TEST_SETTLE_TIME
-        )
-        for i in range(len(forceActuatorTable)):
-            self.assertEqual(
-                data.nearNeighborWarning[i],
-                False,
-                msg=f"Near neighbor warning for index {i} is True. Was the previous test reseted?",
-            )
-
         # Iterate through all 156 force actuators
         for row in forceActuatorTable:
             z = row[
