@@ -56,8 +56,8 @@ import asyncio
 import asynctest
 
 MIRROR_WEIGHT = 170000.0
-TEST_FORCE = (MIRROR_WEIGHT / 156)
-TEST_SETTLE_TIME = 1.0
+TEST_FORCE = (MIRROR_WEIGHT / 156) + 50
+TEST_SETTLE_TIME = 2.0
 
 NEIGHBOR_TABLE = [
     [101, 102, 408, 407, 107, 108],
@@ -227,14 +227,6 @@ class M13T028(MTM1M3Test):
 
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
-        # Prepare force data
-        xForces = [0] * 12
-        yForces = [0] * 100
-        zForces = [0] * 156
-        xIndex = 0
-        yIndex = 0
-        sIndex = 0
-
         # Iterate through all 156 force actuators
         for row in forceActuatorTable:
             z = row[
@@ -242,8 +234,17 @@ class M13T028(MTM1M3Test):
             ]  # Z index for data access, all force actuators have Z data
             id = row[forceActuatorTableIDIndex]
 
-            async def apply_z_offset(force, z_indices):
-                self.printTest(f"Verify Force Actuator {id} with {force:.02f}N")
+            async def apply_z_offset(force, z_ids):
+                # Prepare force data
+                xForces = [0] * 12
+                yForces = [0] * 100
+                zForces = [0] * 156
+
+                z_indices = map(actuatorIDToIndex, z_ids)
+
+                self.printTest(
+                    f"Verify Force Actuator {id} with {force:.02f}N, Z {str(list(z_indices))} IDs {str(z_ids)}"
+                )
                 # Apply the force offset
                 for i in z_indices:
                     zForces[i] = force
@@ -259,7 +260,7 @@ class M13T028(MTM1M3Test):
                 self.assertEqual(
                     data.nearNeighborWarning[z],
                     1,
-                    f"Near neighbor warning for ID {id} doesn't equal 1 when {force} was applied",
+                    f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied",
                 )
 
                 # Clear the force offset
@@ -278,13 +279,11 @@ class M13T028(MTM1M3Test):
                     f"Near neighbor warning for ID {id} doesn't equal 0 with no force applied",
                 )
 
-            await apply_z_offset(TEST_FORCE, [z])
-            await apply_z_offset(-TEST_FORCE, [z])
+            await apply_z_offset(TEST_FORCE, [id])
+            await apply_z_offset(-TEST_FORCE, [id])
 
-            neighbors = map(actuatorIDToIndex, NEIGHBOR_TABLE[z][1:])
-
-            await apply_z_offset(TEST_FORCE, neighbors)
-            await apply_z_offset(-TEST_FORCE, neighbors)
+            await apply_z_offset(TEST_FORCE, NEIGHBOR_TABLE[z][1:])
+            await apply_z_offset(-TEST_FORCE, NEIGHBOR_TABLE[z][1:])
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
