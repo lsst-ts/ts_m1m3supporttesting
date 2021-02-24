@@ -62,33 +62,33 @@ TRAVEL_POSITION = 6.13 * u.mm
 POS_Z_TRAVEL_POSITION = 4.07 * u.mm
 NEG_Z_TRAVEL_POSITION = 5.57 * u.mm
 
-ZERO_M = 0 * u.m
-ZERO_DEG = 0 * u.deg
 
 class M13T009(MTM1M3Movements):
     async def test_movements(self):
         offsets = [
-            [TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, ZERO_M, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG, ],
-            [ZERO_M, ZERO_M, +POS_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, ZERO_M, -NEG_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_M, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, ZERO_M, +POS_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [+TRAVEL_POSITION, ZERO_M, -NEG_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, ZERO_M, +POS_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [-TRAVEL_POSITION, ZERO_M, -NEG_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, +TRAVEL_POSITION, +POS_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, +TRAVEL_POSITION, -NEG_Z_TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, -TRAVEL_POSITION, +TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
-            [ZERO_M, -TRAVEL_POSITION, -TRAVEL_POSITION, ZERO_DEG, ZERO_DEG, ZERO_DEG,],
+            offset(x=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION),
+            offset(z=POS_Z_TRAVEL_POSITION),
+            offset(z=NEG_Z_TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, y=+TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, y=-TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, y=+TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, y=-TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(x=+TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(x=-TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(y=+TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(y=-TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
         ]
 
-        await self.do_movements(offsets)
+        await self.do_movements(
+            offsets, "M13T-009: Mirror Support System Active Motion Range"
+        )
 
 
 if __name__ == "__main__":

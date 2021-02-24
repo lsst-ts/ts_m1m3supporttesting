@@ -29,9 +29,49 @@ import time
 import click
 import numpy as np
 import astropy.units as u
+from datetime import datetime
+
+__all__ = ["MTM1M3Movements", "offset"]
+
+ZERO_M = 0 * u.m
+ZERO_DEG = 0 * u.deg
 
 
-__all__ = ["MTM1M3Movements"]
+def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
+    """Generate offset vector for MTM1M3Movements.do_movements method.
+
+    Note
+    ----
+    Input parameters are astropy quantities. Those need to be prepared. As in this code:
+
+    import astropy.units as u
+
+    offsets = [
+       offset(x=1 * u.mm, z=-0.23 * u.mm),
+       offset(rx=0.45 * u.arcsec, z=-0.23 * u.mm),
+    ]
+
+    Parameters
+    ----------
+    x : `float`, units.m, optional
+        Translation along x axis. Defaults to 0m.
+    y : `float`, units.m, optional
+        Translation along y axis. Defaults to 0m.
+    z : `float`, units.m, optional
+        Translation along z axis. Defaults to 0m.
+    rx : `float`, units.deg, optional
+        Rotation along x axis. Defaults to 0deg.
+    ry : `float`, units.deg, optional
+        Rotation along y axis. Defaults to 0deg.
+    rz : `float`, units.deg, optional
+        Rotation along z axis. Defaults to 0deg.
+
+    Returns
+    -------
+    offset : array[6] of `float`
+        Offset vector. Translation 
+    """
+    return [x, y, z, rx, ry, rz]
 
 
 class MTM1M3Movements(MTM1M3Test):
@@ -39,8 +79,8 @@ class MTM1M3Movements(MTM1M3Test):
     # XYZ in m, R[XYZ] in deg
     REFERENCE = np.array([0.0] * 6)
 
-    POSITION_TOLERANCE = (8 * u.um).to(u.m).value
-    ROTATION_TOLERANCE = 0.00000209
+    POSITION_TOLERANCE = 8 * u.um.to(u.m)
+    ROTATION_TOLERANCE = 1.45 * u.arcsec.to(u.deg)
     LOAD_PATH_FORCE = 0.0
     LOAD_PATH_TOLERANCE = 0.0
 
@@ -52,78 +92,138 @@ class MTM1M3Movements(MTM1M3Test):
             self.close_log_file()
         await super().tearDown()
 
-    def _check_position(
-        self, position, tolerance=POSITION_TOLERANCE, checkForces=False
+    async def _check_position(
+        self,
+        position,
+        position_tolerance=POSITION_TOLERANCE,
+        rotation_tolerance=ROTATION_TOLERANCE,
+        check_forces=False,
+        check_IMS=True,
     ):
         data = self.m1m3.tel_hardpointActuatorData.get()
         imsData = self.m1m3.tel_imsData.get()
 
-        if self.LOG_FILE:
-            print(
-                self.LOG_MOVEMENT,
-                ",",
-                data.xPosition,
-                ",",
-                data.yPosition,
-                ",",
-                data.zPosition,
-                ",",
-                data.xRotation,
-                ",",
-                data.yRotation,
-                ",",
-                data.zRotation,
-                ",",
-                imsData.xPosition,
-                ",",
-                imsData.yPosition,
-                ",",
-                imsData.zPosition,
-                ",",
-                imsData.xRotation,
-                ",",
-                imsData.yRotation,
-                ",",
-                imsData.zRotation,
-                file=self.LOG_FILE,
-            )
-            self.LOG_FILE.flush()
+        if self.moved_callback is not None:
+            await self.moved_callback(data, imsData)
 
-        self.assertAlmostEqual(data.xPosition, position[0], delta=tolerance)
-        self.assertAlmostEqual(data.yPosition, position[1], delta=tolerance)
-        self.assertAlmostEqual(data.zPosition, position[2], delta=tolerance)
-        self.assertAlmostEqual(data.xRotation, position[3], delta=tolerance)
-        self.assertAlmostEqual(data.yRotation, position[4], delta=tolerance)
-        self.assertAlmostEqual(data.zRotation, position[5], delta=tolerance)
-        if checkForces:
+        self.assertAlmostEqual(
+            data.xPosition,
+            position[0],
+            delta=position_tolerance,
+            msg="HP xPosition out of limit",
+        )
+        self.assertAlmostEqual(
+            data.yPosition,
+            position[1],
+            delta=position_tolerance,
+            msg="HP yPosition out of limit",
+        )
+        self.assertAlmostEqual(
+            data.zPosition,
+            position[2],
+            delta=position_tolerance,
+            msg="HP zPosition out of limit",
+        )
+        self.assertAlmostEqual(
+            data.xRotation,
+            position[3],
+            delta=rotation_tolerance,
+            msg="HP xRotation out of limit",
+        )
+        self.assertAlmostEqual(
+            data.yRotation,
+            position[4],
+            delta=rotation_tolerance,
+            msg="HP yRotation out of limit",
+        )
+        self.assertAlmostEqual(
+            data.zRotation,
+            position[5],
+            delta=rotation_tolerance,
+            msg="HP zRotation out of limit",
+        )
+        if check_forces:
             # Verify there are no unintended load paths.
             self.assertAlmostEqual(
-                data.fx, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+                data.fx,
+                self.LOAD_PATH_FORCE,
+                delta=self.LOAD_PATH_TOLERANCE,
+                msg="FX out of limit",
             )
             self.assertAlmostEqual(
-                data.fy, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+                data.fy,
+                self.LOAD_PATH_FORCE,
+                delta=self.LOAD_PATH_TOLERANCE,
+                msg="FY out of limit",
             )
             self.assertAlmostEqual(
-                data.fz, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+                data.fz,
+                self.LOAD_PATH_FORCE,
+                delta=self.LOAD_PATH_TOLERANCE,
+                msg="FZ out of limit",
             )
             self.assertAlmostEqual(
-                data.mx, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+                data.mx,
+                self.LOAD_PATH_FORCE,
+                delta=self.LOAD_PATH_TOLERANCE,
+                msg="MX out of limit",
             )
             self.assertAlmostEqual(
-                data.my, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+                data.my,
+                self.LOAD_PATH_FORCE,
+                delta=self.LOAD_PATH_TOLERANCE,
+                msg="MY out of limit",
             )
             self.assertAlmostEqual(
-                data.mz, self.LOAD_PATH_FORCE, delta=self.LOAD_PATH_TOLERANCE
+                data.mz,
+                self.LOAD_PATH_FORCE,
+                delta=self.LOAD_PATH_TOLERANCE,
+                msg="MZ out of limit",
             )
 
-        self.assertAlmostEqual(imsData.xPosition, position[0], delta=tolerance)
-        self.assertAlmostEqual(imsData.yPosition, position[1], delta=tolerance)
-        self.assertAlmostEqual(imsData.zPosition, position[2], delta=tolerance)
-        self.assertAlmostEqual(imsData.xRotation, position[3], delta=tolerance)
-        self.assertAlmostEqual(imsData.yRotation, position[4], delta=tolerance)
-        self.assertAlmostEqual(imsData.zRotation, position[5], delta=tolerance)
+        if check_IMS is False:
+            return
 
-    async def _wait_HP(self):
+        self.assertAlmostEqual(
+            imsData.xPosition,
+            position[0],
+            delta=position_tolerance,
+            msg="IMS X out of limit",
+        )
+        self.assertAlmostEqual(
+            imsData.yPosition,
+            position[1],
+            delta=position_tolerance,
+            msg="IMS Y out of limit",
+        )
+        self.assertAlmostEqual(
+            imsData.zPosition,
+            position[2],
+            delta=position_tolerance,
+            msg="IMS Z out of limit",
+        )
+        self.assertAlmostEqual(
+            imsData.xRotation,
+            position[3],
+            delta=rotation_tolerance,
+            msg="IMS rotation X out of limit",
+        )
+        self.assertAlmostEqual(
+            imsData.yRotation,
+            position[4],
+            delta=rotation_tolerance,
+            msg="IMS rotation Y out of limit",
+        )
+        self.assertAlmostEqual(
+            imsData.zRotation,
+            position[5],
+            delta=rotation_tolerance,
+            msg="IMS rotation Z out of limit",
+        )
+
+    async def waitHP(self):
+        """Wait for HP to go through Moving to Idle states."""
+
         async def wait_for(states, timeout=100):
             while True:
                 data = self.m1m3.evt_hardpointActuatorState.get()
@@ -150,8 +250,11 @@ class MTM1M3Movements(MTM1M3Test):
     async def do_movements(
         self,
         offsets,
+        header,
         start_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
         end_state=MTM1M3.DetailedState.PARKED,
+        check_forces=True,
+        moved_callback=None,
     ):
         """Run tests movements.
 
@@ -159,19 +262,19 @@ class MTM1M3Movements(MTM1M3Test):
         ----------
         offsets : array of 6 members float tuples
             Movements (from 0 position) as X, Y, Z and Rx, Ry and Rz (rotation). Position shall be specified in u.m or similar, rotation as u.deg or similar.
-        start_state : `int`, MTM1M3.DetailedState
+        header : `str`
+            Test header. Echoed at test startup.
+        start_state : `int`, MTM1M3.DetailedState, optional
             Starts tests at this state
-        end_state : `int`, MTM1M3.DetailedState
+        end_state : `int`, MTM1M3.DetailedState, optional
             When tests are successfully finished, transition mirror to this state.
+        moved_callback : `function`, optional
+            If not None, called after mirror moved to new position.
         """
 
-        click.echo(
-            click.style(
-                "M13T-009: Mirror Support System Active Motion Range",
-                bold=True,
-                fg="cyan",
-            )
-        )
+        self.moved_callback = moved_callback
+
+        self.printHeader(header)
 
         await self.startup(start_state)
 
@@ -181,7 +284,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         # confirm mirror at reference position.
         self.LOG_MOVEMENT = "startup reference"
-        self._check_position(self.REFERENCE)
+        await self._check_position(self.REFERENCE, check_forces=check_forces)
 
         for row in offsets:
             self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
@@ -199,11 +302,11 @@ class MTM1M3Movements(MTM1M3Test):
                 yRotation=row[4].to(u.deg).value,
                 zRotation=row[5].to(u.deg).value,
             )
-            await self._wait_HP()
+            await self.waitHP()
 
             await asyncio.sleep(3.0)
 
-            self._check_position(position, checkForces=True)
+            await self._check_position(position)
 
         #######################
         # Lower the mirror, put back in standby state.
@@ -211,13 +314,36 @@ class MTM1M3Movements(MTM1M3Test):
         # Lower mirror.
         await self.shutdown(end_state)
 
-    def set_log_file(self, path):
-        self.LOG_FILE = open(path, "w")
-        print(
-            "Movement,HP xPosition, HP yPostion, HP zPosition, HP xRotation, HP yRotation, HP zRotation, IMS xPosition, IMS yPosition, IMS zPosition, IMS xRotation, IMS yRotation, IMS zRotation",
-            file=self.LOG_FILE,
-        )
+        self.moved_callback = None
+
+    def openCSV(self, name):
+        """Opens CVS log file.
+
+        Parameters
+        ----------
+        name : `str`
+            File start name. Filename is contructed using this and timestamp.
+
+        Returns
+        -------
+        cvsfile : `file`
+            File descriptor opened for writing.
+        """
+        f = open(f'{name}-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w")
+        if self.LOG_FILE is None:
+            self.LOG_FILE = f
+        elif isinstance(self.LOG_FILE, list):
+            self.LOG_FILE.append(f)
+        else:
+            self.LOG_FILE = [self.LOG_FILE, f]
+
+        return f
 
     def close_log_file(self):
-        self.LOG_FILE.close()
+        self.moved_callback = None
+        if isinstance(self.LOG_FILE, list):
+            for f in self.LOG_FILE:
+                f.close()
+        else:
+            self.LOG_FILE.close()
         self.LOG_FILE = None
