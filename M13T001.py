@@ -43,17 +43,21 @@ class M13T001(MTM1M3Test):
     async def test_M1M3(self):
         await self.startup(MTM1M3.DetailedState.STANDBY)
 
-        await self.m1m3.cmd_start.set_start(settingsToApply="Default", timeout=60)
-        await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+        await self.switchM1M3State(
+            "start",
+            MTM1M3.DetailedState.DISABLED,
+            settingsToApply="Default",
+            timeout=60,
+        )
 
         self.assertNotEqual(self.m1m3.evt_summaryState.get(), None)
         self.assertNotEqual(self.m1m3.evt_detailedState.get(), None)
 
-        await self.m1m3.cmd_enable.start()
-        await self.assertM1M3State(MTM1M3.DetailedState.PARKED)
+        await self.switchM1M3State("enable", MTM1M3.DetailedState.PARKED)
 
-        await self.m1m3.cmd_disable.start()
-        await self.assertM1M3State(MTM1M3.DetailedState.DISABLED)
+        await self.switchM1M3State("disable", MTM1M3.DetailedState.DISABLED)
+
+        await self.switchM1M3State("standby", MTM1M3.DetailedState.STANDBY)
 
         # Check SAL Event
         # result, data = m1m3.GetEventDetailedState()
