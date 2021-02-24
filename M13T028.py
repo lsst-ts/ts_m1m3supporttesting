@@ -24,14 +24,34 @@
 # !!!! PLEASE NOTE !!!!
 #
 # This test requires you to switch M1M3 SS CsC configuration - disable fault on
-# NearNeighborCheck. To do that, edit SafetyControllerSettings.xml in actually
+# NearNeighborCheck and FarNeighborCheck and remove limits for applied forces
+# (so offset wouldn't be pre-clipped).
+#
+# To do that, edit SafetyControllerSettings.xml in actually
 # used set, switch:
 #
 #        <FaultOnNearNeighborCheck>1</FaultOnNearNeighborCheck>
+#        <FaultOnFarNeighborCheck>1</FaultOnFarNeighborCheck>
 #
 # to
 #
 #        <FaultOnNearNeighborCheck>0</FaultOnNearNeighborCheck>
+#        <FaultOnFarNeighborCheck>0</FaultOnFarNeighborCheck>
+#
+# ForceLimit[XYZ]Table.csv needs to be replaced with
+# ForceLimit[XYZ]TableNone.csv. Best is to edit on cRIO / simulator
+# ForceActuatorSetting.xml and change:
+#
+#   <ForceLimitXTablePath>Tables/ForceLimitXTable.csv</ForceLimitXTablePath>
+#   <ForceLimitYTablePath>Tables/ForceLimitYTable.csv</ForceLimitYTablePath>
+#   <ForceLimitZTablePath>Tables/ForceLimitZTable.csv</ForceLimitZTablePath>
+#
+# to
+#
+#   <ForceLimitXTablePath>Tables/ForceLimitXTableNone.csv</ForceLimitXTablePath>
+#   <ForceLimitYTablePath>Tables/ForceLimitYTableNone.csv</ForceLimitYTablePath>
+#   <ForceLimitZTablePath>Tables/ForceLimitZTableNone.csv</ForceLimitZTablePath>
+#
 #
 # and restart CsC before running the test.
 
@@ -71,7 +91,7 @@ import asynctest
 
 MIRROR_WEIGHT = 170000.0
 TEST_FORCE = (MIRROR_WEIGHT / 156) + 50
-TEST_SETTLE_TIME = 2.0
+TEST_SETTLE_TIME = 1.0
 
 NEIGHBOR_TABLE = [
     [101, 102, 408, 407, 107, 108],
@@ -133,7 +153,7 @@ NEIGHBOR_TABLE = [
     [221, 220, 214, 215, 222, 228, 227],
     [222, 221, 215, 216, 223, 229, 228],
     [223, 222, 216, 217, 224, 230, 229],
-    [224, 223, 217, 218, 226, 231, 230],
+    [224, 223, 217, 218, 225, 231, 230],
     [225, 218, 219, 231, 224],
     [227, 126, 220, 221, 228, 233, 232],
     [228, 227, 221, 222, 229, 234, 233],
@@ -239,11 +259,25 @@ class M13T028(MTM1M3Test):
             "M13T-028: Actuator to Actuator Force Delta for 6 nearest neighbors"
         )
 
+        self.printError(
+            "This test should be run only in simulator or with surrogate mirror. DON'T RUN THIS TEST WITH GLASS MIRROR!"
+        )
+
         self.printWarning(
-            "This tests will run only with FaultOnNearNeighborCheck disabled. Please see test source code for instructions."
+            "This tests will run only with FaultOnNearNeighborCheck and FaultOnFarNeighborCheck disabled. And Limit table set to None Please see test source code for instructions."
         )
 
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+
+        data = await self.m1m3.evt_forceSetpointWarning.next(
+            flush=False, timeout=TEST_SETTLE_TIME
+        )
+        for i in range(len(forceActuatorTable)):
+            self.assertEqual(
+                data.nearNeighborWarning[i],
+                False,
+                msg=f"Near neighbor warning for index {i} is True. Was the previous test reseted?",
+            )
 
         # Iterate through all 156 force actuators
         for row in forceActuatorTable:
@@ -258,50 +292,58 @@ class M13T028(MTM1M3Test):
                 yForces = [0] * 100
                 zForces = [0] * 156
 
-                z_indices = map(actuatorIDToIndex, z_ids)
+                z_indices = list(map(actuatorIDToIndex, z_ids))
+
+                self.assertEqual(
+                    len(z_indices),
+                    len(z_ids),
+                    msg=f"Length of neighbor arrays for FA ID {id} doesn't match: with indices: {str(z_indices)} vs with FA ids: {str(z_ids)}",
+                )
 
                 self.printTest(
-                    f"Verify Force Actuator {id} with {force:.02f}N, Z {str(list(z_indices))} IDs {str(z_ids)}"
+                    f"Verify Force Actuator {id} with {force:.02f}N applied to Z {str(z_indices)} FA IDs {str(z_ids)}"
                 )
                 # Apply the force offset
                 for i in z_indices:
                     zForces[i] = force
 
-                self.m1m3.evt_forceSetpointWarning.flush()
-
                 await self.m1m3.cmd_applyOffsetForces.set_start(
                     xForces=xForces, yForces=yForces, zForces=zForces
                 )
+
+                await asyncio.sleep(TEST_SETTLE_TIME)
+
+                # Check for near neighbor warning
+                data = self.m1m3.evt_forceSetpointWarning.get()
+
+                self.assertEqual(
+                    data.nearNeighborWarning[z],
+                    True,
+                    msg=f"Near neighbor warning for ID {id} ({z}) is False with force applied. Was ForceLimit[XYZ]TablePath pointed to *None?",
+                )
+
+                self.assertNotEqual(
+                    self.m1m3.evt_detailedState.get().detailedState,
+                    MTM1M3.DetailedState.FAULT,
+                    msg=f"Mirror faulted when force applied for {id}. Most probably configuration error - were FaultOnNearNeighborCheck and FaultOnFarNeighborCheck set to 0?",
+                )
+
+                # Clear the force offset
+                for i in z_indices:
+                    zForces[i] = 0.0
+
+                self.m1m3.evt_forceSetpointWarning.flush()
+
+                await self.m1m3.cmd_clearOffsetForces.start()
 
                 # Check for near neighbor warning
                 data = await self.m1m3.evt_forceSetpointWarning.next(
                     flush=False, timeout=TEST_SETTLE_TIME
                 )
-                if data.nearNeighborWarning[z] == 0:
-                    detailedState = self.m1m3.evt_detailedState.get().detailedState
-                    if detailedState == MTM1M3.DetailedState.FAULT:
-                        self.fail(
-                            f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied and mirror is faulted. Most likely configuration of FaultOnNearNeighborCheck wasn't changed"
-                        )
-                    else:
-                        self.fail(
-                            f"Near neighbor warning for ID {id} doesn't equal 1 when {force:.02f}N was applied and mirror is not faulted. Most likely check problem."
-                        )
-
-                # Clear the force offset
-                for i in z_indices:
-                    zForces[i] = 0.0
-                await self.m1m3.cmd_clearOffsetForces.start()
-
-                # Wait some time for the force to settle
-                await asyncio.sleep(TEST_SETTLE_TIME)
-
-                # Check for near neighbor warning
-                data = self.m1m3.evt_forceSetpointWarning.get()
                 self.assertEqual(
                     data.nearNeighborWarning[z],
-                    0,
-                    f"Near neighbor warning for ID {id} doesn't equal 0 with no force applied",
+                    False,
+                    msg=f"Near neighbor warning for ID {id} is still True with no force applied",
                 )
 
             await apply_z_offset(TEST_FORCE, [id])
