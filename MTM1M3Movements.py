@@ -31,7 +31,47 @@ import numpy as np
 import astropy.units as u
 from datetime import datetime
 
-__all__ = ["MTM1M3Movements"]
+__all__ = ["MTM1M3Movements", "offset"]
+
+ZERO_M = 0 * u.m
+ZERO_DEG = 0 * u.deg
+
+
+def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
+    """Generate offset vector for MTM1M3Movements.do_movements method.
+
+    Note
+    ----
+    Input parameters are astropy quantities. Those need to be prepared. As in this code:
+
+    import astropy.units as u
+
+    offsets = [
+       offset(x=1 * u.mm, z=-0.23 * u.mm),
+       offset(rx=0.45 * u.arcsec, z=-0.23 * u.mm),
+    ]
+
+    Parameters
+    ----------
+    x : `float`, units.m, optional
+        Translation along x axis. Defaults to 0m.
+    y : `float`, units.m, optional
+        Translation along y axis. Defaults to 0m.
+    z : `float`, units.m, optional
+        Translation along z axis. Defaults to 0m.
+    rx : `float`, units.deg, optional
+        Rotation along x axis. Defaults to 0deg.
+    ry : `float`, units.deg, optional
+        Rotation along y axis. Defaults to 0deg.
+    rz : `float`, units.deg, optional
+        Rotation along z axis. Defaults to 0deg.
+
+    Returns
+    -------
+    offset : array[6] of `float`
+        Offset vector. Translation 
+    """
+    return [x, y, z, rx, ry, rz]
 
 
 class MTM1M3Movements(MTM1M3Test):
@@ -248,12 +288,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         for row in offsets:
             self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
-            click.echo(
-                click.style(
-                    f"Moving {self.LOG_MOVEMENT}",
-                    fg="bright_blue",
-                )
-            )
+            click.echo(click.style(f"Moving {self.LOG_MOVEMENT}", fg="bright_blue",))
 
             position = (
                 list(map(lambda x: x.to(u.m).value, row[:3]))
