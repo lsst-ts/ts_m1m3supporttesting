@@ -102,6 +102,11 @@ class M13T032(MTM1M3Movements):
 
         self.openCSV("M13T032")
 
+        print(
+            "Timestamp, HP X(mm), HP Y(mm), HP Z(mm), HP RX(arcsec), HP RY(arcsec), HP RZ(arcsec), IMS X(mm), IMS Y(mm), IMS Z(mm), IMS RX(arcsec), IMS RY(arcsec), IMS RZ(arcsec)",
+            file=self.LOG_FILE,
+        )
+
         # Repeat 3 times
         for i in range(3):
             await self.do_movements(
@@ -113,11 +118,6 @@ class M13T032(MTM1M3Movements):
             )
 
         self.close_log_file()
-
-        print(
-            "Timestamp, HP X(mm), HP Y(mm), HP Z(mm), HP RX(arcsec), HP RY(arcsec), HP RZ(arcsec), IMS X(mm), IMS Y(mm), IMS Z(mm), IMS RX(arcsec), IMS RY(arcsec), IMS RZ(arcsec)",
-            file=self.LOG_FILE,
-        )
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
