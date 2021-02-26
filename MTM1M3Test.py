@@ -374,11 +374,11 @@ class MTM1M3Test(asynctest.TestCase):
         while (
             sampling_time is not None
             and data.timestamp - startTimestamp < sampling_time
-        ) or len(ret) < sampling_size:
-            data = await topic.next(flush=False)
+        ) or (sampling_size is not None and len(ret) < sampling_size):
+            data = await topic.next(flush=False, timeout=sampling_time)
             ret.append(data)
 
-        if len(ret) < sampling_size:
+        if sampling_size is not None and len(ret) < sampling_size:
             raise RuntimeError(
                 f"Only {len(ret)} of requested {sampling_size} collected."
             )

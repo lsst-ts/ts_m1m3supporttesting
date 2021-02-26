@@ -265,9 +265,12 @@ class MTM1M3Movements(MTM1M3Test):
         header : `str`
             Test header. Echoed at test startup.
         start_state : `int`, MTM1M3.DetailedState, optional
-            Starts tests at this state
+            Starts tests at this state. Defaults to ACTIVEENGINEERING. None =
+            no transition.
         end_state : `int`, MTM1M3.DetailedState, optional
-            When tests are successfully finished, transition mirror to this state.
+            When tests are successfully finished, transition mirror to this
+            state. None = no transition. Defaults to
+            MTM1M3.DetailedState.PARKED
         moved_callback : `function`, optional
             If not None, called after mirror moved to new position.
         """
@@ -276,7 +279,8 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.printHeader(header)
 
-        await self.startup(start_state)
+        if start_state is not None:
+            await self.startup(start_state)
 
         # make sure the HardpointCorrection is disabled.
         await self.m1m3.cmd_disableHardpointCorrections.start()
@@ -288,12 +292,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         for row in offsets:
             self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
-            click.echo(
-                click.style(
-                    f"Moving {self.LOG_MOVEMENT}",
-                    fg="bright_blue",
-                )
-            )
+            click.echo(click.style(f"Moving {self.LOG_MOVEMENT}", fg="bright_blue",))
 
             position = (
                 list(map(lambda x: x.to(u.m).value, row[:3]))
@@ -316,8 +315,9 @@ class MTM1M3Movements(MTM1M3Test):
         #######################
         # Lower the mirror, put back in standby state.
 
-        # Lower mirror.
-        await self.shutdown(end_state)
+        # Lower mirror if requested
+        if end_state is not None:
+            await self.shutdown(end_state)
 
         self.moved_callback = None
 
