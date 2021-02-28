@@ -413,14 +413,16 @@ class MTM1M3Test(asynctest.TestCase):
             self.assertAlmostEqual(l1[i], l2[i], msg=msg, **kwargs)
 
     async def runActuators(self, function):
-        """Runs function for all actuators (XYZ).
-
+        """Runs function for all actuators and directions (XYZ).
+ 
         Parameters
         ----------
-        function : `func(int,int)`
-            Function called for all actuators. The parameters are fa_type (X,Y
-            or Z) and force actuator ID (0 based from the first actuator with a given type)"""
-
+        function : `func('[XYZ]',int)`
+            Run this function for all actuators and directions. The first
+            argument is direction (either 'X', 'Y' or 'Z', the second is FA
+            index (0 based, counted from the first actuator with given
+            direction).
+        """
         x = 0  # X index for data access
         y = 0  # Y index for data access
 
