@@ -1,424 +1,228 @@
+#!/usr/bin/env python3.8
+
+# This file is part of M1M3 SS test suite.
+#
+# Developed for the LSST Telescope and Site Systems.
+# This product includes software developed by the LSST Project
+# (https://www.lsst.org).
+# See the COPYRIGHT file at the top-level directory of this distribution
+# for details of code ownership.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 ########################################################################
 # Test Numbers: M13T-018
 # Author:       CContaxis
 # Description:  Bump test raised
 # Steps:
 # - Transition from standby to active engineering state
-# - Perform the following steps for each force actuator
-#   - If the force actuator has an X component
-#     - Apply a pure X force offset
-#     - Verify the pure X force is being applied
-#     - Verify the pure X force is being measured
-#     - Clear offset forces
-#     - Verify the pure X force is no longer being applied
-#     - Verify the pure X force is no longer being measured
-#     - Apply a pure -X force offset
-#     - Verify the pure -X force is being applied
-#     - Verify the pure -X force is being measured
-#     - Clear offset forces
-#     - Verify the pure -X force is no longer being applied
-#     - Verify the pure -X force is no longer being measured
-#   - If the force actuator has an Y component
-#     - Apply a pure Y force offset
-#     - Verify the pure Y force is being applied
-#     - Verify the pure Y force is being measured
-#     - Clear offset forces
-#     - Verify the pure Y force is no longer being applied
-#     - Verify the pure Y force is no longer being measured
-#     - Apply a pure -Y force offset
-#     - Verify the pure -Y force is being applied
-#     - Verify the pure -Y force is being measured
-#     - Clear offset forces
-#     - Verify the pure -Y force is no longer being applied
-#     - Verify the pure -Y force is no longer being measured
-#   - Apply a pure Z force offset
-#   - Verify the pure Z force is being applied
-#   - Verify the pure Z force is being measured
+# - Perform the following steps for each force actuator and each of its force component (X or Y and Z)
+#   - Apply a pure force offset
+#   - Verify the pure force is being applied
+#   - Verify the pure force is being measured
 #   - Clear offset forces
-#   - Verify the pure Z force is no longer being applied
-#   - Verify the pure Z force is no longer being measured
-#   - Apply a pure -Z force offset
-#   - Verify the pure -Z force is being applied
-#   - Verify the pure -Z force is being measured
+#   - Verify the pure force is no longer being applied
+#   - Verify the pure force is no longer being measured
+#   - Apply a pure -force offset
+#   - Verify the pure -force is being applied
+#   - Verify the pure -force is being measured
 #   - Clear offset forces
-#   - Verify the pure -Z force is no longer being applied
-#   - Verify the pure -Z force is no longer being measured
+#   - Verify the pure -force is no longer being applied
+#   - Verify the pure -force is no longer being measured
 # - Transition from active engineering state to standby
 ########################################################################
 
-import time
-import math
-from Utilities import *
-from SALPY_m1m3 import *
 from ForceActuatorTable import *
-from HardpointActuatorTable import *
-from Setup import *
+from MTM1M3Test import *
+
+from lsst.ts.idl.enums import MTM1M3
+
+import asyncio
+import asynctest
+import click
+import time
+import numpy as np
 
 TEST_FORCE = 222.0
 TEST_SETTLE_TIME = 3.0
 TEST_TOLERANCE = 5.0
 TEST_SAMPLES_TO_AVERAGE = 10
 
-class M13T018:
-    def Run(self, m1m3, sim, efd):
-        Header("M13T-018: Bump Test Raised")
-        
-        # Transition to disabled state
-        m1m3.Start("Default")
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to parked state
-        m1m3.Enable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to parked engineering state
-        m1m3.EnterEngineering()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_ParkedEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Transition to raising engineering state
-        m1m3.RaiseM1M3(False)
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_RaisingEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until active engineering state
-        WaitUntil("DetailedState", 600, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ActiveEngineeringState)
-        
-        # Disable hardpoint corrections to keep forces good
-        m1m3.DisableHardpointCorrections()
-        
+
+class M13T018(MTM1M3Test):
+    async def _test_actuator(self, fa_type, fa_id):
         # Prepare force data
         xForces = [0] * 12
         yForces = [0] * 100
         zForces = [0] * 156
-        xIndex = 0
-        yIndex = 0
-        sIndex = 0
-        
-        # Iterate through all 156 force actuators
-        for row in forceActuatorTable:
-            index = row[forceActuatorTableIndexIndex]
-            id = row[forceActuatorTableIDIndex]
-            orientation = row[forceActuatorTableOrientationIndex]
-            x = -1        # X index for data access, if -1 no X data available
-            y = -1        # Y index for data access, if -1 no Y data available
-            s = -1        # S (Secondary Cylinder) index for data access, if -1 no S data available
-            z = index     # Z index for data access, all force actuators have Z data
-            
-            # Set the X and S index if applicable
-            if orientation in ['+X', '-X']:
-                x = xIndex
-                s = sIndex
-                xIndex += 1
-                sIndex += 1
-                
-            # Set the Y and S index if applicable
-            if orientation in ['+Y', '-Y']:
-                y = yIndex
-                s = sIndex
-                yIndex += 1
-                sIndex += 1
 
-            Header("Verify Force Actuator %d Commands and Telemetry" % id)
-            
+        with click.progressbar(
+            length=9,
+            label=f"Bump testing {self.id} ({fa_type}{fa_id})",
+            width=0,
+            item_show_func=lambda i: "Starting"
+            if i is None
+            else [
+                "Collecting baseline",
+                "Push",
+                "Checking push",
+                "Zero after push",
+                "Checking baseline",
+                "Pull",
+                "Checking after pull",
+                "Zero after push",
+                "Checking baseline",
+            ][i],
+        ) as bar:
+            bar.update(1)
+
             # Get pre application force
-            datas = self.SampleForceActuators(m1m3)
-            preX = 0.0
-            preY = 0.0
-            if x != -1:
-                preX = Average(datas, lambda d: d.XForce[x])
-            if y != -1:
-                preY = Average(datas, lambda d: d.YForce[y])
-            preZ = Average(datas, lambda d: d.ZForce[z])
+            data = await self.sampleData(
+                "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+            )
+            baseline = self.average(data, ("xForce", "yForce", "zForce"))
 
-            # If the current actuator has X data available, test it
-            if x != -1:
-                # Set the commanded X force
-                xForces[x] = TEST_FORCE
+            def setForce(force):
+                if fa_type == "X":
+                    xForces[fa_id] = force
+                elif fa_type == "Y":
+                    yForces[fa_id] = force
+                elif fa_type == "Z":
+                    zForces[fa_id] = force
+                else:
+                    raise RuntimeError(
+                        f"Invalid FA type (only XYZ accepted): {fa_type}"
+                    )
 
-                # Apply the X only offset force
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+            async def applyAndVerify(force):
+                setForce(force)
 
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +X AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +X AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d +X ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX + TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +X ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
+                if force == 0:
+                    await self.m1m3.cmd_clearOffsetForces.start()
+                else:
+                    # Apply the offset forces
+                    await self.m1m3.cmd_applyOffsetForces.set_start(
+                        xForces=xForces, yForces=yForces, zForces=zForces
+                    )
 
-                # Clear offset forces
-                xForces[x] = 0.0
-                m1m3.ClearOffsetForces()
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +X0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +X0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d +X0 ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX, TEST_TOLERANCE)
-                InTolerance("FA%03d +X0 ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
+                await asyncio.sleep(0.3)
 
-                # Set the commanded X force
-                xForces[x] = -TEST_FORCE
+                bar.update(1)
 
-                # Apply the X only offset force
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+                data = self.m1m3.evt_appliedOffsetForces.get()
 
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -X AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], -TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -X AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d -X ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX - TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -X ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
+                self.assertFalse(
+                    data is None, msg="Cannot retrieve evt_appliedOffsetForces"
+                )
 
-                # Clear offset forces
-                xForces[x] = 0.0
-                m1m3.ClearOffsetForces()
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -X0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -X0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d -X0 ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX, TEST_TOLERANCE)
-                InTolerance("FA%03d -X0 ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
-                
-            # If the current actuator has Y data available, test it
-            if y != -1:
-                # Set the commanded Y force
-                yForces[y] = TEST_FORCE
+                self.assertListAlmostEqual(
+                    data.xForces,
+                    xForces,
+                    delta=TEST_TOLERANCE,
+                    msg="Applied X offsets doesn't match.",
+                )
+                self.assertListAlmostEqual(
+                    data.yForces,
+                    yForces,
+                    delta=TEST_TOLERANCE,
+                    msg="Applied Y offsets doesn't match.",
+                )
+                self.assertListAlmostEqual(
+                    data.zForces,
+                    zForces,
+                    delta=TEST_TOLERANCE,
+                    msg="Applied Z offsets doesn't match.",
+                )
 
-                # Apply the Y only offset force
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+                bar.update(1)
 
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +Y AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d +Y ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY + TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
+            async def verifyMeasured():
+                test_started = time.monotonic()
+                duration = 0
+                failed = 0
 
-                # Clear offset forces
-                yForces[y] = 0.0
-                m1m3.ClearOffsetForces()
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d +Y0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d +Y0 ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY, TEST_TOLERANCE)
-                InTolerance("FA%03d +Y0 ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
+                while duration < TEST_SETTLE_TIME * 4:
+                    data = await self.sampleData(
+                        "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+                    )
+                    duration = time.monotonic() - test_started
+                    averages = self.average(data, ("xForce", "yForce", "zForce"))
 
-                # Set the commanded Y force
-                yForces[y] = -TEST_FORCE
+                    if (
+                        np.allclose(
+                            np.array(averages["xForce"]) - np.array(baseline["xForce"]),
+                            xForces,
+                            atol=TEST_TOLERANCE,
+                        )
+                        and np.allclose(
+                            np.array(averages["yForce"]) - np.array(baseline["yForce"]),
+                            yForces,
+                            atol=TEST_TOLERANCE,
+                        )
+                        and np.allclose(
+                            np.array(averages["zForce"]) - np.array(baseline["zForce"]),
+                            zForces,
+                            atol=TEST_TOLERANCE,
+                        )
+                    ):
+                        if duration > TEST_SETTLE_TIME:
+                            break
+                    else:
+                        failed += 1
 
-                # Apply the Y only offset force
-                m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+                self.assertLessEqual(
+                    duration,
+                    TEST_SETTLE_TIME * 4,
+                    msg=f"Actuator {self.id} ({fa_type}{fa_id}) tooks {duration:.02f}s and wasn't settled, failed {failed} times",
+                )
 
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -Y AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], -TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d -Y ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY - TEST_FORCE, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
+                if duration > TEST_SETTLE_TIME + 1:
+                    self.printWarning(
+                        f"Actuator {self.id} ({fa_type}{fa_id}) tooks {duration:.02f}s to settled down, failed {failed} times"
+                    )
+                elif failed > 0:
+                    self.printTest(
+                        f"Actuator {self.id} ({fa_type}{fa_id}) failed {failed} times before settling down"
+                    )
 
-                # Clear offset forces
-                yForces[y] = 0.0
-                m1m3.ClearOffsetForces()
-                
-                # Verify the applied offset forces match the expected value
-                result, data = m1m3.GetEventAppliedOffsetForces()
-                InTolerance("FA%03d -Y0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-                
-                # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-                time.sleep(TEST_SETTLE_TIME)
-                
-                # Check force actuator force
-                datas = self.SampleForceActuators(m1m3)
-                InTolerance("FA%03d -Y0 ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY, TEST_TOLERANCE)
-                InTolerance("FA%03d -Y0 ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
-            
-            # Set the commanded Z force
-            zForces[z] = TEST_FORCE
+            await applyAndVerify(0)
+            await verifyMeasured()
 
-            # Apply the Z only offset force
-            m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+            await applyAndVerify(TEST_FORCE)
+            await verifyMeasured()
 
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            if x != -1:
-                InTolerance("FA%03d +Z AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d +Z AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], TEST_FORCE, TEST_TOLERANCE)                
-            
-            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check force actuator force
-            datas = self.SampleForceActuators(m1m3)
-            if x != -1:
-                InTolerance("FA%03d +Z ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d +Z ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ + TEST_FORCE, TEST_TOLERANCE)
+            await applyAndVerify(0)
+            await verifyMeasured()
 
-            # Clear offset forces
-            zForces[z] = 0.0
-            m1m3.ClearOffsetForces()
-            
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            if x != -1:
-                InTolerance("FA%03d +Z0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d +Z0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-            
-            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check force actuator force
-            datas = self.SampleForceActuators(m1m3)
-            if x != -1:
-                InTolerance("FA%03d +Z0 ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d +Z0 ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY, TEST_TOLERANCE)
-            InTolerance("FA%03d +Z0 ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
+            await applyAndVerify(-TEST_FORCE)
+            await verifyMeasured()
 
-            # Set the commanded Z force
-            zForces[z] = -TEST_FORCE
+            await applyAndVerify(0)
+            await verifyMeasured()
 
-            # Apply the Z only offset force
-            m1m3.ApplyOffsetForces(xForces, yForces, zForces)
+    async def test_bump_raised(self):
+        self.printHeader("M13T-018: Bump Test Raised")
 
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            if x != -1:
-                InTolerance("FA%03d -Z AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d -Z AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], -TEST_FORCE, TEST_TOLERANCE)                
-            
-            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check force actuator force
-            datas = self.SampleForceActuators(m1m3)
-            if x != -1:
-                InTolerance("FA%03d -Z ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d -Z ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ - TEST_FORCE, TEST_TOLERANCE)
+        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
 
-            # Clear offset forces
-            zForces[z] = 0.0
-            m1m3.ClearOffsetForces()
-            
-            # Verify the applied offset forces match the expected value
-            result, data = m1m3.GetEventAppliedOffsetForces()
-            if x != -1:
-                InTolerance("FA%03d -Z0 AppliedOffsetForces.XForces[%d]" % (id, x), data.XForces[x], 0.0, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d -Z0 AppliedOffsetForces.YForces[%d]" % (id, y), data.YForces[y], 0.0, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z0 AppliedOffsetForces.ZForces[%d]" % (id, z), data.ZForces[z], 0.0, TEST_TOLERANCE)                
-            
-            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-            time.sleep(TEST_SETTLE_TIME)
-            
-            # Check force actuator force
-            datas = self.SampleForceActuators(m1m3)
-            if x != -1:
-                InTolerance("FA%03d -Z0 ForceActuatorData.XForce[%d]" % (id, x), Average(datas, lambda d: d.XForce[x]), preX, TEST_TOLERANCE)
-            if y != -1:
-                InTolerance("FA%03d -Z0 ForceActuatorData.YForce[%d]" % (id, y), Average(datas, lambda d: d.YForce[y]), preY, TEST_TOLERANCE)
-            InTolerance("FA%03d -Z0 ForceActuatorData.ZForce[%d]" % (id, z), Average(datas, lambda d: d.ZForce[z]), preZ, TEST_TOLERANCE)
-        
-        # Transition to lowering engineering state
-        m1m3.LowerM1M3()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_LoweringEngineeringState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_EnabledState)
-        
-        # Wait until active engineering state
-        WaitUntil("DetailedState", 600, lambda: m1m3.GetEventDetailedState()[1].DetailedState == m1m3_shared_DetailedStates_ParkedEngineeringState)
-        
-        # Transition to disabled state
-        m1m3.Disable()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
-        
-        # Transition to standby state
-        m1m3.Standby()
-        result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
-        result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        
-    def SampleForceActuators(self, m1m3):
-        # Get force actuator data
-        datas = []
-        while len(datas) < TEST_SAMPLES_TO_AVERAGE:
-            result, data = m1m3.GetSampleForceActuatorData()
-            if result >= 0:
-                datas.append(data)
-        return datas
-        
+        # Disable hardpoint corrections to keep forces good
+        await self.m1m3.cmd_disableHardpointCorrections.start()
+
+        await self.runActuators(self._test_actuator)
+
+        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+
+
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T018().Run(m1m3, sim, efd)
-    Shutdown(m1m3, sim, efd)
+    asynctest.main()
