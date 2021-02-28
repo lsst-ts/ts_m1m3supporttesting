@@ -63,7 +63,7 @@ class MTM1M3Test(asynctest.TestCase):
         click.echo(click.style(test, fg="blue"))
 
     def printWarning(self, warn):
-        """Prints test progress.
+        """Prints test warning.
 
         Parameters
         ----------
@@ -71,6 +71,16 @@ class MTM1M3Test(asynctest.TestCase):
             String to print with warning style.
         """
         click.echo(click.style(warn, fg="yellow", bg="black"))
+
+    def printError(self, err):
+        """Prints test error or another important message.
+
+        Parameters
+        ----------
+        err : `str`
+            String to print with error style.
+        """
+        click.echo(click.style(err, fg="black", bg="red"))
 
     async def setUp(self):
         """Setup tests. This methods is being called by asynctest.TestCase
@@ -338,7 +348,7 @@ class MTM1M3Test(asynctest.TestCase):
         ----------
         topic_name : `str`
            Event or telemetry topic name (e.g. tel_hardpointActuatorData, evt_detailedState).
-        sampling_time : `float`
+        sampling_time : `float`,
            Sample time (seconds).
         sampling_size : `float`, optional
            Size of collected samples. When
@@ -364,11 +374,11 @@ class MTM1M3Test(asynctest.TestCase):
         while (
             sampling_time is not None
             and data.timestamp - startTimestamp < sampling_time
-        ) or len(ret) < sampling_size:
-            data = await topic.next(flush=False)
+        ) or (sampling_size is not None and len(ret) < sampling_size):
+            data = await topic.next(flush=False, timeout=sampling_time)
             ret.append(data)
 
-        if len(ret) < sampling_size:
+        if sampling_size is not None and len(ret) < sampling_size:
             raise RuntimeError(
                 f"Only {len(ret)} of requested {sampling_size} collected."
             )
@@ -403,14 +413,16 @@ class MTM1M3Test(asynctest.TestCase):
             self.assertAlmostEqual(l1[i], l2[i], msg=msg, **kwargs)
 
     async def runActuators(self, function):
-        """Runs function for all actuators (XYZ).
-
+        """Runs function for all actuators and directions (XYZ).
+ 
         Parameters
         ----------
-        function : `func(int,int)`
-            Function called for all actuators. The parameters are fa_type (X,Y
-            or Z) and force actuator ID (0 based from the first actuator with a given type)"""
-
+        function : `func('[XYZ]',int)`
+            Run this function for all actuators and directions. The first
+            argument is direction (either 'X', 'Y' or 'Z', the second is FA
+            index (0 based, counted from the first actuator with given
+            direction).
+        """
         x = 0  # X index for data access
         y = 0  # Y index for data access
 
