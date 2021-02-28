@@ -288,12 +288,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         for row in offsets:
             self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
-            click.echo(
-                click.style(
-                    f"Moving {self.LOG_MOVEMENT}",
-                    fg="bright_blue",
-                )
-            )
+            click.echo(click.style(f"Moving {self.LOG_MOVEMENT}", fg="bright_blue",))
 
             position = (
                 list(map(lambda x: x.to(u.m).value, row[:3]))

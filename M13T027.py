@@ -21,6 +21,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+# !!!! PLEASE NOTE !!!!
+#
+# This test requires you to switch M1M3 SS CsC configuration -
+# ForceLimit[XYZ]Table.csv needs to be replaced with
+# ForceLimit[XYZ]TableSmall.csv. Best is to edit on cRIO / simulator
+# ForceActuatorSetting.xml and change:
+#
+#   <ForceLimitXTablePath>Tables/ForceLimitXTable.csv</ForceLimitXTablePath>
+#   <ForceLimitYTablePath>Tables/ForceLimitYTable.csv</ForceLimitYTablePath>
+#   <ForceLimitZTablePath>Tables/ForceLimitZTable.csv</ForceLimitZTablePath>
+#
+# to
+#
+#   <ForceLimitXTablePath>Tables/ForceLimitXTableSmall.csv</ForceLimitXTablePath>
+#   <ForceLimitYTablePath>Tables/ForceLimitYTableSmall.csv</ForceLimitYTablePath>
+#   <ForceLimitZTablePath>Tables/ForceLimitZTableSmall.csv</ForceLimitZTablePath>
+#
+# and restart CsC before running the test.
+
 ########################################################################
 # Test Numbers: M13T-027
 # Author:       CContaxis
@@ -67,9 +86,11 @@ from lsst.ts.idl.enums import MTM1M3
 
 import asynctest
 import asyncio
+import numpy as np
+import time
 
 TEST_PERCENTAGE = 1.15
-TEST_SETTLE_TIME = 8.0
+TEST_SETTLE_TIME = 3.0
 TEST_TOLERANCE = 5.0
 TEST_SAMPLES_TO_AVERAGE = 10
 
@@ -354,8 +375,23 @@ forceActuatorLimitMax = 4
 
 
 class M13T027(MTM1M3Test):
-    async def _test_actuator(self, fa_type, fa_id):
-        self.printTest(f"Testing {fa_type} {fa_id}")
+    async def _test_actuator(self, fa_type, fa_index):
+        """Run test on given actuator cylinder (=direction).
+
+        Parameters
+        ----------
+        fa_type : `str`, 'X', 'Y' or 'Z'
+            Force actuator direction/type.
+        fa_index : `int`
+            Force actuator index (0-156 for 'Z', 0-100 for 'Y', 0-6 for 'X')
+
+        Raises
+        ------
+        ValueError
+            On wrong input parameters.
+        """
+
+        self.printTest(f"Testing {fa_type} {fa_index}")
         # Prepare force data
         xForces = [0] * 12
         yForces = [0] * 100
@@ -371,6 +407,11 @@ class M13T027(MTM1M3Test):
             if preclipped:
                 # Verify the preclipped forces match the commanded values
                 data = self.m1m3.evt_preclippedForces.get()
+
+                if data is None:
+                    self.fail(
+                        "Cannot retrieve preclipped data. Most likely you forgot to change Limit tables to *Small?"
+                    )
 
                 self.assertListAlmostEqual(
                     data.xForces,
@@ -413,32 +454,42 @@ class M13T027(MTM1M3Test):
                 msg="Z applied forces don't match",
             )
 
-            # Wait a bit before checking all of the force actuator forces (positive and negative testing)
-            await asyncio.sleep(TEST_SETTLE_TIME)
+            test_start = time.monotonic()
+            duration = 0
+            failed_count = 0
 
-            # Check force actuator force
-            data = await self.sampleData(
-                "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+            while duration < TEST_SETTLE_TIME * 4:
+                # Check force actuator force
+                data = await self.sampleData(
+                    "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+                )
+                averages = self.average(data, ["xForce", "yForce", "zForce"])
+
+                duration = time.monotonic() - test_start
+                if (
+                    np.allclose(averages["xForce"], xApplied, atol=TEST_TOLERANCE)
+                    and np.allclose(averages["yForce"], yApplied, atol=TEST_TOLERANCE)
+                    and np.allclose(averages["zForce"], zApplied, atol=TEST_TOLERANCE)
+                ):
+                    if duration > TEST_SETTLE_TIME:
+                        break
+                else:
+                    failed_count += 1
+
+            self.assertLessEqual(
+                duration,
+                TEST_SETTLE_TIME * 4,
+                msg=f"Actuator {self.id} ({fa_type}{fa_index}) doesn't settle within 4 times {TEST_SETTLE_TIME}",
             )
-            averages = self.average(data, ["xForce", "yForce", "zForce"])
-            self.assertListAlmostEqual(
-                averages["xForce"],
-                xApplied,
-                delta=TEST_TOLERANCE,
-                msg="X measured forces sample don't match",
-            )
-            self.assertListAlmostEqual(
-                averages["yForce"],
-                yApplied,
-                delta=TEST_TOLERANCE,
-                msg="Y measured forces sample don't match",
-            )
-            self.assertListAlmostEqual(
-                averages["zForce"],
-                zApplied,
-                delta=TEST_TOLERANCE,
-                msg="Z measured forces sample don't match",
-            )
+
+            if duration > TEST_SETTLE_TIME + 1:
+                self.printWarning(
+                    f"Testing {self.id} ({fa_type}{fa_index}) took {duration:.02f}s to settle down"
+                )
+            else:
+                self.printTest(
+                    f"Testing {self.id} ({fa_type}{fa_index}) took {duration:.02f}s with {failed_count} fails"
+                )
 
         async def set_scaled(scale, run_test=True):
             """Sets [xyz]Forces and [xyz]Applied.
@@ -452,25 +503,25 @@ class M13T027(MTM1M3Test):
             use = abs(scale)
 
             if fa_type == "X":
-                xApplied[fa_id] = use * forceActuatorXLimitTable[fa_id][minMax]
-                xForces[fa_id] = xApplied[fa_id] * TEST_PERCENTAGE
+                xApplied[fa_index] = use * forceActuatorXLimitTable[fa_index][minMax]
+                xForces[fa_index] = xApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} X {fa_id}: will apply {xForces[fa_id]:.02f}N, expect to see {xApplied[fa_id]:.02f}N"
+                    f"FA {self.id} X {fa_index}: will apply {xForces[fa_index]:.02f}N, expect to see {xApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Y":
-                yApplied[fa_id] = use * forceActuatorYLimitTable[fa_id][minMax]
-                yForces[fa_id] = yApplied[fa_id] * TEST_PERCENTAGE
+                yApplied[fa_index] = use * forceActuatorYLimitTable[fa_index][minMax]
+                yForces[fa_index] = yApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} Y {fa_id}: will apply {yForces[fa_id]:.02f}N, expect to see {yApplied[fa_id]:.02f}N"
+                    f"FA {self.id} Y {fa_index}: will apply {yForces[fa_index]:.02f}N, expect to see {yApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Z":
-                zApplied[fa_id] = use * forceActuatorZLimitTable[fa_id][minMax]
-                zForces[fa_id] = zApplied[fa_id] * TEST_PERCENTAGE
+                zApplied[fa_index] = use * forceActuatorZLimitTable[fa_index][minMax]
+                zForces[fa_index] = zApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} Z {fa_id}: will apply {zForces[fa_id]:.02f}N, expect to see {zApplied[fa_id]:.02f}N"
+                    f"FA {self.id} Z {fa_index}: will apply {zForces[fa_index]:.02f}N, expect to see {zApplied[fa_index]:.02f}N"
                 )
             else:
-                raise RuntimeError(f"Invalid FA type (only XYZ accepted): {fa_type}")
+                raise ValueError(f"Invalid FA type (only XYZ accepted): {fa_type}")
 
             if run_test is False:
                 return
@@ -507,24 +558,7 @@ class M13T027(MTM1M3Test):
         x = 0  # X index for data access
         y = 0  # Y index for data access
 
-        # Iterate through all 156 force actuators
-        for row in forceActuatorTable:
-            z = row[forceActuatorTableIndexIndex]
-            self.id = row[forceActuatorTableIDIndex]
-            orientation = row[forceActuatorTableOrientationIndex]
-
-            self.printTest(f"Verify Force Actuator {self.id} Commands and Telemetry")
-
-            # Run X tests for DDA X
-            if orientation in ["+X", "-X"]:
-                await self._test_actuator("X", x)
-                x += 1
-            # Run Y tests for DDA Y
-            elif orientation in ["+Y", "-Y"]:
-                await self._test_actuator("Y", y)
-                y += 1
-
-            await self._test_actuator("Z", z)
+        await self.runActuators(self._test_actuator)
 
         # Transition to standby state
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
