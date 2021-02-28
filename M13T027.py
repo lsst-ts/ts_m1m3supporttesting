@@ -472,7 +472,9 @@ class M13T027(MTM1M3Test):
                     f"Testing {self.id} ({fa_type}{fa_id}) took {duration:.02f}s to settle down"
                 )
             else:
-                self.printTest(f"Testing {self.id} ({fa_type}{fa_id}) took {duration:.02f}s with {failed_count} fails")
+                self.printTest(
+                    f"Testing {self.id} ({fa_type}{fa_id}) took {duration:.02f}s with {failed_count} fails"
+                )
 
         async def set_scaled(scale, run_test=True):
             """Sets [xyz]Forces and [xyz]Applied.
@@ -541,24 +543,7 @@ class M13T027(MTM1M3Test):
         x = 0  # X index for data access
         y = 0  # Y index for data access
 
-        # Iterate through all 156 force actuators
-        for row in forceActuatorTable:
-            z = row[forceActuatorTableIndexIndex]
-            self.id = row[forceActuatorTableIDIndex]
-            orientation = row[forceActuatorTableOrientationIndex]
-
-            self.printTest(f"Verify Force Actuator {self.id} Commands and Telemetry")
-
-            # Run X tests for DDA X
-            if orientation in ["+X", "-X"]:
-                await self._test_actuator("X", x)
-                x += 1
-            # Run Y tests for DDA Y
-            elif orientation in ["+Y", "-Y"]:
-                await self._test_actuator("Y", y)
-                y += 1
-
-            await self._test_actuator("Z", z)
+        await self.runActuators(self._test_actuator)
 
         # Transition to standby state
         await self.shutdown(MTM1M3.DetailedState.STANDBY)

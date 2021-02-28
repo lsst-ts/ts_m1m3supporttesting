@@ -426,7 +426,7 @@ class MTM1M3Test(asynctest.TestCase):
             if orientation in ["+X", "-X"]:
                 await function("X", x)
                 x += 1
-            # Run Y tests for DDA X
+            # Run Y tests for DDA Y
             elif orientation in ["+Y", "-Y"]:
                 await function("Y", y)
                 y += 1
