@@ -430,6 +430,27 @@ forceActuatorSIndexFromZIndex = [
 
 
 def actuatorIDToIndex(actuatorId):
-    return next(
-        f for f in forceActuatorTable if f[forceActuatorTableIDIndex] == actuatorId
-    )[forceActuatorTableIndexIndex]
+    """Returns force actuator index (0-156) from its ID (101-443).
+
+    Parameters
+    ----------
+    actuatorId: `int`
+        Actuator ID (101-443). 
+
+    Returns
+    -------
+    index : `int`
+        Actuator index (0-156)
+
+    Raises
+    ------
+    ValueError
+        If force actuator cannot be find.
+    """
+
+    try:
+        return next(
+            f for f in forceActuatorTable if f[forceActuatorTableIDIndex] == actuatorId
+        )[forceActuatorTableIndexIndex]
+    except StopIteration:
+        raise ValueError(f"Cannot find actuator with id {actuatorId}")

@@ -338,7 +338,7 @@ class MTM1M3Test(asynctest.TestCase):
         ----------
         topic_name : `str`
            Event or telemetry topic name (e.g. tel_hardpointActuatorData, evt_detailedState).
-        sampling_time : `float`,
+        sampling_time : `float`
            Sample time (seconds).
         sampling_size : `float`, optional
            Size of collected samples. When

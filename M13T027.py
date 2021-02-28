@@ -375,8 +375,23 @@ forceActuatorLimitMax = 4
 
 
 class M13T027(MTM1M3Test):
-    async def _test_actuator(self, fa_type, fa_id):
-        self.printTest(f"Testing {fa_type} {fa_id}")
+    async def _test_actuator(self, fa_type, fa_index):
+        """Run test on given actuator cylinder (=direction).
+
+        Parameters
+        ----------
+        fa_type : `str`, 'X', 'Y' or 'Z'
+            Force actuator direction/type.
+        fa_index : `int`
+            Force actuator index (0-156 for 'Z', 0-100 for 'Y', 0-6 for 'X')
+
+        Raises
+        ------
+        ValueError
+            On wrong input parameters.
+        """
+
+        self.printTest(f"Testing {fa_type} {fa_index}")
         # Prepare force data
         xForces = [0] * 12
         yForces = [0] * 100
@@ -464,16 +479,16 @@ class M13T027(MTM1M3Test):
             self.assertLessEqual(
                 duration,
                 TEST_SETTLE_TIME * 4,
-                msg=f"Actuator {self.id} ({fa_type}{fa_id}) doesn't settle within 4 times {TEST_SETTLE_TIME}",
+                msg=f"Actuator {self.id} ({fa_type}{fa_index}) doesn't settle within 4 times {TEST_SETTLE_TIME}",
             )
 
             if duration > TEST_SETTLE_TIME + 1:
                 self.printWarning(
-                    f"Testing {self.id} ({fa_type}{fa_id}) took {duration:.02f}s to settle down"
+                    f"Testing {self.id} ({fa_type}{fa_index}) took {duration:.02f}s to settle down"
                 )
             else:
                 self.printTest(
-                    f"Testing {self.id} ({fa_type}{fa_id}) took {duration:.02f}s with {failed_count} fails"
+                    f"Testing {self.id} ({fa_type}{fa_index}) took {duration:.02f}s with {failed_count} fails"
                 )
 
         async def set_scaled(scale, run_test=True):
@@ -488,25 +503,25 @@ class M13T027(MTM1M3Test):
             use = abs(scale)
 
             if fa_type == "X":
-                xApplied[fa_id] = use * forceActuatorXLimitTable[fa_id][minMax]
-                xForces[fa_id] = xApplied[fa_id] * TEST_PERCENTAGE
+                xApplied[fa_index] = use * forceActuatorXLimitTable[fa_index][minMax]
+                xForces[fa_index] = xApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} X {fa_id}: will apply {xForces[fa_id]:.02f}N, expect to see {xApplied[fa_id]:.02f}N"
+                    f"FA {self.id} X {fa_index}: will apply {xForces[fa_index]:.02f}N, expect to see {xApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Y":
-                yApplied[fa_id] = use * forceActuatorYLimitTable[fa_id][minMax]
-                yForces[fa_id] = yApplied[fa_id] * TEST_PERCENTAGE
+                yApplied[fa_index] = use * forceActuatorYLimitTable[fa_index][minMax]
+                yForces[fa_index] = yApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} Y {fa_id}: will apply {yForces[fa_id]:.02f}N, expect to see {yApplied[fa_id]:.02f}N"
+                    f"FA {self.id} Y {fa_index}: will apply {yForces[fa_index]:.02f}N, expect to see {yApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Z":
-                zApplied[fa_id] = use * forceActuatorZLimitTable[fa_id][minMax]
-                zForces[fa_id] = zApplied[fa_id] * TEST_PERCENTAGE
+                zApplied[fa_index] = use * forceActuatorZLimitTable[fa_index][minMax]
+                zForces[fa_index] = zApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} Z {fa_id}: will apply {zForces[fa_id]:.02f}N, expect to see {zApplied[fa_id]:.02f}N"
+                    f"FA {self.id} Z {fa_index}: will apply {zForces[fa_index]:.02f}N, expect to see {zApplied[fa_index]:.02f}N"
                 )
             else:
-                raise RuntimeError(f"Invalid FA type (only XYZ accepted): {fa_type}")
+                raise ValueError(f"Invalid FA type (only XYZ accepted): {fa_type}")
 
             if run_test is False:
                 return
