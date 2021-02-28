@@ -480,6 +480,7 @@ class M13T027(MTM1M3Test):
                 xForces=xForces, yForces=yForces, zForces=zForces
             )
 
+            # This is for run with SW simulator. Modify if SW simulator is needed.
             # Set the simulatored force actuator's load cells to the correct value
             # primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, xForces[x], 0, 0)
             # sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
@@ -518,7 +519,7 @@ class M13T027(MTM1M3Test):
             if orientation in ["+X", "-X"]:
                 await self._test_actuator("X", x)
                 x += 1
-            # Run Y tests for DDA X
+            # Run Y tests for DDA Y
             elif orientation in ["+Y", "-Y"]:
                 await self._test_actuator("Y", y)
                 y += 1
