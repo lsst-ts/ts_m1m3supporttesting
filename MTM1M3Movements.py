@@ -79,8 +79,8 @@ class MTM1M3Movements(MTM1M3Test):
     # XYZ in m, R[XYZ] in deg
     REFERENCE = np.array([0.0] * 6)
 
-    POSITION_TOLERANCE = 8 * u.um.to(u.m)
-    ROTATION_TOLERANCE = 1.45 * u.arcsec.to(u.deg)
+    POSITION_TOLERANCE = 800 * u.um.to(u.m)
+    ROTATION_TOLERANCE = 1450 * u.arcsec.to(u.deg)
     LOAD_PATH_FORCE = 0.0
     LOAD_PATH_TOLERANCE = 0.0
 

@@ -337,7 +337,7 @@ class MTM1M3Test(asynctest.TestCase):
                 bar.update(1)
                 return
 
-            self.fail(f"Unknown shutdown target state {target}.")
+            self.fail(f"Unknown shutdown target state {target} - {currentState}.")
 
     async def sampleData(
         self, topic_name, sampling_time, sampling_size=None, flush=True
