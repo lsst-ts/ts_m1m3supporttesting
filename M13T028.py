@@ -294,12 +294,6 @@ class M13T028(MTM1M3Test):
 
                 z_indices = list(map(actuatorIDToIndex, z_ids))
 
-                self.assertEqual(
-                    len(z_indices),
-                    len(z_ids),
-                    msg=f"Length of neighbor arrays for FA ID {id} doesn't match: with indices: {str(z_indices)} vs with FA ids: {str(z_ids)}",
-                )
-
                 self.printTest(
                     f"Verify Force Actuator {id} with {force:.02f}N applied to Z {str(z_indices)} FA IDs {str(z_ids)}"
                 )
@@ -331,15 +325,12 @@ class M13T028(MTM1M3Test):
                 # Clear the force offset
                 for i in z_indices:
                     zForces[i] = 0.0
-
-                self.m1m3.evt_forceSetpointWarning.flush()
-
                 await self.m1m3.cmd_clearOffsetForces.start()
 
+                await asyncio.sleep(TEST_SETTLE_TIME)
+
                 # Check for near neighbor warning
-                data = await self.m1m3.evt_forceSetpointWarning.next(
-                    flush=False, timeout=TEST_SETTLE_TIME
-                )
+                data = await self.m1m3.evt_forceSetpointWarning.get()
                 self.assertEqual(
                     data.nearNeighborWarning[z],
                     False,

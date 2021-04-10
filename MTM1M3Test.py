@@ -310,6 +310,8 @@ class MTM1M3Test(asynctest.TestCase):
         with click.progressbar(range(4), label="Shutdown", width=0) as bar:
 
             if currentState == MTM1M3.DetailedState.PARKEDENGINEERING:
+                if target == MTM1M3.DetailedState.PARKEDENGINEERING:
+                    return
                 await self.switchM1M3State(
                     "exitEngineering", MTM1M3.DetailedState.PARKED
                 )
@@ -337,7 +339,7 @@ class MTM1M3Test(asynctest.TestCase):
                 bar.update(1)
                 return
 
-            self.fail(f"Unknown shutdown target state {target}.")
+            self.fail(f"Unknown shutdown target state {target} - {currentState}.")
 
     async def sampleData(
         self, topic_name, sampling_time, sampling_size=None, flush=True
