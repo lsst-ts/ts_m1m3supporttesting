@@ -49,28 +49,54 @@ from datetime import datetime
 import os
 
 
+class AutoFlush:
+    """Automatic file flusher.
+
+    Parameters
+    ----------
+    file : `file`
+        File where message will be printed.
+    flushAfter : `int`
+        Fliush after this number of lines. Default to 10.
+    """
+
+    def __init__(self, file, flushAfter=10):
+        self._file = file
+        self._flushAfter = flushAfter
+        self._counter = 0
+
+    def __getattr__(self, name):
+        return getattr(self._file, name)
+
+    def print(self, message):
+        print(message, file=self._file)
+
+        self._counter += 1
+        if self._counter >= self._flushAfter:
+            self._file.flush()
+            self._counter = 0
+
+
 class M13T004(MTM1M3Movements):
     async def hardpoint_move(self, step):
-        self.hardpointActuatorDataFile = self.openCSV(f"HP-{self.hp}-{step}")
-        self.hardpointActuatorDataCounter = 0
+        self.hardpointActuatorDataFile = AutoFlush(self.openCSV(f"HP-{self.hp}-{step}"))
 
-        self.hardpointMonitorDataFile = self.openCSV(f"Monitor-{self.hp}-{step}")
-        self.hardpointMonitorDataCounter = 0
+        self.hardpointMonitorDataFile = AutoFlush(
+            self.openCSV(f"Monitor-{self.hp}-{step}")
+        )
         click.echo(
             click.style(
                 f"Saving data to {os.path.abspath(self.hardpointActuatorDataFile.name)} and {os.path.abspath(self.hardpointMonitorDataFile.name)}",
                 fg="blue",
             )
         )
-        print(
+        self.hardpointActuatorDataFile.print(
             f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp}",
-            file=self.hardpointActuatorDataFile,
         )
         self.m1m3.tel_hardpointActuatorData.callback = self.hardpointActuatorData
 
-        print(
+        self.hardpointMonitorDataFile.print(
             f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}",
-            file=self.hardpointMonitorDataFile,
         )
         self.m1m3.tel_hardpointMonitorData.callback = self.hardpointMonitorData
 
@@ -174,25 +200,16 @@ class M13T004(MTM1M3Movements):
             s_low = warnings.limitSwitch2Operated[hpIndex]
             s_high = warnings.limitSwitch1Operated[hpIndex]
 
-        print(
+        self.hardpointActuatorDataFile.print(
             f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f},{s_low},{s_high}",
-            file=self.hardpointActuatorDataFile,
         )
-        self.hardpointActuatorDataCounter += 1
-        if self.hardpointActuatorDataCounter > 10:
-            self.hardpointActuatorDataFile.flush()
-            self.hardpointActuatorDataCounter = 0
 
     async def hardpointMonitorData(self, data):
         hpIndex = self.hp - 1
-        print(
+
+        self.hardpointMonitorDataFile.print(
             f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}",
-            file=self.hardpointMonitorDataFile,
         )
-        self.hardpointMonitorDataCounter += 1
-        if self.hardpointMonitorDataCounter > 10:
-            self.hardpointMonitorDataFile.flush()
-            self.hardpointMonitorDataCounter = 0
 
     async def hardpoint_test(self, hp):
         self.hp = hp
