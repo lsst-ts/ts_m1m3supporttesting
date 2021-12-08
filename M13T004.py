@@ -143,14 +143,14 @@ class M13T004(MTM1M3Movements):
         # Stop hardpoint motion
         await self.m1m3.cmd_stopHardpointMotion.start()
 
+        # Give a little buffer room before completing this part of the test
+        await asyncio.sleep(1)
+
         # Verify hardpoint motion has stopped
         self.assertEqual(
             self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex],
             MTM1M3.HardpointActuatorMotionStates.STANDBY,
         )
-
-        # Give a little buffer room before completing this part of the test
-        await asyncio.sleep(1)
 
         # Get the stop timestamp for collecting data from the EFD
         stopTimestamp = self.m1m3.tel_hardpointActuatorData.get().timestamp
