@@ -63,7 +63,7 @@ class M13T004(MTM1M3Movements):
             )
         )
         print(
-            f"Timestamp,StepsQueued {self.hp},MeasuredForce {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp}",
+            f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp}",
             file=self.hardpointActuatorDataFile,
         )
         self.m1m3.tel_hardpointActuatorData.callback = self.hardpointActuatorData

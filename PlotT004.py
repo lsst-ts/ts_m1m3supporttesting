@@ -46,7 +46,10 @@ for hp in args.files:
     df = pd.read_csv(hp)
     print(" .", end="")
 
-    df.plot(df.columns[2], df.columns[3], ax=list(enumerate(axes))[count][1])
+    if len(args.files) == 1:
+        df.plot(df.columns[3], df.columns[2])
+    else:
+        df.plot(df.columns[3], df.columns[2], ax=axes.reshape(-1)[count])
     count += 1
     print(" done")
 
