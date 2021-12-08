@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.8
 
-# This file is part of ts_salobj.
+# This file is part of M1M3 test suite.
 #
 # Developed for the LSST Telescope and Site Systems.
 # This product includes software developed by the LSST Project
@@ -39,7 +39,7 @@
 # - Transition from parked engineering to standby state
 ########################################################################
 
-from MTM1M3Test import *
+from MTM1M3Movements import *
 from lsst.ts.idl.enums import MTM1M3
 
 import asyncio
@@ -49,7 +49,7 @@ from datetime import datetime
 import os
 
 
-class M13T004(MTM1M3Test):
+class M13T004(MTM1M3Movements):
     async def hardpoint_move(self, step):
         self.hardpointActuatorDataFile = self.openCSV(f"HP-{self.hp}-{step}")
         self.hardpointActuatorDataCounter = 0
