@@ -63,7 +63,7 @@ class M13T004(MTM1M3Movements):
             )
         )
         print(
-            f"Timestamp,StepsQueued {self.hp},MeasuredForce {self.hp},Encoder {self.hp}, Displacement {self.hp}",
+            f"Timestamp,StepsQueued {self.hp},MeasuredForce {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp}",
             file=self.hardpointActuatorDataFile,
         )
         self.m1m3.tel_hardpointActuatorData.callback = self.hardpointActuatorData
@@ -165,8 +165,17 @@ class M13T004(MTM1M3Movements):
 
     async def hardpointActuatorData(self, data):
         hpIndex = self.hp - 1
+
+        warnings = self.m1m3.evt_hardpointActuatorWarning.get()
+        if warnings is None:
+            s_high = "-"
+            s_low = "-"
+        else:
+            s_low = warnings.limitSwitch2Operated[hpIndex]
+            s_high = warnings.limitSwitch1Operated[hpIndex]
+
         print(
-            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f}",
+            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f},{s_low},{s_high}",
             file=self.hardpointActuatorDataFile,
         )
         self.hardpointActuatorDataCounter += 1
