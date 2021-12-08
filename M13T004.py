@@ -51,21 +51,28 @@ import os
 
 class M13T004(MTM1M3Test):
     async def hardpoint_move(self, step):
-        self.recordFile = open(
-            f'{datetime.now().strftime("%Y-%m-%dT%T")}-hardpoint{self.hp}-{step}.csv',
-            "w",
-        )
-        self.recordCounter = 0
+        self.hardpointActuatorDataFile = self.openCSV(f"HP-{self.hp}-{step}")
+        self.hardpointActuatorDataCounter = 0
+
+        self.hardpointMonitorDataFile = self.openCSV(f"Monitor-{self.hp}-{step}")
+        self.hardpointMonitorDataCounter = 0
         click.echo(
             click.style(
-                f"Saving data to {os.path.abspath(self.recordFile.name)}", fg="blue"
+                f"Saving data to {os.path.abspath(self.hardpointActuatorDataFile.name)} and {os.path.abspath(self.hardpointMonitorDataFile.name)}",
+                fg="blue",
             )
         )
         print(
-            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}",
-            file=self.recordFile,
+            f"Timestamp,StepsQueued {self.hp},MeasuredForce {self.hp},Encoder {self.hp}, Displacement {self.hp}",
+            file=self.hardpointActuatorDataFile,
         )
-        self.m1m3.tel_hardpointMonitorData.callback = self.record_data
+        self.m1m3.tel_hardpointActuatorData.callback = self.hardpointActuatorData
+
+        print(
+            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}",
+            file=self.hardpointMonitorDataFile,
+        )
+        self.m1m3.tel_hardpointMonitorData.callback = self.hardpointMonitorData
 
         # Give time for a sample
         await asyncio.sleep(1)
@@ -148,49 +155,35 @@ class M13T004(MTM1M3Test):
         # Get the stop timestamp for collecting data from the EFD
         stopTimestamp = self.m1m3.tel_hardpointActuatorData.get().timestamp
 
+        self.m1m3.tel_hardpointActuatorData.callback = None
         self.m1m3.tel_hardpointMonitorData.callback = None
-        self.recordFile.close()
+        self.close_log_file()
 
         # Report the start and stop timestamps to the log
         click.echo(f"Start Timestamp: {startTimestamp:.0f}")
         click.echo(f"Stop Timestamp: {stopTimestamp:.0f}")
 
-        # Generate the hardpoint monitor data file
-        # rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-        # path = GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId))
-        # Log("File path: %s" % path)
-        # file = open(path, "w+")
-        # file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure\r\n")
-        # rowCount = 0
-        # for row in rows:
-        #    rowCount += 1
-        #    file.write("%0.3f,%0.9f,%0.9f,%0.3f\r\n" % (row[0], row[1], row[2], row[3]))
-        # file.close()
-        # Log("Got %d rows" % rowCount)
+    async def hardpointActuatorData(self, data):
+        hpIndex = self.hp - 1
+        print(
+            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f}",
+            file=self.hardpointActuatorDataFile,
+        )
+        self.hardpointActuatorDataCounter += 1
+        if self.hardpointActuatorDataCounter > 10:
+            self.hardpointActuatorDataFile.flush()
+            self.hardpointActuatorDataCounter = 0
 
-        # Generate the hardpoint actuator data file
-        # rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-        # path = GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId))
-        # Log("File path: %s" % path)
-        # file = open(path, "w+")
-        # file.write("Timestamp,MeasuredForce,Encoder,Displacement\r\n")
-        # rowCount = 0
-        # for row in rows:
-        #    rowCount += 1
-        #    file.write("%0.3f,%0.9f,%d,%0.9f\r\n" % (row[0], row[1], row[2], row[3]))
-        # file.close()
-        # Log("Got %d rows" % rowCount)
-
-    async def record_data(self, data):
+    async def hardpointMonitorData(self, data):
         hpIndex = self.hp - 1
         print(
             f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}",
-            file=self.recordFile,
+            file=self.hardpointMonitorDataFile,
         )
-        self.recordCounter += 1
-        if self.recordCounter > 10:
-            self.recordFile.flush()
-            self.recordCounter = 0
+        self.hardpointMonitorDataCounter += 1
+        if self.hardpointMonitorDataCounter > 10:
+            self.hardpointMonitorDataFile.flush()
+            self.hardpointMonitorDataCounter = 0
 
     async def hardpoint_test(self, hp):
         self.hp = hp
