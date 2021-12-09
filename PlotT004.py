@@ -30,6 +30,14 @@ parser = argparse.ArgumentParser(
     description="Plot Hardpoints data", usage="%(prog)s [files..]"
 )
 parser.add_argument("files", type=str, nargs="+", help="files to plot")
+parser.add_argument(
+    "-z",
+    dest="zero",
+    action="store",
+    type=int,
+    default=None,
+    help="plot only regions around 0 force",
+)
 
 args = parser.parse_args()
 
@@ -41,10 +49,17 @@ fig, axes = plt.subplots(rowscols, maxcols)
 
 count = 0
 
-for hp in args.files:
-    print(f"Plotting {hp}", end="")
-    df = pd.read_csv(hp)
+
+def plot(fn):
+    global count, args
+    print(f"Plotting {fn}", end="")
+    df = pd.read_csv(fn)
     print(" .", end="")
+
+    if args.zero is not None:
+        df_sort = df.iloc[(df[df.columns[2]]).abs().argsort()[:2]]
+        zindex = df_sort.index.tolist()[0]
+        df = df[max(0, zindex - args.zero) : zindex + args.zero]
 
     if len(args.files) == 1:
         df.plot(df.columns[3], df.columns[2])
@@ -52,5 +67,9 @@ for hp in args.files:
         df.plot(df.columns[3], df.columns[2], ax=axes.reshape(-1)[count])
     count += 1
     print(" done")
+
+
+for hp in args.files:
+    plot(hp)
 
 plt.show()
