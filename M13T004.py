@@ -233,6 +233,13 @@ class M13T004(MTM1M3Movements):
         for hp in range(1, 7):
             await self.hardpoint_test(hp)
 
+        click.echo(
+            click.style(
+                "Saved files can be plotted with PlotT004.py",
+                fg="blue",
+            )
+        )
+
 
 if __name__ == "__main__":
     asynctest.main()
