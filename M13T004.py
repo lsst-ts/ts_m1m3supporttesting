@@ -1,6 +1,6 @@
 #!/usr/bin/env python3.8
 
-# This file is part of ts_salobj.
+# This file is part of M1M3 test suite.
 #
 # Developed for the LSST Telescope and Site Systems.
 # This product includes software developed by the LSST Project
@@ -39,7 +39,7 @@
 # - Transition from parked engineering to standby state
 ########################################################################
 
-from MTM1M3Test import *
+from MTM1M3Movements import *
 from lsst.ts.idl.enums import MTM1M3
 
 import asyncio
@@ -49,23 +49,56 @@ from datetime import datetime
 import os
 
 
-class M13T004(MTM1M3Test):
+class AutoFlush:
+    """Automatic file flusher.
+
+    Parameters
+    ----------
+    file : `file`
+        File where message will be printed.
+    flushAfter : `int`
+        Fliush after this number of lines. Default to 10.
+    """
+
+    def __init__(self, file, flushAfter=10):
+        self._file = file
+        self._flushAfter = flushAfter
+        self._counter = 0
+
+    def __getattr__(self, name):
+        return getattr(self._file, name)
+
+    def print(self, message):
+        print(message, file=self._file)
+
+        self._counter += 1
+        if self._counter >= self._flushAfter:
+            self._file.flush()
+            self._counter = 0
+
+
+class M13T004(MTM1M3Movements):
     async def hardpoint_move(self, step):
-        self.recordFile = open(
-            f'{datetime.now().strftime("%Y-%m-%dT%T")}-hardpoint{self.hp}-{step}.csv',
-            "w",
+        self.hardpointActuatorDataFile = AutoFlush(self.openCSV(f"HP-{self.hp}-{step}"))
+
+        self.hardpointMonitorDataFile = AutoFlush(
+            self.openCSV(f"Monitor-{self.hp}-{step}")
         )
-        self.recordCounter = 0
         click.echo(
             click.style(
-                f"Saving data to {os.path.abspath(self.recordFile.name)}", fg="blue"
+                f"Saving data to {os.path.abspath(self.hardpointActuatorDataFile.name)} and {os.path.abspath(self.hardpointMonitorDataFile.name)}",
+                fg="blue",
             )
         )
-        print(
-            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}",
-            file=self.recordFile,
+        self.hardpointActuatorDataFile.print(
+            f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp}",
         )
-        self.m1m3.tel_hardpointMonitorData.callback = self.record_data
+        self.m1m3.tel_hardpointActuatorData.callback = self.hardpointActuatorData
+
+        self.hardpointMonitorDataFile.print(
+            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}",
+        )
+        self.m1m3.tel_hardpointMonitorData.callback = self.hardpointMonitorData
 
         # Give time for a sample
         await asyncio.sleep(1)
@@ -136,61 +169,47 @@ class M13T004(MTM1M3Test):
         # Stop hardpoint motion
         await self.m1m3.cmd_stopHardpointMotion.start()
 
+        # Give a little buffer room before completing this part of the test
+        await asyncio.sleep(1)
+
         # Verify hardpoint motion has stopped
         self.assertEqual(
             self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex],
             MTM1M3.HardpointActuatorMotionStates.STANDBY,
         )
 
-        # Give a little buffer room before completing this part of the test
-        await asyncio.sleep(1)
-
         # Get the stop timestamp for collecting data from the EFD
         stopTimestamp = self.m1m3.tel_hardpointActuatorData.get().timestamp
 
+        self.m1m3.tel_hardpointActuatorData.callback = None
         self.m1m3.tel_hardpointMonitorData.callback = None
-        self.recordFile.close()
+        self.close_log_file()
 
         # Report the start and stop timestamps to the log
         click.echo(f"Start Timestamp: {startTimestamp:.0f}")
         click.echo(f"Stop Timestamp: {stopTimestamp:.0f}")
 
-        # Generate the hardpoint monitor data file
-        # rows = efd.QueryAll("SELECT Timestamp, BreakawayLVDT_%d, DisplacementLVDT_%d, BreakawayPressure_%d FROM m1m3_HardpointMonitorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-        # path = GetFilePath("%d-Hardpoint%d-MonitorData.csv" % (int(startTimestamp), actId))
-        # Log("File path: %s" % path)
-        # file = open(path, "w+")
-        # file.write("Timestamp,BreakawayLVDT,DisplacementLVDT,BreakawayPressure\r\n")
-        # rowCount = 0
-        # for row in rows:
-        #    rowCount += 1
-        #    file.write("%0.3f,%0.9f,%0.9f,%0.3f\r\n" % (row[0], row[1], row[2], row[3]))
-        # file.close()
-        # Log("Got %d rows" % rowCount)
-
-        # Generate the hardpoint actuator data file
-        # rows = efd.QueryAll("SELECT Timestamp, MeasuredForce_%d, Encoder_%d, Displacement_%d FROM m1m3_HardpointActuatorData WHERE Timestamp >= %0.3f AND Timestamp <= %0.3f ORDER BY Timestamp ASC" % (actId, actId, actId, startTimestamp, stopTimestamp))
-        # path = GetFilePath("%d-Hardpoint%d-ActuatorData.csv" % (int(startTimestamp), actId))
-        # Log("File path: %s" % path)
-        # file = open(path, "w+")
-        # file.write("Timestamp,MeasuredForce,Encoder,Displacement\r\n")
-        # rowCount = 0
-        # for row in rows:
-        #    rowCount += 1
-        #    file.write("%0.3f,%0.9f,%d,%0.9f\r\n" % (row[0], row[1], row[2], row[3]))
-        # file.close()
-        # Log("Got %d rows" % rowCount)
-
-    async def record_data(self, data):
+    async def hardpointActuatorData(self, data):
         hpIndex = self.hp - 1
-        print(
-            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}",
-            file=self.recordFile,
+
+        warnings = self.m1m3.evt_hardpointActuatorWarning.get()
+        if warnings is None:
+            s_high = "-"
+            s_low = "-"
+        else:
+            s_low = warnings.limitSwitch2Operated[hpIndex]
+            s_high = warnings.limitSwitch1Operated[hpIndex]
+
+        self.hardpointActuatorDataFile.print(
+            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f},{s_low},{s_high}",
         )
-        self.recordCounter += 1
-        if self.recordCounter > 10:
-            self.recordFile.flush()
-            self.recordCounter = 0
+
+    async def hardpointMonitorData(self, data):
+        hpIndex = self.hp - 1
+
+        self.hardpointMonitorDataFile.print(
+            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}",
+        )
 
     async def hardpoint_test(self, hp):
         self.hp = hp
@@ -213,6 +232,13 @@ class M13T004(MTM1M3Test):
         # Iterate through the 6 hardpoint actuators
         for hp in range(1, 7):
             await self.hardpoint_test(hp)
+
+        click.echo(
+            click.style(
+                "Saved files can be plotted with PlotT004.py",
+                fg="blue",
+            )
+        )
 
 
 if __name__ == "__main__":
