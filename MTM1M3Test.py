@@ -156,7 +156,6 @@ class MTM1M3Test(asynctest.TestCase):
                     "start",
                     MTM1M3.DetailedState.DISABLED,
                     wait=10,
-                    settingsToApply="Default",
                     timeout=60,
                 )
                 bar.update(1)
@@ -216,7 +215,6 @@ class MTM1M3Test(asynctest.TestCase):
                 "raiseM1M3",
                 raisingState,
                 wait=2,
-                raiseM1M3=True,
                 bypassReferencePosition=False,
             )
             pct = 0
