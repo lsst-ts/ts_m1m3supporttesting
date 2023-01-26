@@ -73,6 +73,8 @@
 import astropy.units as u
 import asynctest
 
+import MTM1M3
+
 from MTM1M3Movements import *
 
 TRAVEL_POSITION = 1 * u.mm
@@ -120,9 +122,15 @@ class M13T010(MTM1M3Movements):
             offset(ry=-TRAVEL_ROTATION, rz=-TRAVEL_ROTATION),
         ]
 
-        await self.do_movements(
-            offsets, "M13T-010: Position System Requirements", check_forces=False
-        )
+        for m in range(3):
+            await self.do_movements(
+                offsets,
+                "M13T-010: Position System Requirements",
+                end_state=MTM1M3.DetailedState.PARKED
+                if m == 3
+                else MTM1M3.DetailedState.ACTIVEENGINEERING,
+                check_forces=False,
+            )
 
 
 if __name__ == "__main__":
