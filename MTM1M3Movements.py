@@ -27,7 +27,6 @@ import asyncio
 import asynctest
 import time
 import click
-import numpy as np
 import astropy.units as u
 from datetime import datetime
 
@@ -69,18 +68,28 @@ def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
     Returns
     -------
     offset : array[6] of `float`
-        Offset vector. Translation 
+        Offset vector. Translation
     """
     return [x, y, z, rx, ry, rz]
 
 
 class MTM1M3Movements(MTM1M3Test):
-    # edit the defined reference positions as needed.
-    # XYZ in m, R[XYZ] in deg
-    REFERENCE = np.array([0.0] * 6)
 
-    POSITION_TOLERANCE = 8 * u.um.to(u.m)
-    ROTATION_TOLERANCE = 1.45 * u.arcsec.to(u.deg)
+    POS_DATA_UNIT = u.m
+    ROT_DATA_UNIT = u.deg
+
+    POS_IMS_UNIT = u.m
+    ROT_IMS_UNIT = u.deg
+
+    POS_TOL_UNIT = u.um
+    ROT_TOL_UNIT = u.arcsec
+
+    # edit the defined reference positions as needed.
+    # XYZ in um, R[XYZ] in arcsec
+    REFERENCE = [0.0 * u.um] * 3 + [0.0 * u.arcsec] * 3
+
+    POSITION_TOLERANCE = 8 * POS_TOL_UNIT
+    ROTATION_TOLERANCE = 1.45 * ROT_TOL_UNIT
     LOAD_PATH_FORCE = 0.0
     LOAD_PATH_TOLERANCE = 0.0
 
@@ -107,38 +116,38 @@ class MTM1M3Movements(MTM1M3Test):
             await self.moved_callback(data, imsData)
 
         self.assertAlmostEqual(
-            data.xPosition,
-            position[0],
+            (data.xPosition * self.POS_DATA_UNIT).to(self.POS_TOL_UNIT),
+            position[0].to(self.POS_TOL_UNIT),
             delta=position_tolerance,
             msg="HP xPosition out of limit",
         )
         self.assertAlmostEqual(
-            data.yPosition,
-            position[1],
+            (data.yPosition * self.POS_DATA_UNIT).to(self.POS_TOL_UNIT),
+            position[1].to(self.POS_TOL_UNIT),
             delta=position_tolerance,
             msg="HP yPosition out of limit",
         )
         self.assertAlmostEqual(
-            data.zPosition,
-            position[2],
+            (data.zPosition * self.POS_DATA_UNIT).to(self.POS_TOL_UNIT),
+            position[2].to(self.POS_TOL_UNIT),
             delta=position_tolerance,
             msg="HP zPosition out of limit",
         )
         self.assertAlmostEqual(
-            data.xRotation,
-            position[3],
+            (data.xRotation * self.ROT_DATA_UNIT).to(self.ROT_TOL_UNIT),
+            position[3].to(self.ROT_TOL_UNIT),
             delta=rotation_tolerance,
             msg="HP xRotation out of limit",
         )
         self.assertAlmostEqual(
-            data.yRotation,
-            position[4],
+            (data.yRotation * self.ROT_DATA_UNIT).to(self.ROT_TOL_UNIT),
+            position[4].to(self.ROT_TOL_UNIT),
             delta=rotation_tolerance,
             msg="HP yRotation out of limit",
         )
         self.assertAlmostEqual(
-            data.zRotation,
-            position[5],
+            (data.zRotation * self.ROT_DATA_UNIT).to(self.ROT_TOL_UNIT),
+            position[5].to(self.ROT_TOL_UNIT),
             delta=rotation_tolerance,
             msg="HP zRotation out of limit",
         )
@@ -185,40 +194,40 @@ class MTM1M3Movements(MTM1M3Test):
             return
 
         self.assertAlmostEqual(
-            imsData.xPosition,
-            position[0],
+            (imsData.xPosition * self.POS_IMS_UNIT).to(self.POS_TOL_UNIT),
+            position[0].to(self.POS_TOL_UNIT),
             delta=position_tolerance,
-            msg="IMS X out of limit",
+            msg="IMS X out of limit, CHECK IMS calibration (DisplacementSensorSettings.yaml)",
         )
         self.assertAlmostEqual(
-            imsData.yPosition,
-            position[1],
+            (imsData.yPosition * self.POS_IMS_UNIT).to(self.POS_TOL_UNIT),
+            position[1].to(self.POS_TOL_UNIT),
             delta=position_tolerance,
-            msg="IMS Y out of limit",
+            msg="IMS Y out of limit, CHECK IMS calibration (DisplacementSensorSettings.yaml)",
         )
         self.assertAlmostEqual(
-            imsData.zPosition,
-            position[2],
+            (imsData.zPosition * self.POS_IMS_UNIT).to(self.POS_TOL_UNIT),
+            position[2].to(self.POS_TOL_UNIT),
             delta=position_tolerance,
-            msg="IMS Z out of limit",
+            msg="IMS Z out of limit, CHECK IMS calibration (DisplacementSensorSettings.yaml)",
         )
         self.assertAlmostEqual(
-            imsData.xRotation,
-            position[3],
+            (imsData.xRotation * self.ROT_IMS_UNIT).to(self.ROT_TOL_UNIT),
+            position[3].to(self.ROT_TOL_UNIT),
             delta=rotation_tolerance,
-            msg="IMS rotation X out of limit",
+            msg="IMS rotation X out of limit, CHECK IMS calibration (DisplacementSensorSettings.yaml)",
         )
         self.assertAlmostEqual(
-            imsData.yRotation,
-            position[4],
+            (imsData.yRotation * self.ROT_IMS_UNIT).to(self.ROT_TOL_UNIT),
+            position[4].to(self.ROT_TOL_UNIT),
             delta=rotation_tolerance,
-            msg="IMS rotation Y out of limit",
+            msg="IMS rotation Y out of limit, CHECK IMS calibration (DisplacementSensorSettings.yaml)",
         )
         self.assertAlmostEqual(
-            imsData.zRotation,
-            position[5],
+            (imsData.zRotation * self.ROT_IMS_UNIT).to(self.ROT_TOL_UNIT),
+            position[5].to(self.ROT_TOL_UNIT),
             delta=rotation_tolerance,
-            msg="IMS rotation Z out of limit",
+            msg="IMS rotation Z out of limit, CHECK IMS calibration (DisplacementSensorSettings.yaml)",
         )
 
     async def waitHP(self):
@@ -292,12 +301,14 @@ class MTM1M3Movements(MTM1M3Test):
 
         for row in offsets:
             self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
-            click.echo(click.style(f"Moving {self.LOG_MOVEMENT}", fg="bright_blue",))
+            click.echo(
+                click.style(
+                    f"Moving {self.LOG_MOVEMENT}",
+                    fg="bright_blue",
+                )
+            )
 
-            position = (
-                list(map(lambda x: x.to(u.m).value, row[:3]))
-                + list(map(lambda y: y.to(u.deg).value, row[3:]))
-            ) + self.REFERENCE
+            position = [row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))]
             await self.m1m3.cmd_positionM1M3.set_start(
                 xPosition=row[0].to(u.m).value,
                 yPosition=row[1].to(u.m).value,

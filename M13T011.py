@@ -58,6 +58,7 @@
 import astropy.units as u
 import asynctest
 import click
+from datetime import datetime
 
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
