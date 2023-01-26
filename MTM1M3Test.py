@@ -248,6 +248,70 @@ class MTM1M3Test(asynctest.TestCase):
             )
             return
 
+        if target in (
+            MTM1M3.DetailedState.PARKED,
+            MTM1M3.DetailedState.PARKEDENGINEERING,
+        ):
+            if (
+                startState == MTM1M3.DetailedState.PARKEDENGINEERING
+                and target == MTM1M3.DetailedState.PARKED
+            ):
+                await self.switchM1M3State("exitEngineering", target)
+                return
+
+            if (
+                startState == MTM1M3.DetailedState.PARKED
+                and target == MTM1M3.DetailedState.PARKEDENGINEERING
+            ):
+                await self.switchM1M3State("enterEngineering", target)
+                return
+
+            click.echo(
+                click.style("Waiting for mirror to be lowered", bold=True, fg="green")
+            )
+
+            loweringState = (
+                MTM1M3.DetailedState.LOWERING
+                if target == MTM1M3.DetailedState.PARKED
+                else MTM1M3.DetailedState.LOWERINGENGINEERING
+            )
+
+            await self.switchM1M3State(
+                "lowerM1M3",
+                loweringState,
+                wait=2,
+            )
+            pct = 100
+            lastPercents = 100
+            with click.progressbar(
+                range(100),
+                label="Lowering",
+                width=0,
+                item_show_func=lambda i: f"{pct:.01f}%"
+                if pct < 100
+                else click.style("chasing HP", fg="blue"),
+                show_percent=False,
+            ) as bar:
+                startTime = time.monotonic()
+                while time.monotonic() - startTime < 300:
+                    await asyncio.sleep(0.1)
+                    pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
+                    diff = lastPercents - pct
+                    if diff > 0.1:
+                        bar.update(diff)
+                        lastPercents = pct
+                    if not (
+                        self.m1m3.evt_detailedState.get().detailedState == loweringState
+                    ):
+                        break
+
+            self.assertEqual(
+                self.m1m3.evt_detailedState.get().detailedState,
+                target,
+                msg="Mirror lowering didn't finish in time",
+            )
+            return
+
         self.fail(f"Unknown/unsupported target startup state: {target}")
 
     async def shutdown(self, target=MTM1M3.DetailedState.STANDBY):
@@ -414,7 +478,7 @@ class MTM1M3Test(asynctest.TestCase):
 
     async def runActuators(self, function):
         """Runs function for all actuators and directions (XYZ).
- 
+
         Parameters
         ----------
         function : `func('[XYZ]',int)`
