@@ -86,7 +86,7 @@ M2MM = u.m.to(u.mm)
 
 
 class M13T011(MTM1M3Movements):
-    def _log_data(self, data, imsData):
+    def _log_data(self, position, data, imsData):
         self.m1m3.tel_imsData.flush()
         self.vms.tel_m1m3.flush()
 
@@ -103,16 +103,20 @@ class M13T011(MTM1M3Movements):
 
             print(
                 imsData.timestamp,
-                ",",
+                ", ",
                 imsData.xPosition,
-                ",",
+                ", ",
                 imsData.zPosition,
-                ",",
+                ", ",
                 imsData.xRotation,
-                ",",
+                ", ",
                 imsData.yRotation,
-                ",",
+                ", ",
                 imsData.zRotation,
+                ", ",
+                ", ".join(imsData.rawSensorData),
+                ", ",
+                ", ".join(position),
                 file=self.LOG_FILE[0],
             )
             self.LOG_FILE[0].flush()
