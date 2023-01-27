@@ -73,7 +73,7 @@
 import astropy.units as u
 import asynctest
 
-import MTM1M3
+from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import *
 

@@ -88,13 +88,13 @@ M2MM = u.m.to(u.mm)
 class M13T011(MTM1M3Movements):
     def _log_data(self, position, data, imsData):
         self.m1m3.tel_imsData.flush()
-        self.vms.tel_m1m3.flush()
+        self.vms.tel_psd.flush()
 
         startTimestamp = None
 
         while True:
             imsData = self.m1m3.tel_imsData.next()
-            vmsData = self.vms.tel_m1m3.next()
+            vmsData = self.vms.tel_psd.next()
 
             if startTimestamp is None:
                 startTimestamp = imsData.timestamp
@@ -129,9 +129,9 @@ class M13T011(MTM1M3Movements):
             for j in range(50):
                 print(
                     vmsTimestamp,
-                    convert(vmsData.sensor1XAcceleration[j], X1Sensitivity),
+                    convert(vmsData.accelerationPSDX[j], X1Sensitivity),
                     ",",
-                    convert(vmsData.sensor1YAcceleration[j], Y1Sensitivity),
+                    convert(vmsData.accelerationPSDY[j], Y1Sensitivity),
                     ",",
                     convert(vmsData.sensor1ZAcceleration[j], Z1Sensitivity),
                     ",",

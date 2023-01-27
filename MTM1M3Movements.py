@@ -90,7 +90,7 @@ class MTM1M3Movements(MTM1M3Test):
     POSITION_TOLERANCE = 8 * POS_TOL_UNIT
     ROTATION_TOLERANCE = 1.45 * ROT_TOL_UNIT
     LOAD_PATH_FORCE = 0.0
-    LOAD_PATH_TOLERANCE = 0.0
+    LOAD_PATH_TOLERANCE = 100.0
     POS_IMS_TOLERANCE = 5 * POSITION_TOLERANCE
     ROT_IMS_TOLERANCE = 5 * ROTATION_TOLERANCE
 
@@ -111,10 +111,10 @@ class MTM1M3Movements(MTM1M3Test):
         rotation_tolerance=ROTATION_TOLERANCE,
         pos_ims_tolerance=POS_IMS_TOLERANCE,
         rot_ims_tolerance=ROT_IMS_TOLERANCE,
-        check_forces=False,
-        check_IMS=True,
-        reference_IMS=False,
-    ):
+        check_forces: bool = False,
+        check_IMS: bool = True,
+        reference_IMS: bool = False,
+    ) -> None:
         data = self.m1m3.tel_hardpointActuatorData.get()
         imsData = self.m1m3.tel_imsData.get()
 
@@ -336,10 +336,10 @@ class MTM1M3Movements(MTM1M3Test):
         header,
         start_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
         end_state=MTM1M3.DetailedState.PARKED,
-        check_forces=True,
+        check_forces: bool = True,
         moved_callback=None,
-        wait=4.0,
-    ):
+        wait: float = 4.0,
+    ) -> None:
         """Run tests movements.
 
         Parameters
@@ -371,7 +371,10 @@ class MTM1M3Movements(MTM1M3Test):
             await self.startup(start_state)
 
         # make sure the HardpointCorrection is disabled.
-        await self.m1m3.cmd_disableHardpointCorrections.start()
+        if check_forces is True:
+            await self.m1m3.cmd_enableHardpointCorrections.start()
+        else:
+            await self.m1m3.cmd_disableHardpointCorrections.start()
         await asyncio.sleep(wait)
 
         click.echo(

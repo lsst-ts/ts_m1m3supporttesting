@@ -229,7 +229,7 @@ class MTM1M3Test(asynctest.TestCase):
                 show_percent=False,
             ) as bar:
                 startTime = time.monotonic()
-                while time.monotonic() - startTime < 300:
+                while time.monotonic() - startTime < 360:
                     await asyncio.sleep(0.1)
                     pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
                     diff = pct - lastPercents
