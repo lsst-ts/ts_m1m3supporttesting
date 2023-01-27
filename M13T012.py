@@ -87,9 +87,9 @@ class M13T012(MTM1M3Movements):
             ", ",
             imsData.zRotation,
             ", ",
-            ", ".join(imsData.rawSensorData),
+            ", ".join([str(v) for v in imsData.rawSensorData]),
             ", ",
-            ", ".join(position),
+            ", ".join([str(v.value) for v in position]),
             file=self.LOG_FILE,
         )
         self.LOG_FILE.flush()
