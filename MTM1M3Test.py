@@ -52,6 +52,9 @@ class MTM1M3Test(asynctest.TestCase):
         """
         click.echo(click.style(header, bold=True, fg="cyan"))
 
+    def printCode(self, text):
+        click.echo(click.style(text, fg="blue"))
+
     def printTest(self, test):
         """Prints test progress.
 

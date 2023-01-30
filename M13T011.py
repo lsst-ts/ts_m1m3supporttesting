@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of M1M3 SS test suite.
 #
@@ -88,7 +88,7 @@ M2MM = u.m.to(u.mm)
 class M13T011(MTM1M3Movements):
     def _log_data(self, position, data, imsData):
         self.m1m3.tel_imsData.flush()
-        self.vms.tel_psd.flush()
+        self.vms.data.flush()
 
         startTimestamp = None
 
@@ -154,7 +154,7 @@ class M13T011(MTM1M3Movements):
 
     async def test_movements(self):
         # Setup VMS
-        self.vms = salobj.Remote(self.domain, "MTVMS")
+        self.vms = salobj.Remote(self.domain, "MTVMS", index=1)
 
         offsets = [
             offset(),

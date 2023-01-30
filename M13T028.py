@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of M1M3 SS test suite.
 #
@@ -21,40 +21,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-# !!!! PLEASE NOTE !!!!
-#
-# This test requires you to switch M1M3 SS CsC configuration - disable fault on
-# NearNeighborCheck and FarNeighborCheck and remove limits for applied forces
-# (so offset wouldn't be pre-clipped).
-#
-# To do that, edit SafetyControllerSettings.yaml in actually
-# used set, switch:
-#
-#        FaultOnNearNeighborCheck: On
-#        FaultOnFarNeighborCheck: On
-#
-# to
-#
-#        FaultOnNearNeighborCheck: Off
-#        FaultOnFarNeighborCheck: Off
-#
-# ForceLimit[XYZ]Table.csv needs to be replaced with
-# ForceLimit[XYZ]TableNone.csv. Best is to edit on cRIO / simulator
-# ForceActuatorSetting.yaml and change:
-#
-#   ForceLimitXTablePath: Tables/ForceLimitXTable.csv
-#   ForceLimitYTablePath: Tables/ForceLimitYTable.csv
-#   ForceLimitZTablePath: Tables/ForceLimitZTable.csv
-#
-# to
-#
-#   ForceLimitXTablePath: Tables/ForceLimitXTableNone.csv
-#   ForceLimitYTablePath: Tables/ForceLimitYTableNone.csv
-#   ForceLimitZTablePath: Tables/ForceLimitZTableNone.csv
-#
-#
-# and restart CsC before running the test.
-
 ########################################################################
 # Test Numbers: M13T-028
 # Author:       CContaxis
@@ -74,20 +40,26 @@
 #   - Verify neighbor force induces a near neighbor warning
 #   - Clear offset forces
 #   - Verify near neighbor warning is removed
-#   - Apply a negative Z force to th enear neighbors
+#   - Apply a negative Z force to the near neighbors
 #   - Verify neighbor force induces a near neighbor warning
 #   - Clear offset forces
 #   - Verify near neighbor warning is removed
 # - Transition from parked engineering state to standby
 ########################################################################
 
-from MTM1M3Test import *
-from ForceActuatorTable import *
+import asyncio
+import asynctest
 
 from lsst.ts.idl.enums import MTM1M3
 
-import asyncio
-import asynctest
+from MTM1M3Test import MTM1M3Test
+from ForceActuatorTable import (
+    forceActuatorTable,
+    forceActuatorTableIndexIndex,
+    forceActuatorTableIDIndex,
+    actuatorIDToIndex,
+)
+
 
 MIRROR_WEIGHT = 170000.0
 TEST_FORCE = (MIRROR_WEIGHT / 156) + 50
@@ -256,15 +228,82 @@ NEIGHBOR_TABLE = [
 class M13T028(MTM1M3Test):
     async def test_nearest_neighbors(self):
         self.printHeader(
-            "M13T-028: Actuator to Actuator Force Delta for 6 nearest neighbors"
+            "M13T-028: Actuator to Actuator Force Delta for 6 nearest "
+            "neighbors"
         )
 
         self.printError(
-            "This test should be run only in simulator or with surrogate mirror. DON'T RUN THIS TEST WITH GLASS MIRROR!"
+            "This test should be run only in simulator or with surrogate "
+            "mirror. DON'T RUN THIS TEST WITH GLASS MIRROR!"
         )
 
         self.printWarning(
-            "This tests will run only with FaultOnNearNeighborCheck and FaultOnFarNeighborCheck disabled. And Limit table set to None Please see test source code for instructions."
+            """
+!!!! PLEASE NOTE !!!!
+
+This test requires you to switch M1M3 SS CsC configuration - disable fault on
+XMomentLimit, YMomentLimit, ZMomentLimit, NearNeighborCheck and
+FarNeighborCheck, and remove limits for applied forces (so offset wouldn't be
+pre-clipped).
+
+To do that, edit SafetyControllerSettings.yaml in actually used set (on the
+cRIO running M1M3 SS CSC), change:
+"""
+        )
+        self.printCode(
+            """  FaultOnXMomentLimit: On
+  FaultOnYMomentLimit: On
+  FaultOnZMomentLimit: On
+  FaultOnNearNeighborCheck: On
+  FaultOnFarNeighborCheck: On"""
+        )
+
+        self.printWarning(
+            """
+to
+"""
+        )
+
+        self.printCode(
+            """  FaultOnXMomentLimit: Off
+  FaultOnYMomentLimit: Off
+  FaultOnZMomentLimit: Off
+  FaultOnNearNeighborCheck: Off
+  FaultOnFarNeighborCheck: Off"""
+        )
+
+        self.printWarning(
+            """
+and edit ForceActuatorSetting.yaml in actually
+used set (on the cRIO running M1M3 SS CSC), change:
+"""
+        )
+
+        self.printCode(
+            """ForceLimitXTablePath: Tables/ForceLimitXTable.csv
+ForceLimitYTablePath: Tables/ForceLimitYTable.csv
+ForceLimitZTablePath: Tables/ForceLimitZTable.csv"""
+        )
+
+        self.printWarning(
+            """
+to
+"""
+        )
+
+        self.printCode(
+            """ForceLimitXTablePath: Tables/ForceLimitXTableNone.csv
+ForceLimitYTablePath: Tables/ForceLimitYTableNone.csv
+ForceLimitZTablePath: Tables/ForceLimitZTableNone.csv"""
+        )
+
+        self.printWarning(
+            """
+and restart CsC (or at least transition to Standby) before running the test.
+
+The files are usually located in the /var/lib/ts-M1M3support/ directory on cRIO
+running the CSC.
+"""
         )
 
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
@@ -276,7 +315,8 @@ class M13T028(MTM1M3Test):
             self.assertEqual(
                 data.nearNeighborWarning[i],
                 False,
-                msg=f"Near neighbor warning for index {i} is True. Was the previous test reseted?",
+                msg=f"Near neighbor warning for index {i} is True. Was the "
+                "previous test reseted?",
             )
 
         # Iterate through all 156 force actuators
@@ -295,7 +335,8 @@ class M13T028(MTM1M3Test):
                 z_indices = list(map(actuatorIDToIndex, z_ids))
 
                 self.printTest(
-                    f"Verify Force Actuator {id} with {force:.02f}N applied to Z {str(z_indices)} FA IDs {str(z_ids)}"
+                    f"Verify Force Actuator {id} with {force:.02f}N applied "
+                    f"to Z {str(z_indices)} FA IDs {str(z_ids)}"
                 )
                 # Apply the force offset
                 for i in z_indices:
@@ -313,13 +354,18 @@ class M13T028(MTM1M3Test):
                 self.assertEqual(
                     data.nearNeighborWarning[z],
                     True,
-                    msg=f"Near neighbor warning for ID {id} ({z}) is False with force applied. Was ForceLimit[XYZ]TablePath pointed to *None?",
+                    msg=f"Near neighbor warning for ID {id} ({z}) is False "
+                    f"with force applied. Was ForceLimit[XYZ]TablePath "
+                    f"pointed to *None?",
                 )
 
                 self.assertNotEqual(
                     self.m1m3.evt_detailedState.get().detailedState,
                     MTM1M3.DetailedState.FAULT,
-                    msg=f"Mirror faulted when force applied for {id}. Most probably configuration error - were FaultOnNearNeighborCheck and FaultOnFarNeighborCheck set to 0?",
+                    msg=f"Mirror faulted when force applied for {id}. Most "
+                    f"probably configuration error - were "
+                    f"FaultOnNearNeighborCheck and FaultOnFarNeighborCheck "
+                    f"set to Off?",
                 )
 
                 # Clear the force offset
@@ -334,7 +380,8 @@ class M13T028(MTM1M3Test):
                 self.assertEqual(
                     data.nearNeighborWarning[z],
                     False,
-                    msg=f"Near neighbor warning for ID {id} is still True with no force applied",
+                    msg=f"Near neighbor warning for ID {id} is still True "
+                    f"with no force applied",
                 )
 
             await apply_z_offset(TEST_FORCE, [id])
