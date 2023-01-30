@@ -585,11 +585,10 @@ to
         )
 
         self.printCode(
-            """  FaultOnXMomentLimit: Off
-  FaultOnYMomentLimit: Off
-  FaultOnZMomentLimit: Off
+            """  FaultOnFarNeighborCheck: Off
 ...
-  FaultOnFarNeighborCheck: Off"""
+  FaultOnForceClipping: Off
+"""
         )
 
         self.printWarning(
