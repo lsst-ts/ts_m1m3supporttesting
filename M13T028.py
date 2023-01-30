@@ -376,7 +376,7 @@ running the CSC.
                 await asyncio.sleep(TEST_SETTLE_TIME)
 
                 # Check for near neighbor warning
-                data = await self.m1m3.evt_forceSetpointWarning.get()
+                data = self.m1m3.evt_forceSetpointWarning.get()
                 self.assertEqual(
                     data.nearNeighborWarning[z],
                     False,
