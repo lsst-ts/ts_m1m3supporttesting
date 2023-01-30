@@ -415,7 +415,7 @@ class MTM1M3Test(asynctest.TestCase):
         sampling_time : `float`
            Sample time (seconds).
         sampling_size : `float`, optional
-           Size of collected samples. When
+           Size of collected samples. When None (the default), sampling size is unlimited.
         flush : `bool`, optional
            Flush data before sampling. Defaults to True.
 

@@ -27,30 +27,30 @@
 # NearNeighborCheck and FarNeighborCheck and remove limits for applied forces
 # (so offset wouldn't be pre-clipped).
 #
-# To do that, edit SafetyControllerSettings.xml in actually
+# To do that, edit SafetyControllerSettings.yaml in actually
 # used set, switch:
 #
-#        <FaultOnNearNeighborCheck>1</FaultOnNearNeighborCheck>
-#        <FaultOnFarNeighborCheck>1</FaultOnFarNeighborCheck>
+#        FaultOnNearNeighborCheck: On
+#        FaultOnFarNeighborCheck: On
 #
 # to
 #
-#        <FaultOnNearNeighborCheck>0</FaultOnNearNeighborCheck>
-#        <FaultOnFarNeighborCheck>0</FaultOnFarNeighborCheck>
+#        FaultOnNearNeighborCheck: Off
+#        FaultOnFarNeighborCheck: Off
 #
 # ForceLimit[XYZ]Table.csv needs to be replaced with
 # ForceLimit[XYZ]TableNone.csv. Best is to edit on cRIO / simulator
-# ForceActuatorSetting.xml and change:
+# ForceActuatorSetting.yaml and change:
 #
-#   <ForceLimitXTablePath>Tables/ForceLimitXTable.csv</ForceLimitXTablePath>
-#   <ForceLimitYTablePath>Tables/ForceLimitYTable.csv</ForceLimitYTablePath>
-#   <ForceLimitZTablePath>Tables/ForceLimitZTable.csv</ForceLimitZTablePath>
+#   ForceLimitXTablePath: Tables/ForceLimitXTable.csv
+#   ForceLimitYTablePath: Tables/ForceLimitYTable.csv
+#   ForceLimitZTablePath: Tables/ForceLimitZTable.csv
 #
 # to
 #
-#   <ForceLimitXTablePath>Tables/ForceLimitXTableNone.csv</ForceLimitXTablePath>
-#   <ForceLimitYTablePath>Tables/ForceLimitYTableNone.csv</ForceLimitYTablePath>
-#   <ForceLimitZTablePath>Tables/ForceLimitZTableNone.csv</ForceLimitZTablePath>
+#   ForceLimitXTablePath: Tables/ForceLimitXTableNone.csv
+#   ForceLimitYTablePath: Tables/ForceLimitYTableNone.csv
+#   ForceLimitZTablePath: Tables/ForceLimitZTableNone.csv
 #
 #
 # and restart CsC before running the test.
