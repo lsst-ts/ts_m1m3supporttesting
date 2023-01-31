@@ -55,28 +55,16 @@
 # - Pull data from EFD to generate RMS values specified by the test.
 ########################################################################
 
-import astropy.units as u
+import asyncio
 import asynctest
-import click
+import astropy.units as u
 from datetime import datetime
 
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import *
-
-
-X1Sensitivity = 51.459
-Y1Sensitivity = 52.061
-Z1Sensitivity = 51.298
-
-X2Sensitivity = 51.937
-Y2Sensitivity = 52.239
-Z2Sensitivity = 52.130
-
-X3Sensitivity = 52.183
-Y3Sensitivity = 52.015
-Z3Sensitivity = 51.908
+from MTM1M3Movements import MTM1M3Movements, offset
+from lsst.ts.cRIOpy.VMS import Collector
 
 TRAVEL_POSITION = 1 * u.mm
 SETTLE_TIME = 3.0
@@ -94,7 +82,6 @@ class M13T011(MTM1M3Movements):
 
         while True:
             imsData = self.m1m3.tel_imsData.next()
-            vmsData = self.vms.tel_psd.next()
 
             if startTimestamp is None:
                 startTimestamp = imsData.timestamp
@@ -117,45 +104,14 @@ class M13T011(MTM1M3Movements):
                 ", ".join(imsData.rawSensorData),
                 ", ",
                 ", ".join(position),
-                file=self.LOG_FILE[0],
+                file=self.LOG_FILE,
             )
-            self.LOG_FILE[0].flush()
+            self.LOG_FILE.flush()
 
             def convert(raw, sensitivity):
                 return (raw * M2MM) / sensitivity
 
-            vmsTimestamp = vmsData.timestamp
-
-            for j in range(50):
-                print(
-                    vmsTimestamp,
-                    convert(vmsData.accelerationPSDX[j], X1Sensitivity),
-                    ",",
-                    convert(vmsData.accelerationPSDY[j], Y1Sensitivity),
-                    ",",
-                    convert(vmsData.sensor1ZAcceleration[j], Z1Sensitivity),
-                    ",",
-                    convert(vmsData.sensor2XAcceleration[j], X2Sensitivity),
-                    ",",
-                    convert(vmsData.sensor2YAcceleration[j], Y2Sensitivity),
-                    ",",
-                    convert(vmsData.sensor2ZAcceleration[j], Z2Sensitivity),
-                    ",",
-                    convert(vmsData.sensor3XAcceleration[j], X3Sensitivity),
-                    ",",
-                    convert(vmsData.sensor3YAcceleration[j], Y3Sensitivity),
-                    ",",
-                    convert(vmsData.sensor3ZAcceleration[j], Z3Sensitivity),
-                    file=self.LOG_FILE[1],
-                )
-                vmsTimestamp += 0.001
-
-            self.LOG_FILE[1].flush()
-
-    async def test_movements(self):
-        # Setup VMS
-        self.vms = salobj.Remote(self.domain, "MTVMS", index=1)
-
+    async def _run(self):
         offsets = [
             offset(),
             offset(x=+TRAVEL_POSITION),
@@ -178,18 +134,9 @@ class M13T011(MTM1M3Movements):
             offset(y=-TRAVEL_POSITION, z=-TRAVEL_POSITION),
         ]
 
-        self.LOG_FILE = [
-            open(f'M13T012-IMS-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w"),
-            open(f'M13T012-VMS-{datetime.now().strftime("%Y-%m-%dT%T")}.csv', "w"),
-        ]
-
-        print(
-            "Timestamp,xPosition,yPosition,zPosition,xRotation,yRotation,zRotation",
-            file=self.LOG_FILE[0],
-        )
-        print(
-            "Timestamp (s),X1 (m/s^2),Y1 (m/s^2),Z1 (m/s^2),X2 (m/s^2),Y2 (m/s^2),Z2 (m/s^2),X3 (m/s^2),Y3 (m/s^2),Z3 (m/s^2)",
-            file=self.LOG_FILE[1],
+        # Start collector
+        self.tasks.append(
+            asyncio.create_task(self.collector.collect_data(False))
         )
 
         # The matrix need to be tested 3 times
@@ -200,6 +147,41 @@ class M13T011(MTM1M3Movements):
                 end_state=MTM1M3.DetailedState.STANDBY,
                 moved_callback=self._log_data,
             )
+
+        for t in self.tasks:
+            t.cancel()
+
+    async def test_movements(self):
+        # Setup VMS
+        self.vms = salobj.Remote(self.domain, "MTVMS", index=1)
+
+        start = datetime.now()
+
+        self.LOG_FILE = open(
+            f'M13T012-IMS-{start.strftime("%Y-%m-%dT%T")}.csv',
+            "w",
+        )
+
+        print(
+            "Timestamp,xPosition,yPosition,zPosition,"
+            "xRotation,yRotation,zRotation",
+            file=self.LOG_FILE,
+        )
+
+        self.collector = Collector(
+            1,
+            "M13T012-VMS-"
+            + datetime.now().strftime("%Y-%m-%dT%T")
+            + ".${ext}",
+        )
+
+        self.tasks = []
+
+        try:
+            await self._run()
+        finally:
+            await asyncio.gather(*self.tasks)
+            self.collector.close()
 
 
 if __name__ == "__main__":
