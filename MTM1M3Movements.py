@@ -337,7 +337,7 @@ class MTM1M3Movements(MTM1M3Test):
         start_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
         end_state=MTM1M3.DetailedState.PARKED,
         check_forces: bool = True,
-        moved_callback=None,
+        moved_callback: bool = None,
         wait: float = 4.0,
     ) -> None:
         """Run tests movements.
