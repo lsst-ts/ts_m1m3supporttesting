@@ -29,7 +29,10 @@
 # - Issue start command
 # - Raise Mirror in Active Engineering Mode
 # - Confirm Mirror in Reference Position
-# - Follow the motion matrix below, where +X = 6.13mm, -X = 6.13mm, +Y = 6.13mm, -Y = -6.13mm, +Z = 4.07mm  & -Z = -5.57mm
+# - Follow the motion matrix below, where
+# +X = 6.13mm, -X = 6.13mm,
+# +Y = 6.13mm, -Y = -6.13mm,
+# +Z = 4.07mm & -Z = -5.57mm:
 #   +X, 0, 0
 #   -X, 0, 0
 #   0,+Y, 0
@@ -57,7 +60,7 @@ import asynctest
 
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import *
+from MTM1M3Movements import MTM1M3Movements, offset
 
 
 TRAVEL_POSITION = 6.13 * u.mm
