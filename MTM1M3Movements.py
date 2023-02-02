@@ -34,7 +34,9 @@ ZERO_M = 0 * u.m
 ZERO_DEG = 0 * u.deg
 
 
-def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
+def offset(
+    x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG
+):
     """Generate offset vector for MTM1M3Movements.do_movements method.
 
     Note
@@ -215,12 +217,18 @@ class MTM1M3Movements(MTM1M3Test):
             click.echo(
                 click.style(
                     f"IMS referenced at: "
-                    f"X {self.IMS_OFFSETS[0]*pos_fac:.04f} {pos_unit.to_string()} "
-                    f"Y {self.IMS_OFFSETS[1]*pos_fac:.04f} {pos_unit.to_string()} "
-                    f"Z {self.IMS_OFFSETS[2]*pos_fac:.04f} {pos_unit.to_string()} "
-                    f"rX {self.IMS_OFFSETS[3]*rot_fac:.04f} {rot_unit.to_string()} "
-                    f"rY {self.IMS_OFFSETS[4]*rot_fac:.04f} {rot_unit.to_string()} "
-                    f"rZ {self.IMS_OFFSETS[5]*rot_fac:.04f} {rot_unit.to_string()}",
+                    f"X {self.IMS_OFFSETS[0]*pos_fac:.04f} "
+                    f"{pos_unit.to_string()} "
+                    f"Y {self.IMS_OFFSETS[1]*pos_fac:.04f} "
+                    f"{pos_unit.to_string()} "
+                    f"Z {self.IMS_OFFSETS[2]*pos_fac:.04f} "
+                    f"{pos_unit.to_string()} "
+                    f"rX {self.IMS_OFFSETS[3]*rot_fac:.04f} "
+                    f"{rot_unit.to_string()} "
+                    f"rY {self.IMS_OFFSETS[4]*rot_fac:.04f} "
+                    f"{rot_unit.to_string()} "
+                    f"rZ {self.IMS_OFFSETS[5]*rot_fac:.04f} "
+                    f"{rot_unit.to_string()}",
                     fg="red",
                 )
             )
@@ -233,12 +241,14 @@ class MTM1M3Movements(MTM1M3Test):
                 value,
                 target,
                 delta=ims_tol,
-                msg=f"IMS {kind} out of limit, CHECK IMS calibration (DisplacementSensorSettings.yaml)",
+                msg=f"IMS {kind} out of limit, CHECK IMS calibration "
+                "(DisplacementSensorSettings.yaml)",
             )
             if abs(value - target) > normal_tol:
                 click.echo(
                     click.style(
-                        f"IMS out of normal limits - {kind} target {target:.04f} is {value:.04f}, "
+                        f"IMS out of normal limits - {kind} target "
+                        f"{target:.04f} is {value:.04f}, "
                         f"difference {target-value:.04f}",
                         fg="red",
                     )
@@ -345,7 +355,9 @@ class MTM1M3Movements(MTM1M3Test):
         Parameters
         ----------
         offsets : array of 6 members float tuples
-            Movements (from 0 position) as X, Y, Z and Rx, Ry and Rz (rotation). Position shall be specified in u.m or similar, rotation as u.deg or similar.
+            Movements (from 0 position) as X, Y, Z and Rx, Ry and Rz
+            (rotation). Position shall be specified in u.m or similar, rotation
+            as u.deg or similar.
         header : `str`
             Test header. Echoed at test startup.
         start_state : `int`, MTM1M3.DetailedState, optional
@@ -371,15 +383,13 @@ class MTM1M3Movements(MTM1M3Test):
             await self.startup(start_state)
 
         # make sure the HardpointCorrection is disabled.
-        if check_forces is True:
-            await self.m1m3.cmd_enableHardpointCorrections.start()
-        else:
-            await self.m1m3.cmd_disableHardpointCorrections.start()
+        await self.m1m3.cmd_disableHardpointCorrections.start()
+
         await asyncio.sleep(wait)
 
         click.echo(
             click.style(
-                f"Moving to reference",
+                "Moving to reference",
                 fg="green",
             )
         )
@@ -403,7 +413,13 @@ class MTM1M3Movements(MTM1M3Test):
         )
 
         for row in offsets:
-            self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} Y {row[1].to(u.mm):.02f} Z {row[2].to(u.mm):.02f} RX {row[3].to(u.arcsec):.02f} RY {row[4].to(u.arcsec):.02f} RZ {row[5].to(u.arcsec):.02f}"
+            self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} " \
+                f"Y {row[1].to(u.mm):.02f} " \
+                f"Z {row[2].to(u.mm):.02f} " \
+                f"RX {row[3].to(u.arcsec):.02f} " \
+                f"RY {row[4].to(u.arcsec):.02f} " \
+                f"RZ {row[5].to(u.arcsec):.02f}"
+
             click.echo(
                 click.style(
                     f"Moving {self.LOG_MOVEMENT}",
@@ -411,7 +427,9 @@ class MTM1M3Movements(MTM1M3Test):
                 )
             )
 
-            position = [row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))]
+            position = [
+                row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))
+            ]
             await self.m1m3.cmd_positionM1M3.set_start(
                 xPosition=row[0].to(u.m).value,
                 yPosition=row[1].to(u.m).value,
