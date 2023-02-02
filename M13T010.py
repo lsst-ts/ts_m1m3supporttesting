@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of M1M3 SS test suite.
 #
@@ -29,8 +29,8 @@
 # - Issue start command
 # - Raise Mirror in Active Engineering Mode
 # - Confirm Mirror in Reference Position
-# - Follow the motion matrix below, where X, Y & Z are 1.0 mm and ΘX, ΘY, & ΘZ are 50.4 arcsec:
-#   +X, 0, 0
+# - Follow the motion matrix below, where X, Y & Z are 1.0 mm and ΘX, ΘY, & ΘZ
+# are 50.4 arcsec: +X, 0, 0
 #   -X, 0, 0
 #   0,+Y, 0
 #   0, -Y, 0
@@ -75,7 +75,7 @@ import asynctest
 
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import *
+from MTM1M3Movements import MTM1M3Movements, offset
 
 TRAVEL_POSITION = 1 * u.mm
 TRAVEL_ROTATION = 50.4 * u.arcsec

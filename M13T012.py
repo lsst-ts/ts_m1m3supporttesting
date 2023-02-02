@@ -50,7 +50,7 @@ import asynctest
 
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import *
+from MTM1M3Movements import MTM1M3Movements, offset
 
 TRAVEL_POSITION = 1 * u.mm
 TRAVEL_ROTATION = 50.4 * u.arcsec
@@ -111,7 +111,10 @@ class M13T012(MTM1M3Movements):
         self.openCSV("M13T012")
 
         print(
-            "Movement,HP xPosition, HP yPostion, HP zPosition, HP xRotation, HP yRotation, HP zRotation, IMS xPosition, IMS yPosition, IMS zPosition, IMS xRotation, IMS yRotation, IMS zRotation",
+            "Movement,HP xPosition, HP yPostion, HP zPosition, "
+            "HP xRotation, HP yRotation, HP zRotation, "
+            "IMS xPosition, IMS yPosition, IMS zPosition, "
+            "IMS xRotation, IMS yRotation, IMS zRotation",
             file=self.LOG_FILE,
         )
 
