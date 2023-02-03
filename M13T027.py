@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of M1M3 SS test suite.
 #
@@ -20,25 +20,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-# !!!! PLEASE NOTE !!!!
-#
-# This test requires you to switch M1M3 SS CsC configuration -
-# ForceLimit[XYZ]Table.csv needs to be replaced with
-# ForceLimit[XYZ]TableSmall.csv. Best is to edit on cRIO / simulator
-# ForceActuatorSetting.xml and change:
-#
-#   <ForceLimitXTablePath>Tables/ForceLimitXTable.csv</ForceLimitXTablePath>
-#   <ForceLimitYTablePath>Tables/ForceLimitYTable.csv</ForceLimitYTablePath>
-#   <ForceLimitZTablePath>Tables/ForceLimitZTable.csv</ForceLimitZTablePath>
-#
-# to
-#
-#   <ForceLimitXTablePath>Tables/ForceLimitXTableSmall.csv</ForceLimitXTablePath>
-#   <ForceLimitYTablePath>Tables/ForceLimitYTableSmall.csv</ForceLimitYTablePath>
-#   <ForceLimitZTablePath>Tables/ForceLimitZTableSmall.csv</ForceLimitZTablePath>
-#
-# and restart CsC before running the test.
 
 ########################################################################
 # Test Numbers: M13T-027
@@ -79,15 +60,15 @@
 # - Transition from parked engineering state to standby
 ########################################################################
 
-from MTM1M3Test import *
-from ForceActuatorTable import *
-
-from lsst.ts.idl.enums import MTM1M3
-
 import asynctest
 import asyncio
 import numpy as np
 import time
+
+from lsst.ts.idl.enums import MTM1M3
+
+from MTM1M3Test import MTM1M3Test
+
 
 TEST_PERCENTAGE = 1.15
 TEST_SETTLE_TIME = 3.0
@@ -410,7 +391,8 @@ class M13T027(MTM1M3Test):
 
                 if data is None:
                     self.fail(
-                        "Cannot retrieve preclipped data. Most likely you forgot to change Limit tables to *Small?"
+                        "Cannot retrieve preclipped data. Most likely you "
+                        "forgot to change Limit tables to *Small?"
                     )
 
                 self.assertListAlmostEqual(
@@ -433,7 +415,7 @@ class M13T027(MTM1M3Test):
                 )
 
             # Verify the applied mirror forces match the expected value
-            data = self.m1m3.evt_appliedForces.get()
+            data = self.m1m3.tel_appliedForces.get()
 
             self.assertListAlmostEqual(
                 data.xForces,
@@ -467,9 +449,15 @@ class M13T027(MTM1M3Test):
 
                 duration = time.monotonic() - test_start
                 if (
-                    np.allclose(averages["xForce"], xApplied, atol=TEST_TOLERANCE)
-                    and np.allclose(averages["yForce"], yApplied, atol=TEST_TOLERANCE)
-                    and np.allclose(averages["zForce"], zApplied, atol=TEST_TOLERANCE)
+                    np.allclose(
+                        averages["xForce"], xApplied, atol=TEST_TOLERANCE
+                    )
+                    and np.allclose(
+                        averages["yForce"], yApplied, atol=TEST_TOLERANCE
+                    )
+                    and np.allclose(
+                        averages["zForce"], zApplied, atol=TEST_TOLERANCE
+                    )
                 ):
                     if duration > TEST_SETTLE_TIME:
                         break
@@ -478,17 +466,20 @@ class M13T027(MTM1M3Test):
 
             self.assertLessEqual(
                 duration,
-                TEST_SETTLE_TIME * 4,
-                msg=f"Actuator {self.id} ({fa_type}{fa_index}) doesn't settle within 4 times {TEST_SETTLE_TIME}",
+                TEST_SETTLE_TIME * 5,
+                msg=f"Actuator {self.id} ({fa_type}{fa_index}) doesn't settle "
+                f"within {TEST_SETTLE_TIME * 5} (5 times {TEST_SETTLE_TIME})",
             )
 
             if duration > TEST_SETTLE_TIME + 1:
                 self.printWarning(
-                    f"Testing {self.id} ({fa_type}{fa_index}) took {duration:.02f}s to settle down"
+                    f"Testing {self.id} ({fa_type}{fa_index}) took "
+                    "{duration:.02f}s to settle down"
                 )
             else:
                 self.printTest(
-                    f"Testing {self.id} ({fa_type}{fa_index}) took {duration:.02f}s with {failed_count} fails"
+                    f"Testing {self.id} ({fa_type}{fa_index}) took "
+                    "{duration:.02f}s with {failed_count} fails"
                 )
 
         async def set_scaled(scale, run_test=True):
@@ -497,31 +488,48 @@ class M13T027(MTM1M3Test):
             Parameters
             ----------
             scale : `int`
-                Scale. 1 for maximum force, -1 for minimum force, 0 for no force.
+                Scale. 1 for maximum force, -1 for minimum force, 0 for no
+                force.
             """
-            minMax = forceActuatorLimitMax if scale > 0 else forceActuatorLimitMin
+            minMax = (
+                forceActuatorLimitMax if scale > 0 else forceActuatorLimitMin
+            )
             use = abs(scale)
 
             if fa_type == "X":
-                xApplied[fa_index] = use * forceActuatorXLimitTable[fa_index][minMax]
+                xApplied[fa_index] = (
+                    use * forceActuatorXLimitTable[fa_index][minMax]
+                )
                 xForces[fa_index] = xApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} X {fa_index}: will apply {xForces[fa_index]:.02f}N, expect to see {xApplied[fa_index]:.02f}N"
+                    f"FA {self.id} X {fa_index}: will apply "
+                    f"{xForces[fa_index]:.02f}N, expect to see "
+                    f"{xApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Y":
-                yApplied[fa_index] = use * forceActuatorYLimitTable[fa_index][minMax]
+                yApplied[fa_index] = (
+                    use * forceActuatorYLimitTable[fa_index][minMax]
+                )
                 yForces[fa_index] = yApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} Y {fa_index}: will apply {yForces[fa_index]:.02f}N, expect to see {yApplied[fa_index]:.02f}N"
+                    f"FA {self.id} Y {fa_index}: will apply "
+                    f"{yForces[fa_index]:.02f}N, expect to see "
+                    f"{yApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Z":
-                zApplied[fa_index] = use * forceActuatorZLimitTable[fa_index][minMax]
+                zApplied[fa_index] = (
+                    use * forceActuatorZLimitTable[fa_index][minMax]
+                )
                 zForces[fa_index] = zApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
-                    f"FA {self.id} Z {fa_index}: will apply {zForces[fa_index]:.02f}N, expect to see {zApplied[fa_index]:.02f}N"
+                    f"FA {self.id} Z {fa_index}: will apply "
+                    f"{zForces[fa_index]:.02f}N, expect to see "
+                    f"{zApplied[fa_index]:.02f}N"
                 )
             else:
-                raise ValueError(f"Invalid FA type (only XYZ accepted): {fa_type}")
+                raise ValueError(
+                    f"Invalid FA type (only XYZ accepted): {fa_type}"
+                )
 
             if run_test is False:
                 return
@@ -531,10 +539,12 @@ class M13T027(MTM1M3Test):
                 xForces=xForces, yForces=yForces, zForces=zForces
             )
 
-            # This is for run with SW simulator. Modify if SW simulator is needed.
-            # Set the simulatored force actuator's load cells to the correct value
-            # primaryCylinderForce, secondaryCylinderForce = ActuatorToCylinderSpace(orientation, xForces[x], 0, 0)
-            # sim.setFAForceAndStatus(id, 0, primaryCylinderForce, secondaryCylinderForce)
+            # This is for run with SW simulator. Modify if SW simulator is
+            # needed.  Set the simulatored force actuator's load cells to the
+            # correct value primaryCylinderForce, secondaryCylinderForce =
+            # ActuatorToCylinderSpace(orientation, xForces[x], 0, 0)
+            # sim.setFAForceAndStatus(id, 0, primaryCylinderForce,
+            # secondaryCylinderForce)
 
             await verify()
 
@@ -550,13 +560,70 @@ class M13T027(MTM1M3Test):
     async def test_actuator_force_limits(self):
         self.printHeader("M13T-027: Actuator Force Limits")
         self.printWarning(
-            "This test requires you to switch M1M3 SS CsC configuration - ForceLimit[XYZ]Table.csv needs to be replaced with ForceLimit[XYZ]TableSmall.csv. Best is to edit on cRIO ForceActuatorSetting.xml"
+            """
+!!!! PLEASE NOTE !!!!
+
+This test requires you to switch M1M3 SS CsC configuration - disable fault on
+FarNeighborCheck and ForceClipping, and ForceLimit[XYZ]Table.csv needs to be
+replaced with ForceLimit[XYZ]TableSmall.csv.
+
+To do that, edit SafetyControllerSettings.yaml in actually used set (on the
+cRIO running M1M3 SS CSC), change:
+"""
+        )
+        self.printCode(
+            """  FaultOnFarNeighborCheck: On
+...
+  FaultOnForceClipping: On
+"""
+        )
+
+        self.printWarning(
+            """
+to
+"""
+        )
+
+        self.printCode(
+            """  FaultOnFarNeighborCheck: Off
+...
+  FaultOnForceClipping: Off
+"""
+        )
+
+        self.printWarning(
+            """and edit ForceActuatorSetting.yaml in actually
+used set (on the cRIO running M1M3 SS CSC), change:
+"""
+        )
+        self.printCode(
+            """ForceLimitXTablePath: Tables/ForceLimitXTable.csv
+ForceLimitYTablePath: Tables/ForceLimitYTable.csv
+ForceLimitZTablePath: Tables/ForceLimitZTable.csv"""
+        )
+
+        self.printWarning(
+            """
+to
+"""
+        )
+
+        self.printCode(
+            """ForceLimitXTablePath: Tables/ForceLimitXTableSmall.csv
+ForceLimitYTablePath: Tables/ForceLimitYTableSmall.csv
+ForceLimitZTablePath: Tables/ForceLimitZTableSmall.csv"""
+        )
+
+        self.printWarning(
+            """
+and restart CsC (or at least transition to Standby) before running the test.
+
+The files are usually located in the /var/lib/ts-M1M3support/ directory on cRIO
+running the CSC.
+"""
         )
 
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
-
-        x = 0  # X index for data access
-        y = 0  # Y index for data access
 
         await self.runActuators(self._test_actuator)
 

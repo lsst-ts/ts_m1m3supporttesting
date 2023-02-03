@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of ts_salobj.
 #
@@ -50,7 +50,7 @@ import asynctest
 
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import *
+from MTM1M3Movements import MTM1M3Movements, offset
 
 TRAVEL_POSITION = 1 * u.mm
 TRAVEL_ROTATION = 50.4 * u.arcsec
@@ -59,33 +59,37 @@ ROTATION_TOLERANCE = 0.4 * u.arcsec.to(u.deg)
 
 
 class M13T012(MTM1M3Movements):
-    async def _log_data_ims(self, data, imsData):
+    async def _log_data_ims(self, position, data, imsData):
         print(
             self.LOG_MOVEMENT,
-            ",",
+            ", ",
             data.xPosition,
-            ",",
+            ", ",
             data.yPosition,
-            ",",
+            ", ",
             data.zPosition,
-            ",",
+            ", ",
             data.xRotation,
-            ",",
+            ", ",
             data.yRotation,
-            ",",
+            ", ",
             data.zRotation,
-            ",",
+            ", ",
             imsData.xPosition,
-            ",",
+            ", ",
             imsData.yPosition,
-            ",",
+            ", ",
             imsData.zPosition,
-            ",",
+            ", ",
             imsData.xRotation,
-            ",",
+            ", ",
             imsData.yRotation,
-            ",",
+            ", ",
             imsData.zRotation,
+            ", ",
+            ", ".join([str(v) for v in imsData.rawSensorData]),
+            ", ",
+            ", ".join([str(v.value) for v in position]),
             file=self.LOG_FILE,
         )
         self.LOG_FILE.flush()
@@ -107,7 +111,10 @@ class M13T012(MTM1M3Movements):
         self.openCSV("M13T012")
 
         print(
-            "Movement,HP xPosition, HP yPostion, HP zPosition, HP xRotation, HP yRotation, HP zRotation, IMS xPosition, IMS yPosition, IMS zPosition, IMS xRotation, IMS yRotation, IMS zRotation",
+            "Movement,HP xPosition, HP yPostion, HP zPosition, "
+            "HP xRotation, HP yRotation, HP zRotation, "
+            "IMS xPosition, IMS yPosition, IMS zPosition, "
+            "IMS xRotation, IMS yRotation, IMS zRotation",
             file=self.LOG_FILE,
         )
 

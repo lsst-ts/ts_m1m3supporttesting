@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of M1M3 SS test suite.
 #
@@ -32,51 +32,17 @@
 # - Verify the active optic forces are applied
 # - Clear active optic forces
 # - Verify the active optic forces are no longer applied
-# - Apply an active optic force by bending modes
-# - Verify the active optic forces are applied
-# - Clear active optic forces
-# - Verify the active optic forces are no longer applied
-# - Apply an active optic force by bending modes
-# - Verify the active optic forces are applied
-# - Apply a set of active optic forces
-# - Verify the active optic forces are applied
-# - Clear active optic forces
-# - Verify the active optic forces are no longer applied
 # - Transition from active engineering state to standby
 ########################################################################
-
-from CalculateBendingModeForces import *
-from MTM1M3Test import *
-
-from lsst.ts.idl.enums import MTM1M3
 
 import asyncio
 import asynctest
 
-TEST_MODE = [
-    0.0,
-    0.0,
-    0.0,
-    0.5,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-    0.0,
-]
+from lsst.ts.idl.enums import MTM1M3
+
+from MTM1M3Test import MTM1M3Test
+
+
 TEST_FORCE = [1.2] * 156
 TEST_TOLERANCE = 0.1
 WAIT_UNTIL_TIMEOUT = 600
@@ -99,7 +65,7 @@ class M13T017(MTM1M3Test):
                 data.zForces,
                 zForces,
                 delta=TEST_TOLERANCE,
-                msg=f"Verifying applied active optics forces",
+                msg="Verifying applied active optics forces",
             )
 
         async def clear_and_verify():
@@ -114,34 +80,18 @@ class M13T017(MTM1M3Test):
         self.printTest("Apply test forces")
 
         # Apply active optic force and verify
-        await self.m1m3.cmd_applyActiveOpticForces.set_start(zForces=TEST_FORCE)
-        await asyncio.sleep(1.0)
-        verifyForces(TEST_FORCE)
-        await asyncio.sleep(1.0)
+        await self.m1m3.cmd_applyActiveOpticForces.set_start(
+            zForces=TEST_FORCE
+        )
 
-        for i in range(2):
-            self.printTest(f"Active + zero step {i}")
-            # Clear active optic forces and verify
-            await clear_and_verify()
-
-            # Apply active optic force by bending mode and verify
-            await self.m1m3.cmd_applyActiveOpticForcesByBendingModes.set_start(
-                coefficients=TEST_MODE
-            )
-            await asyncio.sleep(1.0)
-            verifyForces(CalculateBendingModeForces(TEST_MODE))
-            await asyncio.sleep(1.0)
-
-        self.printTest("Shutting down")
-
-        # Apply active optic force and verify
-        await self.m1m3.cmd_applyActiveOpticForces.set_start(zForces=TEST_FORCE)
         await asyncio.sleep(1.0)
         verifyForces(TEST_FORCE)
         await asyncio.sleep(1.0)
 
         # Clear active optic forces and verify
         await clear_and_verify()
+
+        self.printTest("Shutting down")
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
 

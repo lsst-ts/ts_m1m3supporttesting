@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of M1M3 SS test suite.
 #
@@ -29,8 +29,8 @@
 # - Issue start command
 # - Raise Mirror in Active Engineering Mode
 # - Confirm Mirror in Reference Position
-# - Follow the motion matrix below, where X, Y & Z are 1.0 mm and ΘX, ΘY, & ΘZ are 50.4 arcsec:
-#   +X, 0, 0
+# - Follow the motion matrix below, where X, Y & Z are 1.0 mm and ΘX, ΘY, & ΘZ
+# are 50.4 arcsec: +X, 0, 0
 #   -X, 0, 0
 #   0,+Y, 0
 #   0, -Y, 0
@@ -73,7 +73,9 @@
 import astropy.units as u
 import asynctest
 
-from MTM1M3Movements import *
+from lsst.ts.idl.enums import MTM1M3
+
+from MTM1M3Movements import MTM1M3Movements, offset
 
 TRAVEL_POSITION = 1 * u.mm
 TRAVEL_ROTATION = 50.4 * u.arcsec
@@ -120,9 +122,15 @@ class M13T010(MTM1M3Movements):
             offset(ry=-TRAVEL_ROTATION, rz=-TRAVEL_ROTATION),
         ]
 
-        await self.do_movements(
-            offsets, "M13T-010: Position System Requirements", check_forces=False
-        )
+        for m in range(3):
+            await self.do_movements(
+                offsets,
+                "M13T-010: Position System Requirements",
+                end_state=MTM1M3.DetailedState.PARKED
+                if m == 3
+                else MTM1M3.DetailedState.ACTIVEENGINEERING,
+                check_forces=False,
+            )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
 # This file is part of M1M3 SS test suite.
 #
@@ -51,7 +51,7 @@ SAMPLE_TIME = 1
 
 
 class M13T032(MTM1M3Movements):
-    async def _log_data(self, data, imsData):
+    async def _log_data(self, position, data, imsData):
         names = [
             "xPosition",
             "yPosition",
