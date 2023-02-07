@@ -91,8 +91,14 @@ class MTM1M3Movements(MTM1M3Test):
 
     POSITION_TOLERANCE = 8 * POS_TOL_UNIT
     ROTATION_TOLERANCE = 1.45 * ROT_TOL_UNIT
-    LOAD_PATH_FORCE = 0.0
-    LOAD_PATH_TOLERANCE = 100.0
+
+    # Base force, moments and their tolerances were
+    # measured on the mirror. Adjust as needed.
+    LOAD_PATH_FORCE = [275, 55, 1950] * u.N
+    LOAD_PATH_FORCE_TOLERANCE = [200, 200, 200] * u.N
+    LOAD_PATH_MOMENTS = [1000, 232, 480] * u.N * u.m
+    LOAD_PATH_MOMENTS_TOLERANCE = [200, 200, 200] * u.N * u.m
+
     POS_IMS_TOLERANCE = 5 * POSITION_TOLERANCE
     ROT_IMS_TOLERANCE = 5 * ROTATION_TOLERANCE
 
@@ -162,40 +168,40 @@ class MTM1M3Movements(MTM1M3Test):
         if check_forces:
             # Verify there are no unintended load paths.
             self.assertAlmostEqual(
-                data.fx,
-                self.LOAD_PATH_FORCE,
-                delta=self.LOAD_PATH_TOLERANCE,
-                msg="FX out of limit",
+                data.fx * u.N,
+                self.LOAD_PATH_FORCE[0],
+                delta=self.LOAD_PATH_FORCE_TOLERANCE[0],
+                msg="Force X out of limit",
             )
             self.assertAlmostEqual(
-                data.fy,
-                self.LOAD_PATH_FORCE,
-                delta=self.LOAD_PATH_TOLERANCE,
-                msg="FY out of limit",
+                data.fy * u.N,
+                self.LOAD_PATH_FORCE[1],
+                delta=self.LOAD_PATH_FORCE_TOLERANCE[1],
+                msg="Force Y out of limit",
             )
             self.assertAlmostEqual(
-                data.fz,
-                self.LOAD_PATH_FORCE,
-                delta=self.LOAD_PATH_TOLERANCE,
-                msg="FZ out of limit",
+                data.fz * u.N,
+                self.LOAD_PATH_FORCE[2],
+                delta=self.LOAD_PATH_FORCE_TOLERANCE[2],
+                msg="Force Z out of limit",
             )
             self.assertAlmostEqual(
-                data.mx,
-                self.LOAD_PATH_FORCE,
-                delta=self.LOAD_PATH_TOLERANCE,
-                msg="MX out of limit",
+                data.mx * u.N * u.m,
+                self.LOAD_PATH_MOMENTS[0],
+                delta=self.LOAD_PATH_MOMENTS_TOLERANCE[0],
+                msg="Moment X out of limit",
             )
             self.assertAlmostEqual(
-                data.my,
-                self.LOAD_PATH_FORCE,
-                delta=self.LOAD_PATH_TOLERANCE,
-                msg="MY out of limit",
+                data.my * u.N * u.m,
+                self.LOAD_PATH_MOMENTS[1],
+                delta=self.LOAD_PATH_MOMENTS_TOLERANCE[1],
+                msg="Moment Y out of limit",
             )
             self.assertAlmostEqual(
-                data.mz,
-                self.LOAD_PATH_FORCE,
-                delta=self.LOAD_PATH_TOLERANCE,
-                msg="MZ out of limit",
+                data.mz * u.N * u.m,
+                self.LOAD_PATH_MOMENTS[2],
+                delta=self.LOAD_PATH_MOMENTS_TOLERANCE[2],
+                msg="Moment Z out of limit",
             )
 
         if reference_IMS is True:
@@ -413,12 +419,14 @@ class MTM1M3Movements(MTM1M3Test):
         )
 
         for row in offsets:
-            self.LOG_MOVEMENT = f"X {row[0].to(u.mm):.02f} " \
-                f"Y {row[1].to(u.mm):.02f} " \
-                f"Z {row[2].to(u.mm):.02f} " \
-                f"RX {row[3].to(u.arcsec):.02f} " \
-                f"RY {row[4].to(u.arcsec):.02f} " \
+            self.LOG_MOVEMENT = (
+                f"X {row[0].to(u.mm):.02f} "
+                f"Y {row[1].to(u.mm):.02f} "
+                f"Z {row[2].to(u.mm):.02f} "
+                f"RX {row[3].to(u.arcsec):.02f} "
+                f"RY {row[4].to(u.arcsec):.02f} "
                 f"RZ {row[5].to(u.arcsec):.02f}"
+            )
 
             click.echo(
                 click.style(
