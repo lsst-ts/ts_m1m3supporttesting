@@ -34,7 +34,7 @@
 # - Lower Mirror
 # - Verify lower time is < 300s
 # - Verify lower rate is < 15mm/s
-# - Transition to parked state
+# - Exit engineering - transition to parked state (non engineering)
 # - Raise Mirror
 # - Verify raise time is < 300s
 # - Verify HP shows mirror at the reference position
@@ -66,8 +66,15 @@ M2UM = u.m.to(u.um)
 
 
 class M13T021(MTM1M3Movements):
-    async def _raise_lower(self):
-        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+    async def _raise_lower(self, engmode):
+        if engmode is True:
+            state_parked = MTM1M3.DetailedState.PARKEDENGINEERING
+            state_active = MTM1M3.DetailedState.ACTIVEENGINEERING
+        else:
+            state_parked = MTM1M3.DetailedState.PARKED
+            state_active = MTM1M3.DetailedState.ACTIVE
+
+        await self.startup(state_parked)
 
         await asyncio.sleep(2.0)
 
@@ -75,7 +82,7 @@ class M13T021(MTM1M3Movements):
         startTime = self.m1m3.tel_hardpointActuatorData.get().timestamp
 
         # Raise mirror (therefore entering the Raised Engineering State).
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(state_active)
         self.assertEqual(self.m1m3.evt_summaryState.get().summaryState, State.ENABLED)
 
         # Get stop time
@@ -87,7 +94,7 @@ class M13T021(MTM1M3Movements):
             [offset()],
             "Check position after movement",
             check_forces=False,
-            end_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
+            end_state=state_active,
         )
 
         # Verify raise time
@@ -104,7 +111,7 @@ class M13T021(MTM1M3Movements):
         startIMSZ = self.m1m3.tel_imsData.get().zPosition * M2UM
 
         # Lower mirror.
-        await self.shutdown(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.shutdown(state_parked)
 
         duration = self.m1m3.tel_hardpointActuatorData.get().timestamp - startTime
         stopIMSZ = self.m1m3.tel_imsData.get().zPosition * M2UM
@@ -123,7 +130,6 @@ class M13T021(MTM1M3Movements):
             150,
             msg="Lowering rate higher than 150 um/second, measured as {lower_rate:.02f}um/second",
         )
-        await self.shutdown(MTM1M3.DetailedState.PARKED)
 
     async def test_mirror_support_lifting_and_parking(self):
         self.printHeader("M13T-021: Mirror Support Lifting and Parking")
@@ -131,9 +137,9 @@ class M13T021(MTM1M3Movements):
         self.POSITION_TOLERANCE = POSITION_TOLERANCE
         self.ROTATION_TOLERANCE = ROTATION_TOLERANCE
 
-        for i in range(1, 3):
-            self.printTest(f"Pass {i}/2")
-            await self._raise_lower()
+        for engmode in [True, False]:
+            self.printTest(('Engineering' if engmode else 'Automatic') + " pass")
+            await self._raise_lower(engmode)
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
