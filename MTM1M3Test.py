@@ -19,10 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import astropy.units as u
 import asyncio
 import asynctest
 import click
 import numpy as np
+import shutil
 import time
 
 from lsst.ts import salobj
@@ -36,6 +38,8 @@ from ForceActuatorTable import (
 )
 
 __all__ = ["MTM1M3Test"]
+
+M2UM = u.m.to(u.um)
 
 
 class MTM1M3Test(asynctest.TestCase):
@@ -60,15 +64,26 @@ class MTM1M3Test(asynctest.TestCase):
     def printCode(self, text):
         click.echo(click.style(text, fg="blue"))
 
-    def printTest(self, test):
+    def printTest(self, test: str, centerfill: str | None = None) -> None:
         """Prints test progress.
 
         Parameters
         ----------
         test : `str`
             String to print with test header style.
+        centerfill: `str`
+            If provided, put text to center and fill remaining space with
+            repeating this string.
         """
-        click.echo(click.style(test, fg="blue"))
+        if centerfill:
+            fw = int((shutil.get_terminal_size().columns - len(test)) / 2)
+            click.echo(
+                centerfill * fw
+                + click.style(test, fg="blue")
+                + centerfill * fw
+            )
+        else:
+            click.echo(click.style(test, fg="blue"))
 
     def printWarning(self, warn):
         """Prints test warning.
@@ -90,12 +105,27 @@ class MTM1M3Test(asynctest.TestCase):
         """
         click.echo(click.style(err, fg="black", bg="red"))
 
+    def printValues(self, name: str, values: str) -> None:
+        """Print values. Pretty format value name and value.
+
+        Parameters
+        ----------
+        name : `str`
+            Value name.
+        values : `str`
+            Value.
+        """
+        click.echo(click.style(name, fg="green") + values)
+
     async def setUp(self):
         """Setup tests. This methods is being called by asynctest.TestCase
         before any test (test_XX) method is called. Creates connections to
         MTM1M3."""
         self.domain = salobj.Domain()
         self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
+
+        self.max_raising_rate = 0
+        self.max_lowering_rate = 0
 
     async def tearDown(self):
         """Called by asynctest.TestCase after test is done. Correctly closes
@@ -147,6 +177,8 @@ class MTM1M3Test(asynctest.TestCase):
             raisingState = MTM1M3.DetailedState.RAISINGENGINEERING
             activeState = MTM1M3.DetailedState.ACTIVEENGINEERING
 
+        last_raising_ims = await self.m1m3.tel_imsData.aget()
+
         await self.switchM1M3State(
             "raiseM1M3",
             raisingState,
@@ -155,11 +187,12 @@ class MTM1M3Test(asynctest.TestCase):
         )
         pct = 0
         lastPercents = 0
+        raising_rate = 0
         with click.progressbar(
             range(100),
             label="Raising",
             width=0,
-            item_show_func=lambda i: f"{pct:.01f}%"
+            item_show_func=lambda i: f"{pct:.01f}% {raising_rate:.01f} um/sec"
             if pct < 100
             else click.style("chasing HP", fg="blue"),
             show_percent=False,
@@ -168,11 +201,21 @@ class MTM1M3Test(asynctest.TestCase):
             while time.monotonic() - startTime < 360:
                 await asyncio.sleep(0.1)
                 sp = self.m1m3.evt_forceActuatorState.get()
+                ims = self.m1m3.tel_imsData.get()
                 pct = sp.supportPercentage
                 diff = pct - lastPercents
                 if diff > 0.1:
                     bar.update(diff)
                     lastPercents = pct
+                mdur = ims.timestamp - last_raising_ims.timestamp
+                if mdur > 0:
+                    raising_rate = (
+                        abs(last_raising_ims.zPosition - ims.zPosition) * M2UM
+                    ) / mdur
+                    self.max_raising_rate = max(
+                        self.max_raising_rate, raising_rate
+                    )
+                last_raising_ims = ims
                 if not (
                     self.m1m3.evt_detailedState.get().detailedState
                     == raisingState
@@ -194,17 +237,21 @@ class MTM1M3Test(asynctest.TestCase):
             loweringState = MTM1M3.DetailedState.LOWERINGENGINEERING
             parkedState = MTM1M3.DetailedState.PARKEDENGINEERING
 
+        self.max_lowering_rate = 0
+        last_lowering_ims = await self.m1m3.tel_imsData.aget()
+
         await self.switchM1M3State(
             "lowerM1M3",
             loweringState,
         )
         pct = 100
         lastPercents = 100
+        lowering_rate = 0
         with click.progressbar(
             range(100),
             label="Lowering",
             width=0,
-            item_show_func=lambda i: f"{pct:.01f}%"
+            item_show_func=lambda i: f"{pct:.01f}% {lowering_rate:.01f} um/sec"
             if pct < 100
             else click.style("chasing HP", fg="blue"),
             show_percent=False,
@@ -213,11 +260,21 @@ class MTM1M3Test(asynctest.TestCase):
             while time.monotonic() - startTime < 300:
                 await asyncio.sleep(0.1)
                 sp = self.m1m3.evt_forceActuatorState.get()
+                ims = self.m1m3.tel_imsData.get()
                 pct = sp.supportPercentage
                 diff = lastPercents - pct
                 if diff > 0.1:
                     bar.update(diff)
                     lastPercents = pct
+                mdur = ims.timestamp - last_lowering_ims.timestamp
+                if mdur > 0:
+                    lowering_rate = (
+                        abs(last_lowering_ims.zPosition - ims.zPosition) * M2UM
+                    ) / mdur
+                    self.max_lowering_rate = max(
+                        self.max_lowering_rate, lowering_rate
+                    )
+                last_lowering_ims = ims
                 if not (
                     self.m1m3.evt_detailedState.get().detailedState
                     == loweringState
