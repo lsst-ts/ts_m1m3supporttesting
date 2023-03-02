@@ -19,18 +19,27 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import astropy.units as u
 import asyncio
 import asynctest
 import click
 import numpy as np
+import shutil
 import time
 
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
 
-from ForceActuatorTable import *
+from ForceActuatorTable import (
+    forceActuatorTable,
+    forceActuatorTableIndexIndex,
+    forceActuatorTableIDIndex,
+    forceActuatorTableOrientationIndex,
+)
 
 __all__ = ["MTM1M3Test"]
+
+M2UM = u.m.to(u.um)
 
 
 class MTM1M3Test(asynctest.TestCase):
@@ -38,8 +47,8 @@ class MTM1M3Test(asynctest.TestCase):
 
     Provides setUp and tearDown methods to create connection to M1M3. `startup`
     and `shutdown` methods can be used to progress mirror to a given state.
-    Also contains functions to collect measurements during tests, and prints tests
-    progress.
+    Also contains functions to collect measurements during tests, and prints
+    tests progress.
     """
 
     def printHeader(self, header):
@@ -55,15 +64,26 @@ class MTM1M3Test(asynctest.TestCase):
     def printCode(self, text):
         click.echo(click.style(text, fg="blue"))
 
-    def printTest(self, test):
+    def printTest(self, test: str, centerfill: str | None = None) -> None:
         """Prints test progress.
 
         Parameters
         ----------
         test : `str`
             String to print with test header style.
+        centerfill: `str`
+            If provided, put text to center and fill remaining space with
+            repeating this string.
         """
-        click.echo(click.style(test, fg="blue"))
+        if centerfill:
+            fw = int((shutil.get_terminal_size().columns - len(test)) / 2)
+            click.echo(
+                centerfill * fw
+                + click.style(test, fg="blue")
+                + centerfill * fw
+            )
+        else:
+            click.echo(click.style(test, fg="blue"))
 
     def printWarning(self, warn):
         """Prints test warning.
@@ -85,6 +105,18 @@ class MTM1M3Test(asynctest.TestCase):
         """
         click.echo(click.style(err, fg="black", bg="red"))
 
+    def printValues(self, name: str, values: str) -> None:
+        """Print values. Pretty format value name and value.
+
+        Parameters
+        ----------
+        name : `str`
+            Value name.
+        values : `str`
+            Value.
+        """
+        click.echo(click.style(name, fg="green") + values)
+
     async def setUp(self):
         """Setup tests. This methods is being called by asynctest.TestCase
         before any test (test_XX) method is called. Creates connections to
@@ -92,13 +124,16 @@ class MTM1M3Test(asynctest.TestCase):
         self.domain = salobj.Domain()
         self.m1m3 = salobj.Remote(self.domain, "MTM1M3")
 
+        self.max_raising_rate = 0
+        self.max_lowering_rate = 0
+
     async def tearDown(self):
         """Called by asynctest.TestCase after test is done. Correctly closes
         salobj objects."""
         await self.m1m3.close()
         await self.domain.close()
 
-    async def switchM1M3State(self, command, state, wait=2, **kwargs):
+    async def switchM1M3State(self, command, state, wait=5, **kwargs):
         """Switch M1M3 state by executing a command and make sure M1M3 reaches
         given state.
 
@@ -109,7 +144,7 @@ class MTM1M3Test(asynctest.TestCase):
         state : `int`, MTM1M3.DetailedState
             Expected M1M3 state after command is performed.
         wait : `float`, optional
-            Wait for given number of seconds for state switch. Defaults to 2.
+            Wait for given number of seconds for state switch. Defaults to 5.
         **kwargs : dict
             Arguments passed to the command.
         """
@@ -127,6 +162,133 @@ class MTM1M3Test(asynctest.TestCase):
             click.style("M1M3 SS is in wrong state", bold=True, bg="red"),
         )
 
+    async def _raising(self):
+        click.echo(
+            click.style(
+                "Waiting for mirror to be raised", bold=True, fg="green"
+            )
+        )
+
+        currentState = self.m1m3.evt_detailedState.get().detailedState
+        if currentState == MTM1M3.DetailedState.PARKED:
+            raisingState = MTM1M3.DetailedState.RAISING
+            activeState = MTM1M3.DetailedState.ACTIVE
+        else:
+            raisingState = MTM1M3.DetailedState.RAISINGENGINEERING
+            activeState = MTM1M3.DetailedState.ACTIVEENGINEERING
+
+        last_raising_ims = await self.m1m3.tel_imsData.aget()
+
+        await self.switchM1M3State(
+            "raiseM1M3",
+            raisingState,
+            wait=5,
+            bypassReferencePosition=False,
+        )
+        pct = 0
+        lastPercents = 0
+        raising_rate = 0
+        with click.progressbar(
+            range(100),
+            label="Raising",
+            width=0,
+            item_show_func=lambda i: f"{pct:.01f}% {raising_rate:.01f} um/sec"
+            if pct < 100
+            else click.style("chasing HP", fg="blue"),
+            show_percent=False,
+        ) as bar:
+            startTime = time.monotonic()
+            while time.monotonic() - startTime < 360:
+                await asyncio.sleep(0.1)
+                sp = self.m1m3.evt_forceActuatorState.get()
+                ims = self.m1m3.tel_imsData.get()
+                pct = sp.supportPercentage
+                diff = pct - lastPercents
+                if diff > 0.1:
+                    bar.update(diff)
+                    lastPercents = pct
+                mdur = ims.timestamp - last_raising_ims.timestamp
+                if mdur > 0:
+                    raising_rate = (
+                        abs(last_raising_ims.zPosition - ims.zPosition) * M2UM
+                    ) / mdur
+                    self.max_raising_rate = max(
+                        self.max_raising_rate, raising_rate
+                    )
+                last_raising_ims = ims
+                if not (
+                    self.m1m3.evt_detailedState.get().detailedState
+                    == raisingState
+                ):
+                    break
+
+        self.assertEqual(
+            self.m1m3.evt_detailedState.get().detailedState,
+            activeState,
+            msg="Mirror raise didn't finish in time",
+        )
+
+    async def _lowering(self) -> int:
+        currentState = self.m1m3.evt_detailedState.get().detailedState
+        if currentState == MTM1M3.DetailedState.ACTIVE:
+            loweringState = MTM1M3.DetailedState.LOWERING
+            parkedState = MTM1M3.DetailedState.PARKED
+        else:
+            loweringState = MTM1M3.DetailedState.LOWERINGENGINEERING
+            parkedState = MTM1M3.DetailedState.PARKEDENGINEERING
+
+        self.max_lowering_rate = 0
+        last_lowering_ims = await self.m1m3.tel_imsData.aget()
+
+        await self.switchM1M3State(
+            "lowerM1M3",
+            loweringState,
+        )
+        pct = 100
+        lastPercents = 100
+        lowering_rate = 0
+        with click.progressbar(
+            range(100),
+            label="Lowering",
+            width=0,
+            item_show_func=lambda i: f"{pct:.01f}% {lowering_rate:.01f} um/sec"
+            if pct < 100
+            else click.style("chasing HP", fg="blue"),
+            show_percent=False,
+        ) as bar:
+            startTime = time.monotonic()
+            while time.monotonic() - startTime < 300:
+                await asyncio.sleep(0.1)
+                sp = self.m1m3.evt_forceActuatorState.get()
+                ims = self.m1m3.tel_imsData.get()
+                pct = sp.supportPercentage
+                diff = lastPercents - pct
+                if diff > 0.1:
+                    bar.update(diff)
+                    lastPercents = pct
+                mdur = ims.timestamp - last_lowering_ims.timestamp
+                if mdur > 0:
+                    lowering_rate = (
+                        abs(last_lowering_ims.zPosition - ims.zPosition) * M2UM
+                    ) / mdur
+                    self.max_lowering_rate = max(
+                        self.max_lowering_rate, lowering_rate
+                    )
+                last_lowering_ims = ims
+                if not (
+                    self.m1m3.evt_detailedState.get().detailedState
+                    == loweringState
+                ):
+                    break
+
+        self.assertEqual(
+            self.m1m3.evt_detailedState.get().detailedState,
+            parkedState,
+            msg="Mirror lowering didn't finish in time",
+        )
+
+        return parkedState
+
     async def startup(self, target=MTM1M3.DetailedState.PARKED):
         """Starts MTM1M3, up to given target state.
 
@@ -135,7 +297,9 @@ class MTM1M3Test(asynctest.TestCase):
         target : `int`, MTM1M3.DetailedState
             Transition to this state.
         """
-        with click.progressbar(range(4), label="Starting up..", width=0) as bar:
+        with click.progressbar(
+            range(4), label="Starting up..", width=0
+        ) as bar:
             await self.m1m3.start_task
             bar.update(1)
             if target == MTM1M3.DetailedState.STANDBY:
@@ -149,7 +313,8 @@ class MTM1M3Test(asynctest.TestCase):
             except AttributeError:
                 click.echo(
                     click.style(
-                        "State not received. Assuming it's not started.", fg="red"
+                        "State not received. Assuming it's not started.",
+                        fg="red",
                     )
                 )
                 startState = MTM1M3.DetailedState.STANDBY
@@ -167,7 +332,9 @@ class MTM1M3Test(asynctest.TestCase):
             if startState == MTM1M3.DetailedState.DISABLED:
                 if target == MTM1M3.DetailedState.DISABLED:
                     return
-                await self.switchM1M3State("enable", MTM1M3.DetailedState.PARKED)
+                await self.switchM1M3State(
+                    "enable", MTM1M3.DetailedState.PARKED
+                )
                 bar.update(1)
                 startState = MTM1M3.DetailedState.PARKED
 
@@ -179,7 +346,8 @@ class MTM1M3Test(asynctest.TestCase):
                     MTM1M3.DetailedState.ACTIVEENGINEERING,
                 ):
                     await self.switchM1M3State(
-                        "enterEngineering", MTM1M3.DetailedState.PARKEDENGINEERING
+                        "enterEngineering",
+                        MTM1M3.DetailedState.PARKEDENGINEERING,
                     )
                     bar.update(1)
                     if target == MTM1M3.DetailedState.PARKEDENGINEERING:
@@ -204,51 +372,8 @@ class MTM1M3Test(asynctest.TestCase):
                 await self.switchM1M3State("enterEngineering", target)
                 return
 
-            click.echo(
-                click.style("Waiting for mirror to be raised", bold=True, fg="green")
-            )
+            await self._raising()
 
-            raisingState = (
-                MTM1M3.DetailedState.RAISING
-                if target == MTM1M3.DetailedState.ACTIVE
-                else MTM1M3.DetailedState.RAISINGENGINEERING
-            )
-
-            await self.switchM1M3State(
-                "raiseM1M3",
-                raisingState,
-                wait=2,
-                bypassReferencePosition=False,
-            )
-            pct = 0
-            lastPercents = 0
-            with click.progressbar(
-                range(100),
-                label="Raising",
-                width=0,
-                item_show_func=lambda i: f"{pct:.01f}%"
-                if pct < 100
-                else click.style("chasing HP", fg="blue"),
-                show_percent=False,
-            ) as bar:
-                startTime = time.monotonic()
-                while time.monotonic() - startTime < 360:
-                    await asyncio.sleep(0.1)
-                    pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
-                    diff = pct - lastPercents
-                    if diff > 0.1:
-                        bar.update(diff)
-                        lastPercents = pct
-                    if not (
-                        self.m1m3.evt_detailedState.get().detailedState == raisingState
-                    ):
-                        break
-
-            self.assertEqual(
-                self.m1m3.evt_detailedState.get().detailedState,
-                target,
-                msg="Mirror raise didn't finish in time",
-            )
             return
 
         if target in (
@@ -270,49 +395,13 @@ class MTM1M3Test(asynctest.TestCase):
                 return
 
             click.echo(
-                click.style("Waiting for mirror to be lowered", bold=True, fg="green")
+                click.style(
+                    "Waiting for mirror to be lowered", bold=True, fg="green"
+                )
             )
 
-            loweringState = (
-                MTM1M3.DetailedState.LOWERING
-                if target == MTM1M3.DetailedState.PARKED
-                else MTM1M3.DetailedState.LOWERINGENGINEERING
-            )
+            await self._lowering()
 
-            await self.switchM1M3State(
-                "lowerM1M3",
-                loweringState,
-                wait=2,
-            )
-            pct = 100
-            lastPercents = 100
-            with click.progressbar(
-                range(100),
-                label="Lowering",
-                width=0,
-                item_show_func=lambda i: f"{pct:.01f}%"
-                if pct < 100
-                else click.style("chasing HP", fg="blue"),
-                show_percent=False,
-            ) as bar:
-                startTime = time.monotonic()
-                while time.monotonic() - startTime < 300:
-                    await asyncio.sleep(0.1)
-                    pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
-                    diff = lastPercents - pct
-                    if diff > 0.1:
-                        bar.update(diff)
-                        lastPercents = pct
-                    if not (
-                        self.m1m3.evt_detailedState.get().detailedState == loweringState
-                    ):
-                        break
-
-            self.assertEqual(
-                self.m1m3.evt_detailedState.get().detailedState,
-                target,
-                msg="Mirror lowering didn't finish in time",
-            )
             return
 
         self.fail(f"Unknown/unsupported target startup state: {target}")
@@ -326,6 +415,22 @@ class MTM1M3Test(asynctest.TestCase):
             Transition to this state.
         """
         currentState = self.m1m3.evt_detailedState.get().detailedState
+        if target in (
+            MTM1M3.DetailedState.ACTIVE,
+            MTM1M3.DetailedState.ACTIVEENGINEERING,
+        ):
+            if (
+                currentState == MTM1M3.DetailedState.ACTIVE
+                and target == MTM1M3.DetailedState.ACTIVEENGINEERING
+            ):
+                await self.switchM1M3State("enterEngineering", target)
+                return
+            elif (
+                currentState == MTM1M3.DetailedState.ACTIVEENGINEERING
+                and target == MTM1M3.DetailedState.ACTIVE
+            ):
+                await self.switchM1M3State("exitEngineering", target)
+                return
         if currentState == target:
             return
 
@@ -333,44 +438,7 @@ class MTM1M3Test(asynctest.TestCase):
             MTM1M3.DetailedState.ACTIVE,
             MTM1M3.DetailedState.ACTIVEENGINEERING,
         ):
-            if currentState == MTM1M3.DetailedState.ACTIVE:
-                loweringState = MTM1M3.DetailedState.LOWERING
-                parkedState = MTM1M3.DetailedState.PARKED
-            else:
-                loweringState = MTM1M3.DetailedState.LOWERINGENGINEERING
-                parkedState = MTM1M3.DetailedState.PARKEDENGINEERING
-
-            await self.switchM1M3State("lowerM1M3", loweringState)
-            pct = 100
-            lastPercents = 100
-            with click.progressbar(
-                range(100),
-                label="Lowering",
-                width=0,
-                item_show_func=lambda i: f"{pct:.01f}%"
-                if pct > 0
-                else click.style("chasing HP", fg="blue"),
-                show_percent=False,
-            ) as bar:
-                startTime = time.monotonic()
-                while time.monotonic() - startTime < 300:
-                    await asyncio.sleep(0.1)
-                    pct = self.m1m3.evt_forceActuatorState.get().supportPercentage
-                    diff = lastPercents - pct
-                    if diff > 0.1:
-                        bar.update(diff)
-                        lastPercents = pct
-                    if not (
-                        self.m1m3.evt_detailedState.get().detailedState == loweringState
-                    ):
-                        break
-
-            self.assertEqual(
-                self.m1m3.evt_detailedState.get().detailedState,
-                parkedState,
-                msg="Mirror doesn't lower to correct state",
-            )
-            currentState = parkedState
+            currentState = await self._lowering()
 
         with click.progressbar(range(4), label="Shutdown", width=0) as bar:
 
@@ -386,25 +454,44 @@ class MTM1M3Test(asynctest.TestCase):
             if currentState == MTM1M3.DetailedState.PARKED:
                 if target == MTM1M3.DetailedState.PARKED:
                     return
-                await self.switchM1M3State("disable", MTM1M3.DetailedState.DISABLED)
+                await self.switchM1M3State(
+                    "disable", MTM1M3.DetailedState.DISABLED
+                )
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.DISABLED
 
             if currentState == MTM1M3.DetailedState.DISABLED:
                 if target == MTM1M3.DetailedState.DISABLED:
                     return
-                await self.switchM1M3State("standby", MTM1M3.DetailedState.STANDBY)
+                await self.switchM1M3State(
+                    "standby", MTM1M3.DetailedState.STANDBY
+                )
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.STANDBY
 
             if currentState == MTM1M3.DetailedState.STANDBY:
                 if target == MTM1M3.DetailedState.STANDBY:
                     return
-                await self.m1m3.cmd_exitControl.start()
+                if target in (
+                    MTM1M3.DetailedState.PARKED,
+                    MTM1M3.DetailedState.PARKEDENGINEERING,
+                ):
+                    await self.switchM1M3State(
+                        "enable", MTM1M3.DetailedState.PARKED
+                    )
+                    if target == MTM1M3.DetailedState.PARKEDENGINEERING:
+                        await self.switchM1M3State("enterEngineering", target)
+                    return
+                await self.switchM1M3State(
+                    "exitControl", MTM1M3.DetailedState.OFFLINE
+                )
                 bar.update(1)
+                self.printWarning("Called exitControl command")
                 return
 
-            self.fail(f"Unknown shutdown target state {target} - {currentState}.")
+            self.fail(
+                f"Unknown shutdown target state {target} - {currentState}."
+            )
 
     async def sampleData(
         self, topic_name, sampling_time, sampling_size=None, flush=True
@@ -414,11 +501,13 @@ class MTM1M3Test(asynctest.TestCase):
         Parameters
         ----------
         topic_name : `str`
-           Event or telemetry topic name (e.g. tel_hardpointActuatorData, evt_detailedState).
+           Event or telemetry topic name (e.g. tel_hardpointActuatorData,
+           evt_detailedState).
         sampling_time : `float`
            Sample time (seconds).
         sampling_size : `float`, optional
-           Size of collected samples. When None (the default), sampling size is unlimited.
+           Size of collected samples. When None (the default), sampling size is
+           unlimited.
         flush : `bool`, optional
            Flush data before sampling. Defaults to True.
 
