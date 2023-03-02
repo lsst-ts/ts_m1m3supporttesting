@@ -474,12 +474,12 @@ class M13T027(MTM1M3Test):
             if duration > TEST_SETTLE_TIME + 1:
                 self.printWarning(
                     f"Testing {self.id} ({fa_type}{fa_index}) took "
-                    "{duration:.02f}s to settle down"
+                    f"{duration:.02f}s to settle down"
                 )
             else:
                 self.printTest(
                     f"Testing {self.id} ({fa_type}{fa_index}) took "
-                    "{duration:.02f}s with {failed_count} fails"
+                    f"{duration:.02f}s with {failed_count} fails"
                 )
 
         async def set_scaled(scale, run_test=True):
