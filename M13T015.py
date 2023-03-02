@@ -34,53 +34,72 @@
 # - Lower mirror
 ########################################################################
 
-import asyncio
 import asynctest
-import random
+from numpy.random import normal, random
 
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import MTM1M3Movements, offset
+from MTM1M3Movements import MTM1M3Movements, ForceOffsets
 
 
 class M13T015(MTM1M3Movements):
     async def test_force_combination_test(self):
         offsets = [
-            {
-                "xForces": [random.random() * 12.0 for x in range(12)],
-                "yForces": [random.random() * -32 for y in range(100)],
-                "zForces": [random.random() * 85 for z in range(156)],
-            },
-            {"xForces": [1] * 12, "yForces": [-1] * 100, "zForces": [1] * 156},
-            {"xForces": [100] * 12, "yForces": [-100] * 100, "zForces": [100] * 156},
-            {"xForces": [35] * 12, "yForces": [-75] * 100, "zForces": [85] * 156},
-            {
-                "xForces": [random.random() * 10.11 - 5 for x in range(12)],
-                "yForces": [random.random() * -25.3 for y in range(100)],
-                "zForces": [random.random() * 85 for z in range(156)],
-            },
-            {
-                "xForces": [random.random() * 12.0 for x in range(12)],
-                "yForces": [random.random() * -32 for y in range(100)],
-                "zForces": [random.random() * 85 for z in range(156)],
-            },
-            {
-                "xForces": [random.random() * 12.0 for x in range(12)],
-                "yForces": [random.random() * -32 for y in range(100)],
-                "zForces": [random.random() * 85 for z in range(156)],
-            },
-            {
-                "xForces": [random.random() * 12.0 - 6 for x in range(12)],
-                "yForces": [random.random() * -32 + 16 for y in range(100)],
-                "zForces": [random.random() * 85 - 42.5 for z in range(156)],
-            },
-            {"xForces": [-12.45] * 12, "yForces": [12.34] * 100, "zForces": [-74.56] * 156},
+            ForceOffsets(
+                xForces=normal(85, 58, 12),
+                yForces=normal(122, 63, 100),
+                zForces=normal(78, 42.5, 156),
+            ),
+            ForceOffsets(zActiveForces=normal(0.2, 7.3, 156)),
+            ForceOffsets(
+                xForces=random(12) * 35.2,
+                yForces=random(100) * 78.2,
+                zForces=random(156) * 167.78,
+            ),
+            ForceOffsets(
+                xForces=[1] * 12, yForces=[-1] * 100, zForces=[1] * 156
+            ),
+            ForceOffsets(
+                xForces=[100] * 12, yForces=[-100] * 100, zForces=[100] * 156
+            ),
+            ForceOffsets(
+                xForces=[35] * 12, yForces=[-75] * 100, zForces=[85] * 156
+            ),
+            ForceOffsets(
+                xForces=normal(0, 80, 12),
+                yForces=normal(0, 45, 100),
+                zForces=normal(0, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(-12, 30, 12),
+                yForces=normal(11.5, 16, 100),
+                zForces=normal(35, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(85, 58, 12),
+                yForces=normal(300, 63, 100),
+                zForces=normal(200, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(30, 69, 12),
+                yForces=normal(256, 74, 100),
+                zForces=normal(127, 47, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(0, 6, 12),
+                yForces=normal(0, 16, 100),
+                zForces=normal(0, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=[-12.45] * 12,
+                yForces=[12.34] * 100,
+                zForces=[-74.56] * 156,
+            ),
         ]
 
         await self.applyOffsetForces(
             offsets,
             "M13T-015: Force Combination Test",
-            end_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
         )
 
 
