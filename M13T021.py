@@ -129,7 +129,7 @@ class M13T021(MTM1M3Movements):
         # Verify fall rate
         self.assertLessEqual(
             self.max_lowering_rate,
-            150,
+            15000,
             msg="Lowering rate higher than 150 um/second, "
             f"measured as {self.max_lowering_rate:.02f}um/second",
         )

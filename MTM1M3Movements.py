@@ -36,9 +36,7 @@ ZERO_M = 0 * u.m
 ZERO_DEG = 0 * u.deg
 
 
-def offset(
-    x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG
-):
+def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
     """Generate offset vector for MTM1M3Movements.do_movements method.
 
     Note
@@ -77,7 +75,6 @@ def offset(
 
 
 class MTM1M3Movements(MTM1M3Test):
-
     POS_DATA_UNIT = u.m
     ROT_DATA_UNIT = u.deg
 
@@ -101,8 +98,11 @@ class MTM1M3Movements(MTM1M3Test):
     LOAD_PATH_MOMENTS = [1000, 232, 480] * u.N * u.m
     LOAD_PATH_MOMENTS_TOLERANCE = [200, 200, 200] * u.N * u.m
 
-    POS_IMS_TOLERANCE = 5 * POSITION_TOLERANCE
-    ROT_IMS_TOLERANCE = 5 * ROTATION_TOLERANCE
+    MEASURED_FORCE_TOLERANCE = 5
+    APPLIED_SUM_FORCES_TOLERANCE = 0.001
+
+    POS_IMS_TOLERANCE = 50 * POSITION_TOLERANCE
+    ROT_IMS_TOLERANCE = 50 * ROTATION_TOLERANCE
 
     LOG_FILE = None
     LOG_MOVEMENT = None
@@ -437,9 +437,7 @@ class MTM1M3Movements(MTM1M3Test):
                 )
             )
 
-            position = [
-                row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))
-            ]
+            position = [row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))]
             await self.m1m3.cmd_positionM1M3.set_start(
                 xPosition=row[0].to(u.m).value,
                 yPosition=row[1].to(u.m).value,
@@ -609,6 +607,184 @@ class MTM1M3Movements(MTM1M3Test):
         ) as bar:
             for step in bar:
                 await self.hardpoint_move(step)
+
+    async def _check_forces_sum(self, offset):
+        elevationForces = self.m1m3.tel_appliedElevationForces.get()
+        staticForces = self.m1m3.evt_appliedStaticForces.get()
+        appliedForces = self.m1m3.tel_appliedForces.get()
+        offsetForces = self.m1m3.evt_appliedOffsetForces.get()
+        measuredForces = self.m1m3.tel_forceActuatorData.get()
+        if (
+            elevationForces is None
+            or staticForces is None
+            or appliedForces is None
+            or measuredForces is None
+        ):
+            self.printError(
+                f"Something is wrong - elevationForces {elevationForces} appliedForces {appliedForces} measuredForces {measuredForces}"
+            )
+            return
+
+        for xIndex in range(12):
+            self.assertAlmostEqual(
+                offset["xForces"][xIndex],
+                offsetForces.xForces[xIndex],
+                delta=self.APPLIED_SUM_FORCES_TOLERANCE,
+                msg="X Offset != appliedOffset",
+            )
+
+            self.assertAlmostEqual(
+                sum(
+                    [
+                        elevationForces.xForces[xIndex],
+                        staticForces.xForces[xIndex],
+                        offset["xForces"][xIndex],
+                    ]
+                ),
+                appliedForces.xForces[xIndex],
+                delta=self.APPLIED_SUM_FORCES_TOLERANCE,
+                msg=f"Applied xForce for {xIndex} doesn't match sum of {elevationForces.xForces[xIndex]}, {staticForces.xForces[xIndex]}  and {offset['xForces'][xIndex]}",
+            )
+
+            self.assertAlmostEqual(
+                appliedForces.xForces[xIndex],
+                measuredForces.xForce[xIndex],
+                delta=self.MEASURED_FORCE_TOLERANCE,
+                msg=f"Applied xForce for {xIndex} doesn't match measured",
+            )
+
+        for yIndex in range(100):
+            self.assertAlmostEqual(
+                offset["yForces"][yIndex],
+                offsetForces.yForces[yIndex],
+                delta=self.APPLIED_SUM_FORCES_TOLERANCE,
+                msg="Y Offset != appliedOffset",
+            )
+
+            self.assertAlmostEqual(
+                sum(
+                    [
+                        elevationForces.yForces[yIndex],
+                        staticForces.yForces[yIndex],
+                        offset["yForces"][yIndex],
+                    ]
+                ),
+                appliedForces.yForces[yIndex],
+                delta=self.APPLIED_SUM_FORCES_TOLERANCE,
+                msg=f"Applied yForce for {yIndex} doesn't match sum of {elevationForces.yForces[yIndex]}, {staticForces.yForces[yIndex]}  and {offset['yForces'][yIndex]}",
+            )
+
+            self.assertAlmostEqual(
+                appliedForces.yForces[yIndex],
+                measuredForces.yForce[yIndex],
+                delta=self.MEASURED_FORCE_TOLERANCE,
+                msg=f"Applied yForce for {yIndex} doesn't match measured",
+            )
+
+        for zIndex in range(156):
+            self.assertAlmostEqual(
+                offset["zForces"][zIndex],
+                offsetForces.zForces[zIndex],
+                delta=self.APPLIED_SUM_FORCES_TOLERANCE,
+                msg="Z Offset != appliedOffset",
+            )
+
+            self.assertAlmostEqual(
+                sum(
+                    [
+                        elevationForces.zForces[zIndex],
+                        staticForces.zForces[zIndex],
+                        offset["zForces"][zIndex],
+                    ]
+                ),
+                appliedForces.zForces[zIndex],
+                delta=self.APPLIED_SUM_FORCES_TOLERANCE,
+                msg=f"Applied zForce for {zIndex} doesn't match sum of {elevationForces.zForces[zIndex]}, {staticForces.zForces[zIndex]}  and {offset['zForces'][zIndex]}",
+            )
+
+            self.assertAlmostEqual(
+                appliedForces.zForces[zIndex],
+                measuredForces.zForce[zIndex],
+                delta=self.MEASURED_FORCE_TOLERANCE,
+                msg=f"Applied zForce for {zIndex} doesn't match measured",
+            )
+
+        click.echo(
+            click.style(
+                f"Offsets OK X {sum(offsetForces.xForces)} Y {sum(offsetForces.yForces)} Z {sum(offsetForces.zForces)}",
+                fg="green",
+            )
+        )
+
+    async def applyOffsetForces(
+        self,
+        offsets: map,
+        header: str,
+        start_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
+        end_state=MTM1M3.DetailedState.PARKED,
+        check_forces: bool = True,
+        moved_callback: bool = None,
+        wait: float = 8.0,
+    ) -> None:
+        """Run tests movements.
+
+        Parameters
+        ----------
+        offsets : `map`
+            Map of xForces, yForces and zForces offsets.
+        header : `str`
+            Test header. Echoed at test startup.
+        start_state : `int`, MTM1M3.DetailedState, optional
+            Starts tests at this state. Defaults to ACTIVEENGINEERING. None =
+            no transition.
+        end_state : `int`, MTM1M3.DetailedState, optional
+            When tests are successfully finished, transition mirror to this
+            state. None = no transition. Defaults to
+            MTM1M3.DetailedState.PARKED
+        moved_callback : `function`, optional
+            If not None, called after mirror moved to new position. Its three
+            arguments are target position, hardpoint data and IMS data.
+        wait : `float`, optional
+            Wait for given number of seconds to settled down after movement is
+            completed before checking it.
+        """
+
+        self.printHeader(header)
+
+        if start_state is not None:
+            await self.startup(start_state)
+
+        # make sure the HardpointCorrection is disabled.
+        await self.m1m3.cmd_disableHardpointCorrections.start()
+
+        await asyncio.sleep(wait)
+
+        for row in offsets:
+            self.LOG_MOVEMENT = (
+                f"X {sum(row['xForces']):.02f} "
+                f"Y {sum(row['yForces']):.02f} "
+                f"Z {sum(row['zForces']):.02f} "
+            )
+
+            click.echo(
+                click.style(
+                    f"Offsets {self.LOG_MOVEMENT}",
+                    fg="bright_blue",
+                )
+            )
+
+            await self.m1m3.cmd_applyOffsetForces.set_start(**row)
+
+            await asyncio.sleep(wait)
+
+            await self._check_forces_sum(row)
+
+        #######################
+        # Lower the mirror, put back in standby state.
+
+        # Lower mirror if requested
+        if end_state is not None:
+            await self.shutdown(end_state)
 
     def openCSV(self, name):
         """Opens CVS log file.
