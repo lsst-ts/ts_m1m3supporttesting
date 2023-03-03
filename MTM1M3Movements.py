@@ -568,7 +568,6 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.m1m3.tel_hardpointActuatorData.callback = None
         self.m1m3.tel_hardpointMonitorData.callback = None
-        self.close_log_file()
 
         # Report the start and stop timestamps to the log
         click.echo(f"Start Timestamp: {startTimestamp:.0f}")
