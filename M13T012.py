@@ -60,37 +60,24 @@ class M13T012(MTM1M3Movements):
     async def _log_data_ims(self, position, data, imsData):
         print(
             self.LOG_MOVEMENT,
-            ", ",
             data.xPosition,
-            ", ",
             data.yPosition,
-            ", ",
             data.zPosition,
-            ", ",
             data.xRotation,
-            ", ",
             data.yRotation,
-            ", ",
             data.zRotation,
-            ", ",
             imsData.xPosition,
-            ", ",
             imsData.yPosition,
-            ", ",
             imsData.zPosition,
-            ", ",
             imsData.xRotation,
-            ", ",
             imsData.yRotation,
-            ", ",
             imsData.zRotation,
-            ", ",
-            ", ".join([str(v) for v in imsData.rawSensorData]),
-            ", ",
-            ", ".join([str(v.value) for v in position]),
-            file=self.LOG_FILE,
+            ",".join(map(str, imsData.rawSensorData)),
+            ",".join(map(str, position)),
+            file=self.IMS_FILE,
+            sep=",",
         )
-        self.LOG_FILE.flush()
+        self.IMS_FILE.flush()
 
     async def test_repeatibility(self):
         offsets = [
@@ -106,25 +93,24 @@ class M13T012(MTM1M3Movements):
         self.POSITION_TOLERANCE = POSITION_TOLERANCE
         self.ROTATION_TOLERANCE = ROTATION_TOLERANCE
 
-        self.openCSV("M13T012")
+        self.IMS_FILE = self.openCSV("M13T012")
 
         print(
-            "Movement,HP xPosition, HP yPostion, HP zPosition, "
-            "HP xRotation, HP yRotation, HP zRotation, "
-            "IMS xPosition, IMS yPosition, IMS zPosition, "
-            "IMS xRotation, IMS yRotation, IMS zRotation",
-            file=self.LOG_FILE,
+            "# Movement,HP xPosition,HP yPostion,HP zPosition,"
+            + "HP xRotation,HP yRotation,HP zRotation,"
+            + "IMS xPosition,IMS yPosition,IMS zPosition,"
+            + "IMS xRotation,IMS yRotation,IMS zRotation",
+            file=self.IMS_FILE,
         )
 
         for i in range(7):
-            await self.shutdown(MTM1M3.DetailedState.ACTIVEENGINEERING)
+            await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
             await self.do_movements(
                 offsets,
                 "M13T-012: Position Repeatability After Parking",
                 end_state=MTM1M3.DetailedState.PARKED,
                 moved_callback=self._log_data_ims,
             )
-            await self.shutdown(MTM1M3.DetailedState.PARKEDENGINEERING)
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
 

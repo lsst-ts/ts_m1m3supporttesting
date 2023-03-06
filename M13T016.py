@@ -56,11 +56,21 @@ TRAVEL_ROTATION = 5 * u.arcsec
 class M13T004(MTM1M3Movements):
     async def setUp(self):
         await super().setUp()
+        self.step = 1
 
         start = datetime.now()
 
-        self.IMS_FILE = self.openCSV(
-            f'M13T016-{start.strftime("%Y-%m-%dT%T")}.csv'
+        self.IMS_FILE = self.openCSV("M13T016")
+        print(
+            "# Message,HP.timestamp,HP.xPosition,HP.yPosition,HP.zPosition,"
+            + "HP.xRotation,HP.yRotation,HP.zRotation,"
+            + ",".join([f"HP.encoder{x}" for x in range(1, 7)])
+            + ","
+            + ",".join([f"HP.measuredForce{x}" for x in range(1, 7)])
+            + ",IMS.timestamp,IMS.xPosition,IMS.yPosition,IMS.zPosition,"
+            + "IMS.xRotation,IMS.yRotation,IMS.zRotation,"
+            + ",".join([f"IMS.rawSensorData{x}" for x in range(1, 9)]),
+            file=self.IMS_FILE,
         )
 
     def _logIMS(self, message, data, imsData):
@@ -68,46 +78,32 @@ class M13T004(MTM1M3Movements):
             message,
             data.timestamp,
             data.xPosition,
-            ", ",
             data.yPosition,
-            ", ",
             data.zPosition,
-            ", ",
             data.xRotation,
-            ", ",
             data.yRotation,
-            ", ",
             data.zRotation,
-            ", ",
-            data.xRotation,
-            ", ",
-            ", ".join(map(str, data.encoder)),
-            ", ",
-            ", ".join(map(str, data.measuredForce)),
-            ", ",
+            ",".join(map(str, data.encoder)),
+            ",".join(map(str, data.measuredForce)),
             imsData.timestamp,
-            ", ",
             imsData.xPosition,
-            ", ",
             imsData.zPosition,
-            ", ",
             imsData.xRotation,
-            ", ",
             imsData.yRotation,
-            ", ",
             imsData.zRotation,
-            ", ",
-            ", ".join(map(str, imsData.rawSensorData)),
+            imsData.zRotation,
+            ",".join(map(str, imsData.rawSensorData)),
             file=self.IMS_FILE,
+            sep=",",
         )
+        self.IMS_FILE.flush()
 
     async def _after_movement(self, position, data, imsData):
         self._logIMS(f"Step {self.step}", data, imsData)
+        self.step += 1
 
     async def _run(self):
         await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
-
-        self.step = 1
 
         data = await self.m1m3.tel_hardpointActuatorData.next(flush=True)
         imsData = await self.m1m3.tel_imsData.next(flush=True)
@@ -132,7 +128,7 @@ class M13T004(MTM1M3Movements):
             "M13T-016: Mirror positioning repeatibility after hardpoint "
             "breakaways",
             moved_callback=self._after_movement,
-            end_state = MTM1M3.DetailedState.PARKEDENGINEERING,
+            end_state=MTM1M3.DetailedState.PARKEDENGINEERING,
         )
 
         await self.shutdown(MTM1M3.DetailedState.PARKEDENGINEERING)

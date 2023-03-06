@@ -90,23 +90,16 @@ class M13T011(MTM1M3Movements):
 
             print(
                 imsData.timestamp,
-                ", ",
                 imsData.xPosition,
-                ", ",
                 imsData.zPosition,
-                ", ",
                 imsData.xRotation,
-                ", ",
                 imsData.yRotation,
-                ", ",
                 imsData.zRotation,
-                ", ",
                 ", ".join(imsData.rawSensorData),
-                ", ",
                 ", ".join(position),
-                file=self.LOG_FILE,
+                file=self.IMS_FILE, sep=","
             )
-            self.LOG_FILE.flush()
+            self.IMS_FILE.flush()
 
             def convert(raw, sensitivity):
                 return (raw * M2MM) / sensitivity
@@ -157,15 +150,12 @@ class M13T011(MTM1M3Movements):
 
         start = datetime.now()
 
-        self.LOG_FILE = open(
-            f'M13T012-IMS-{start.strftime("%Y-%m-%dT%T")}.csv',
-            "w",
-        )
+        self.IMS_FILE = self.openCSV("M13T012-IMS")
 
         print(
             "Timestamp,xPosition,yPosition,zPosition,"
             "xRotation,yRotation,zRotation",
-            file=self.LOG_FILE,
+            file=self.IMS_FILE,
         )
 
         self.collector = Collector(
