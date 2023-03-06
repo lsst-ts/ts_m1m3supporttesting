@@ -27,21 +27,19 @@
 # Description : Position Repeatability After Parking
 # Steps:
 # - Issue start command
-# - Raise Mirror in Active Engineering Mode
-# - Wait 5 seconds for everything to settle
-# - Confirm Mirror in Reference Position
-# - Park the miror, confirmed it has parked.
-# - Take IMS measurements
-# - return mirror to parked position.
-# - repeat above process 5 times.
-# - repeat the process for the matrix below
-# - Follow the motion matrix below, where X, Y & Z are 1.0 mm
+#   - Raise Mirror in Active Engineering Mode
+#   - Wait 5 seconds for everything to settle
+#   - Confirm Mirror in Reference Position
+#   - Take IMS measurements
+#   - Follow the motion matrix below, where X, Y & Z are 1.0 mm
 # + X, 0, 0
 # - X, 0, 0
 # 0, + Y, 0
 # 0, - Y, 0
 # 0, 0, + Z
 # 0, 0, - Z
+#   - Park the miror, confirmed it has parked.
+# - repeat above process 5 times.
 # - Transition back to standby
 ########################################################################
 
@@ -119,12 +117,14 @@ class M13T012(MTM1M3Movements):
         )
 
         for i in range(7):
+            await self.shutdown(MTM1M3.DetailedState.ACTIVEENGINEERING)
             await self.do_movements(
                 offsets,
                 "M13T-012: Position Repeatability After Parking",
                 end_state=MTM1M3.DetailedState.PARKED,
                 moved_callback=self._log_data_ims,
             )
+            await self.shutdown(MTM1M3.DetailedState.PARKEDENGINEERING)
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
