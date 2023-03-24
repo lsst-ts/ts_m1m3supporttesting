@@ -23,156 +23,84 @@
 
 ########################################################################
 # Test Numbers: M13T-015
-# Author:       CContaxis
-# Description:  Active Optic Bending Mode Offsets
+# Author:       PKubanek
+# Description:  Force Combination Test
 # Steps:
+# - Transition to active mode
+# - Apply various forces (AOS - applyActiveOpticsForces, gravity)
+# - Read back applied forces
+# - Verify that applied forces are sum of force components
+# - Repeat
+# - Lower mirror
 ########################################################################
 
-from MTM1M3Movements import *
-from lsst.ts.idl.enums import MTM1M3
-import CalculateBendingModeForces
-
-import asyncio
 import asynctest
+from numpy.random import normal, random
 
-TEST_SETTLE_TIME = 3.0
-TEST_TOLERANCE = 0.1
+from lsst.ts.idl.enums import MTM1M3
+
+from MTM1M3Movements import MTM1M3Movements, ForceOffsets
 
 
 class M13T015(MTM1M3Movements):
-    async def test_active_optic_bending_mode_offsets(self):
-        self.printHeader("M13T-015: Active Optic Bending Mode Offsets")
-
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
-
-        # Wait a bit
-        await asyncio.sleep(2.0)
-
-        # Enable hardpoint corrections
-        await self.m1m3.cmd_enableHardpointCorrections.start()
-
-        # Wait a bit more
-        await asyncio.sleep(2.0)
-
-        # Prepare force data
-        bm = [0] * 22
-
-        bmTests = [
-            [
-                5.00,
-                3.00,
-                1.50,
-                0.50,
-                0.10,
-                0.20,
-                0.05,
-                0.60,
-                0.10,
-                0.05,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-            ],
-            [
-                1.00,
-                2.00,
-                3.00,
-                0.50,
-                0.10,
-                1.00,
-                0.20,
-                0.60,
-                0.05,
-                0.05,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-            ],
-            [
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.20,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.10,
-                0.10,
-                0.00,
-                0.00,
-                0.00,
-                0.10,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-                0.00,
-            ],
+    async def test_force_combination_test(self):
+        offsets = [
+            ForceOffsets(
+                xForces=normal(85, 58, 12),
+                yForces=normal(122, 63, 100),
+                zForces=normal(78, 42.5, 156),
+            ),
+            ForceOffsets(zActiveForces=normal(0.2, 7.3, 156)),
+            ForceOffsets(
+                xForces=random(12) * 35.2,
+                yForces=random(100) * 78.2,
+                zForces=random(156) * 167.78,
+            ),
+            ForceOffsets(
+                xForces=[1] * 12, yForces=[-1] * 100, zForces=[1] * 156
+            ),
+            ForceOffsets(
+                xForces=[100] * 12, yForces=[-100] * 100, zForces=[100] * 156
+            ),
+            ForceOffsets(
+                xForces=[35] * 12, yForces=[-75] * 100, zForces=[85] * 156
+            ),
+            ForceOffsets(
+                xForces=normal(0, 80, 12),
+                yForces=normal(0, 45, 100),
+                zForces=normal(0, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(-12, 30, 12),
+                yForces=normal(11.5, 16, 100),
+                zForces=normal(35, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(85, 58, 12),
+                yForces=normal(300, 63, 100),
+                zForces=normal(200, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(30, 69, 12),
+                yForces=normal(256, 74, 100),
+                zForces=normal(127, 47, 156),
+            ),
+            ForceOffsets(
+                xForces=normal(0, 6, 12),
+                yForces=normal(0, 16, 100),
+                zForces=normal(0, 42.5, 156),
+            ),
+            ForceOffsets(
+                xForces=[-12.45] * 12,
+                yForces=[12.34] * 100,
+                zForces=[-74.56] * 156,
+            ),
         ]
 
-        # Iterate through all 156 force actuators
-        for bm in bmTests:
-            # Calculate expected forces
-            targetForces = CalculateBendingModeForces.CalculateBendingModeForces(bm)
-
-            self.printTest(f"Bending Mode {bm}")
-
-            # Apply bending mode
-            await self.m1m3.cmd_applyActiveOpticForcesByBendingModes.set_start(coefficients=bm)
-
-            # Wait for bending mode forces
-            await asyncio.sleep(TEST_SETTLE_TIME)
-
-            data = self.m1m3.evt_appliedActiveOpticForces.get()
-            self.assertListAlmostEqual(
-                data.zForces,
-                targetForces,
-                delta=TEST_TOLERANCE,
-                msg="Applied bending modes produces same forces as calculated",
-            )
-
-        self.printTest("Clear Bending Mode")
-
-        # Clear bending mode forces
-        targetForces = CalculateBendingModeForces.CalculateBendingModeForces([0] * 22)
-
-        # Clear bending mode
-        await self.m1m3.cmd_clearActiveOpticForces.start()
-
-        # Wait for bending mode forces
-        await asyncio.sleep(TEST_SETTLE_TIME)
-
-        data = self.m1m3.evt_appliedActiveOpticForces.get()
-        self.assertListAlmostEqual(
-            data.zForces,
-            targetForces,
-            delta=TEST_TOLERANCE,
-            msg="Cleared bending forces",
+        await self.applyOffsetForces(
+            offsets,
+            "M13T-015: Force Combination Test",
         )
-
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
 
 if __name__ == "__main__":
