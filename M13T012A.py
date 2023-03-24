@@ -64,37 +64,23 @@ class M13T012A(MTM1M3Movements):
     async def _log_data_ims(self, position, data, imsData):
         print(
             self.LOG_MOVEMENT,
-            ", ",
             data.xPosition,
-            ", ",
             data.yPosition,
-            ", ",
             data.zPosition,
-            ", ",
             data.xRotation,
-            ", ",
             data.yRotation,
-            ", ",
             data.zRotation,
-            ", ",
             imsData.xPosition,
-            ", ",
             imsData.yPosition,
-            ", ",
             imsData.zPosition,
-            ", ",
             imsData.xRotation,
-            ", ",
             imsData.yRotation,
-            ", ",
             imsData.zRotation,
-            ", ",
             ", ".join([str(v) for v in imsData.rawSensorData]),
-            ", ",
             ", ".join([str(v.value) for v in position]),
-            file=self.LOG_FILE,
+            file=self.DATA_FILE,
         )
-        self.LOG_FILE.flush()
+        self.DATA_FILE.flush()
 
     async def test_repeatibility(self):
         offsets = [
@@ -110,14 +96,14 @@ class M13T012A(MTM1M3Movements):
         self.POSITION_TOLERANCE = POSITION_TOLERANCE
         self.ROTATION_TOLERANCE = ROTATION_TOLERANCE
 
-        self.openCSV("M13T012")
+        self.DATA_FILE = self.openCSV("M13T012")
 
         print(
-            "Movement,HP xPosition, HP yPostion, HP zPosition, "
-            "HP xRotation, HP yRotation, HP zRotation, "
-            "IMS xPosition, IMS yPosition, IMS zPosition, "
-            "IMS xRotation, IMS yRotation, IMS zRotation",
-            file=self.LOG_FILE,
+            "Movement,HP xPosition,HP yPostion,HP zPosition,"
+            "HP xRotation,HP yRotation,HP zRotation,"
+            "IMS xPosition,IMS yPosition,IMS zPosition,"
+            "IMS xRotation,IMS yRotation,IMS zRotation",
+            file=self.DATA_FILE,
         )
 
         for i in range(7):

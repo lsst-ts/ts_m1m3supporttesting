@@ -83,9 +83,9 @@ class M13T032(MTM1M3Movements):
                 [printAverage(hpAverages, n) for n in names]
                 + [printAverage(imsAverages, n) for n in names]
             ),
-            file=self.LOG_FILE,
+            file=self.HP_FILE,
         )
-        self.LOG_FILE.flush()
+        self.HP_FILE.flush()
 
     async def test_ims(self):
         await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
@@ -100,11 +100,11 @@ class M13T032(MTM1M3Movements):
             offset(),
         ]
 
-        self.openCSV("M13T032")
+        self.HP_FILE = self.openCSV("M13T032")
 
         print(
             "Timestamp, HP X(mm), HP Y(mm), HP Z(mm), HP RX(arcsec), HP RY(arcsec), HP RZ(arcsec), IMS X(mm), IMS Y(mm), IMS Z(mm), IMS RX(arcsec), IMS RY(arcsec), IMS RZ(arcsec)",
-            file=self.LOG_FILE,
+            file=self.HP_FILE,
         )
 
         # Repeat 3 times

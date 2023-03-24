@@ -27,21 +27,19 @@
 # Description : Position Repeatability After Parking
 # Steps:
 # - Issue start command
-# - Raise Mirror in Active Engineering Mode
-# - Wait 5 seconds for everything to settle
-# - Confirm Mirror in Reference Position
-# - Park the miror, confirmed it has parked.
-# - Take IMS measurements
-# - return mirror to parked position.
-# - repeat above process 5 times.
-# - repeat the process for the matrix below
-# - Follow the motion matrix below, where X, Y & Z are 1.0 mm
+#   - Raise Mirror in Active Engineering Mode
+#   - Wait 5 seconds for everything to settle
+#   - Confirm Mirror in Reference Position
+#   - Take IMS measurements
+#   - Follow the motion matrix below, where X, Y & Z are 1.0 mm
 # + X, 0, 0
 # - X, 0, 0
 # 0, + Y, 0
 # 0, - Y, 0
 # 0, 0, + Z
 # 0, 0, - Z
+#   - Park the miror, confirmed it has parked.
+# - repeat above process 5 times.
 # - Transition back to standby
 ########################################################################
 
@@ -62,37 +60,24 @@ class M13T012(MTM1M3Movements):
     async def _log_data_ims(self, position, data, imsData):
         print(
             self.LOG_MOVEMENT,
-            ", ",
             data.xPosition,
-            ", ",
             data.yPosition,
-            ", ",
             data.zPosition,
-            ", ",
             data.xRotation,
-            ", ",
             data.yRotation,
-            ", ",
             data.zRotation,
-            ", ",
             imsData.xPosition,
-            ", ",
             imsData.yPosition,
-            ", ",
             imsData.zPosition,
-            ", ",
             imsData.xRotation,
-            ", ",
             imsData.yRotation,
-            ", ",
             imsData.zRotation,
-            ", ",
-            ", ".join([str(v) for v in imsData.rawSensorData]),
-            ", ",
-            ", ".join([str(v.value) for v in position]),
-            file=self.LOG_FILE,
+            ",".join(map(str, imsData.rawSensorData)),
+            ",".join(map(str, position)),
+            file=self.IMS_FILE,
+            sep=",",
         )
-        self.LOG_FILE.flush()
+        self.IMS_FILE.flush()
 
     async def test_repeatibility(self):
         offsets = [
@@ -108,17 +93,18 @@ class M13T012(MTM1M3Movements):
         self.POSITION_TOLERANCE = POSITION_TOLERANCE
         self.ROTATION_TOLERANCE = ROTATION_TOLERANCE
 
-        self.openCSV("M13T012")
+        self.IMS_FILE = self.openCSV("M13T012")
 
         print(
-            "Movement,HP xPosition, HP yPostion, HP zPosition, "
-            "HP xRotation, HP yRotation, HP zRotation, "
-            "IMS xPosition, IMS yPosition, IMS zPosition, "
-            "IMS xRotation, IMS yRotation, IMS zRotation",
-            file=self.LOG_FILE,
+            "# Movement,HP xPosition,HP yPostion,HP zPosition,"
+            + "HP xRotation,HP yRotation,HP zRotation,"
+            + "IMS xPosition,IMS yPosition,IMS zPosition,"
+            + "IMS xRotation,IMS yRotation,IMS zRotation",
+            file=self.IMS_FILE,
         )
 
         for i in range(7):
+            await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
             await self.do_movements(
                 offsets,
                 "M13T-012: Position Repeatability After Parking",
