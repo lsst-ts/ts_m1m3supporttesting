@@ -183,12 +183,6 @@ class M13T002(MTM1M3Test):
                         f"secondary {self._secondary_index}", fg="red", bold=True))
 
                 await self.m1m3.command_killActuatorBumpTest.start()
-                 
-                #     acutatorId=self._actuator_id,
-                #     testPrimary=True,
-                #     testSecondary=self._secondary_index is not None,
-                #     timeout=LONG_TIMEOUT,
-                # )
 
         self.assertEqual(self.failed, self.emptyFailed)
 
