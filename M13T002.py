@@ -176,10 +176,10 @@ class M13T002(MTM1M3Test):
                     )
                     await self.wait_bump_test()
                 
-        except Exception:
+        except KeyboardInterrupt:
 
             click.echo(
-                click.style(f"Actuator bump test killed while testing actuator ID {self._actuator_id} primary {self._actuator_index}" 
+                click.style(f"Actuator bump test killed while testing actuator ID {self._actuator_id} primary {self._actuator_index} " 
                     f"secondary {self._secondary_index}", fg="red", bold=True))
 
             await self.m1m3.cmd_killForceActuatorBumpTest.start()
