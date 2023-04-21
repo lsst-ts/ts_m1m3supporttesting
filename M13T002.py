@@ -145,16 +145,16 @@ class M13T002(MTM1M3Test):
             )
         )
 
-        with click.progressbar(
-            forceActuatorTable,
-            label=click.style("Actuators", fg="green"),
-            item_show_func=lambda a: "XXX" if a is None else str(a[1]),
-            show_pos=True,
-            width=0,
-        ) as bar:
-            
-            try:
+        try:
 
+            with click.progressbar(
+                forceActuatorTable,
+                label=click.style("Actuators", fg="green"),
+                item_show_func=lambda a: "XXX" if a is None else str(a[1]),
+                show_pos=True,
+                width=0,
+            ) as bar:
+            
                 for actuator in bar:
                     self._actuator_index = actuator[0]
                     self._actuator_id = actuator[1]
@@ -163,7 +163,6 @@ class M13T002(MTM1M3Test):
                         secondary += 1
                     else:
                         self._secondary_index = None
-
                     click.echo(
                         click.style(
                             f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}",
@@ -177,13 +176,13 @@ class M13T002(MTM1M3Test):
                     )
                     await self.wait_bump_test()
                 
-            except Exception:
+        except Exception:
 
-                click.echo(
-                    click.style(f"Actuator bump test killed while testing actuator ID {self._actuator_id} primary {self._actuator_index}" 
-                        f"secondary {self._secondary_index}", fg="red", bold=True))
+            click.echo(
+                click.style(f"Actuator bump test killed while testing actuator ID {self._actuator_id} primary {self._actuator_index}" 
+                    f"secondary {self._secondary_index}", fg="red", bold=True))
 
-                await self.m1m3.cmd_killForceActuatorBumpTest.start()
+            await self.m1m3.cmd_killForceActuatorBumpTest.start()
 
         self.assertEqual(self.failed, self.emptyFailed)
 
