@@ -152,27 +152,43 @@ class M13T002(MTM1M3Test):
             show_pos=True,
             width=0,
         ) as bar:
-            for actuator in bar:
-                self._actuator_index = actuator[0]
-                self._actuator_id = actuator[1]
-                if actuator[5] == "DAA":
-                    self._secondary_index = secondary
-                    secondary += 1
-                else:
-                    self._secondary_index = None
+            try:
+
+                for actuator in bar:
+                    self._actuator_index = actuator[0]
+                    self._actuator_id = actuator[1]
+                    if actuator[5] == "DAA":
+                        self._secondary_index = secondary
+                        secondary += 1
+                    else:
+                        self._secondary_index = None
+
+                    click.echo(
+                        click.style(
+                            f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}",
+                            fg="blue",
+                        )
+                    )
+                    await self.m1m3.cmd_forceActuatorBumpTest.set_start(
+                        actuatorId=self._actuator_id,
+                        testPrimary=True,
+                        testSecondary=self._secondary_index is not None,
+                    )
+                    await self.wait_bump_test()
+                
+            except KeyboardInterrupt:
 
                 click.echo(
-                    click.style(
-                        f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}",
-                        fg="blue",
-                    )
-                )
-                await self.m1m3.cmd_forceActuatorBumpTest.set_start(
-                    actuatorId=self._actuator_id,
-                    testPrimary=True,
-                    testSecondary=self._secondary_index is not None,
-                )
-                await self.wait_bump_test()
+                    click.style(f"Actuator bump test killed while testing actuator ID {self._actuator_id} primary {self._actuator_index}" 
+                        f"secondary {self._secondary_index}", fg="red", bold=True))
+
+                await self.m1m3.command_killActuatorBumpTest.start()
+                 
+                #     acutatorId=self._actuator_id,
+                #     testPrimary=True,
+                #     testSecondary=self._secondary_index is not None,
+                #     timeout=LONG_TIMEOUT,
+                # )
 
         self.assertEqual(self.failed, self.emptyFailed)
 
