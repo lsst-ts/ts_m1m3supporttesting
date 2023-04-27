@@ -73,21 +73,24 @@ class M13T002(MTM1M3Test):
             ][min(state, 7)]
 
         primary = -1
-        with click.progressbar(
-            range(self.TIMEOUT),
-            label=click.style(f"Primary {self._actuator_id:03d}", bold=True)
-            + click.style(" (% of timeout time)"),
-            item_show_func=lambda i: test_state(primary),
-            width=0,
-        ) as bar:
-            for b in bar:
-                data = await self.m1m3.evt_forceActuatorBumpTestStatus.aget()
-                primary = data.primaryTest[self._actuator_index]
-                if primary > 5:
-                    bar.update(0)
-                    break
+        try:
+            with click.progressbar(
+                range(self.TIMEOUT),
+                label=click.style(f"Primary {self._actuator_id:03d}", bold=True)
+                + click.style(" (% of timeout time)"),
+                item_show_func=lambda i: test_state(primary),
+                width=0,
+            ) as bar:
+                for b in bar:
+                    data = await self.m1m3.evt_forceActuatorBumpTestStatus.aget()
+                    primary = data.primaryTest[self._actuator_index]
+                    if primary > 5:
+                        bar.update(0)
+                        break
+                    await asyncio.sleep(0.1)
 
-                await asyncio.sleep(0.1)
+        except KeyboardInterrupt:
+                await self.kill_bump_test()
 
         if primary != 6:
             click.echo(
@@ -101,24 +104,28 @@ class M13T002(MTM1M3Test):
         count = 0
 
         secondary = -1
-        with click.progressbar(
-            range(self.TIMEOUT),
-            label=click.style(f"Secondary {self._actuator_id:03d}", bold=True)
-            + click.style(" (% of timeout time)"),
-            item_show_func=lambda i: test_state(secondary),
-            width=0,
-        ) as bar:
-            for b in bar:
-                secondary = (
-                    self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
-                        self._secondary_index
-                    ]
-                )
-                if secondary > 5:
-                    bar.update(0)
-                    break
+        try:
+            with click.progressbar(
+                range(self.TIMEOUT),
+                label=click.style(f"Secondary {self._actuator_id:03d}", bold=True)
+                + click.style(" (% of timeout time)"),
+                item_show_func=lambda i: test_state(secondary),
+                width=0,
+            ) as bar:
 
-                await asyncio.sleep(0.1)
+                for b in bar:
+                    secondary = (
+                        self.m1m3.evt_forceActuatorBumpTestStatus.get().secondaryTest[
+                            self._secondary_index
+                        ]
+                    )
+                    if secondary > 5:
+                        bar.update(0)
+                        break
+                    await asyncio.sleep(0.1)
+
+        except KeyboardInterrupt:
+            await self.kill_bump_test()
 
         if secondary != 6:
             click.echo(
@@ -131,9 +138,15 @@ class M13T002(MTM1M3Test):
     async def test_bump_test(self):
         await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
 
-        with click.progressbar(range(200), label="Waiting for mirror", width=0) as bar:
-            for b in bar:
-                await asyncio.sleep(0.1)
+        try:
+
+            with click.progressbar(range(200), label="Waiting for mirror", width=0) as bar:
+            
+                for b in bar:
+                    await asyncio.sleep(0.1)
+        
+        except:
+            await self.kill_bump_test()
 
         secondary = 0
 
@@ -178,13 +191,25 @@ class M13T002(MTM1M3Test):
                 
         except KeyboardInterrupt:
 
-            click.echo(
-                click.style(f"Actuator bump test killed while testing actuator ID {self._actuator_id} primary {self._actuator_index} " 
-                    f"secondary {self._secondary_index}", fg="red", bold=True))
+            # Kill the bump test
+            await self.kill_bump_test()
 
-            await self.m1m3.cmd_killForceActuatorBumpTest.start()
+            # click.echo(
+            #     click.style(f"Actuator bump test killed while testing actuator ID {self._actuator_id} primary {self._actuator_index} " 
+            #         f"secondary {self._secondary_index}", fg="red", bold=True))
+
+            # await self.m1m3.cmd_killForceActuatorBumpTest.start()
 
         self.assertEqual(self.failed, self.emptyFailed)
+
+    async def kill_bump_test(self):
+
+        # Message informing the user that the test is being killed
+        click.echo(click.style("Actuator bump test killed.", fg="red", bold=True))
+
+        # Kill the bump test
+        await self.m1m3.cmd_killForceActuatorBumpTest.start()
+        
 
 
 if __name__ == "__main__":
