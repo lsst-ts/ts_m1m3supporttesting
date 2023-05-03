@@ -22,6 +22,7 @@
 import asyncio
 import os
 from datetime import datetime
+import time
 
 import astropy.units as u
 import click
@@ -36,9 +37,7 @@ ZERO_M = 0 * u.m
 ZERO_DEG = 0 * u.deg
 
 
-def offset(
-    x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG
-):
+def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
     """Generate offset vector for MTM1M3Movements.do_movements method.
 
     Note
@@ -77,20 +76,14 @@ def offset(
 
 
 class ForceOffsets:
-    def __init__(
-        self, xForces=None, yForces=None, zForces=None, zActiveForces=None
-    ):
+    def __init__(self, xForces=None, yForces=None, zForces=None, zActiveForces=None):
         self.xForces = xForces
         self.yForces = yForces
         self.zForces = zForces
         self.zActiveForces = zActiveForces
 
     def getOffsetForces(self):
-        if (
-            self.xForces is None
-            and self.yForces is None
-            and self.zForces is None
-        ):
+        if self.xForces is None and self.yForces is None and self.zForces is None:
             return None
         return {
             "xForces": self.xForces,
@@ -113,19 +106,11 @@ class ForceOffsets:
         return default if self.zForces is None else self.zForces[zIndex]
 
     def getZActiveForce(self, zIndex, default=0):
-        return (
-            default
-            if self.zActiveForces is None
-            else self.zActiveForces[zIndex]
-        )
+        return default if self.zActiveForces is None else self.zActiveForces[zIndex]
 
     def __str__(self):
         ret = ""
-        if not (
-            self.xForces is None
-            and self.yForces is None
-            and self.zForces is None
-        ):
+        if not (self.xForces is None and self.yForces is None and self.zForces is None):
             ret += "OffsetsForces:"
             if self.xForces is not None:
                 ret += f" X {sum(self.xForces):.2f}"
@@ -504,9 +489,7 @@ class MTM1M3Movements(MTM1M3Test):
                 )
             )
 
-            position = [
-                row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))
-            ]
+            position = [row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))]
             await self.m1m3.cmd_positionM1M3.set_start(
                 xPosition=row[0].to(u.m).value,
                 yPosition=row[1].to(u.m).value,
@@ -530,11 +513,13 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.moved_callback = None
 
-    async def hardpoint_move(self, step):
-        self.hardpointActuatorDataFile = AutoFlush(self.openCSV(f"HP-{self.hp}-{step}"))
+    def _start_hardpoint_logs(self, suffix):
+        self.hardpointActuatorDataFile = AutoFlush(
+            self.openCSV(f"HP-{self.hp}-{suffix}")
+        )
 
         self.hardpointMonitorDataFile = AutoFlush(
-            self.openCSV(f"Monitor-{self.hp}-{step}")
+            self.openCSV(f"Monitor-{self.hp}-{suffix}")
         )
         click.echo(
             click.style(
@@ -543,14 +528,22 @@ class MTM1M3Movements(MTM1M3Test):
             )
         )
         self.hardpointActuatorDataFile.print(
-            f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp}",
+            f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp},HP Test Status",
         )
         self.m1m3.tel_hardpointActuatorData.callback = self.hardpointActuatorData
 
         self.hardpointMonitorDataFile.print(
-            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp}",
+            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp},HP Test Status",
         )
         self.m1m3.tel_hardpointMonitorData.callback = self.hardpointMonitorData
+
+    def _stop_hardpoint_logs(self):
+        self.m1m3.tel_hardpointActuatorData.callback = None
+        self.m1m3.tel_hardpointMonitorData.callback = None
+
+    async def hardpoint_move(self, step):
+        self.hardpoint_test_state = step
+        self._start_hardpoint_logs(step)
 
         # Give time for a sample
         await asyncio.sleep(1)
@@ -633,8 +626,7 @@ class MTM1M3Movements(MTM1M3Test):
         # Get the stop timestamp for collecting data from the EFD
         stopTimestamp = self.m1m3.tel_hardpointActuatorData.get().timestamp
 
-        self.m1m3.tel_hardpointActuatorData.callback = None
-        self.m1m3.tel_hardpointMonitorData.callback = None
+        self._stop_hardpoint_logs()
 
         # Report the start and stop timestamps to the log
         click.echo(f"Start Timestamp: {startTimestamp:.0f}")
@@ -652,30 +644,69 @@ class MTM1M3Movements(MTM1M3Test):
             s_high = warnings.limitSwitch1Operated[hpIndex]
 
         self.hardpointActuatorDataFile.print(
-            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f},{s_low},{s_high}",
+            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f},{s_low},{s_high},{self.hardpoint_test_state}",
         )
 
     async def hardpointMonitorData(self, data):
         hpIndex = self.hp - 1
 
         self.hardpointMonitorDataFile.print(
-            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f}",
+            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f},{self.hardpoint_test_state}",
         )
 
     async def hardpoint_test(self, hp):
         self.hp = hp
         click.echo(click.style(f"Hardpoint Actuator {self.hp}", bold=True, fg="cyan"))
 
-        # Issue through a number of steps for each actuator
-        with click.progressbar(
-            [-999999999, 999999999],
-            label=click.style("Stepping HP", fg="green"),
-            item_show_func=lambda a: str(a),
-            show_pos=True,
-            width=0,
-        ) as bar:
-            for step in bar:
-                await self.hardpoint_move(step)
+        self.hardpoint_test_state = 0
+
+        self._start_hardpoint_logs("Test")
+
+        # Give time for a sample
+        await asyncio.sleep(1)
+
+        start_time = time.monotonic()
+
+        await self.m1m3.cmd_testHardpoint.set_start(hardpointActuator=hp)
+
+        while True:
+            try:
+                hardpointTestStatus = await self.m1m3.evt_hardpointTestStatus.next(
+                    flush=True, timeout=1
+                )
+                self.hardpoint_test_state = hardpointTestStatus.testState[self.hp - 1]
+                if self.hardpoint_test_state == MTM1M3.HardpointTest.FAILED:
+                    click.echo(
+                        click.style(
+                            f"Hardpoint {self.hp} test FAILED", bold=True, bg="red"
+                        )
+                    )
+                    break
+                elif self.hardpoint_test_state == MTM1M3.HardpointTest.PASSED:
+                    click.echo(
+                        click.style(
+                            f"Hardpoint {self.hp} test PASSED", bold=True, bg="green"
+                        )
+                    )
+                    break
+            except asyncio.TimeoutError:
+                if (
+                    self.hardpoint_test_state == 0
+                    and (time.monotonic() - start_time) > 300
+                ):
+                    click.echo(
+                        click.style(
+                            f"Hardpoint {self.hp} test TIMEOUTED", bold=True, bg="red"
+                        )
+                    )
+                    break
+
+            click.echo(
+                f"HP {self.hp} {self.m1m3.tel_hardpointActuatorData.get().encoder[self.hp-1]} {self.hardpoint_test_state}\033[0K\r",
+                nl=False,
+            )
+
+        self._stop_hardpoint_logs()
 
     async def _check_forces_sum(self, forces):
         elevationForces = self.m1m3.tel_appliedElevationForces.get()
@@ -767,9 +798,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         for zIndex in range(156):
             zOffset = forces.getZOffsetForce(zIndex, self.lastZForces[zIndex])
-            zActive = forces.getZActiveForce(
-                zIndex, self.lastZActiveForces[zIndex]
-            )
+            zActive = forces.getZActiveForce(zIndex, self.lastZActiveForces[zIndex])
 
             self.assertAlmostEqual(
                 zOffset,
