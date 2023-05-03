@@ -77,11 +77,7 @@ class MTM1M3Test(asynctest.TestCase):
         """
         if centerfill:
             fw = int((shutil.get_terminal_size().columns - len(test)) / 2)
-            click.echo(
-                centerfill * fw
-                + click.style(test, fg="blue")
-                + centerfill * fw
-            )
+            click.echo(centerfill * fw + click.style(test, fg="blue") + centerfill * fw)
         else:
             click.echo(click.style(test, fg="blue"))
 
@@ -163,11 +159,7 @@ class MTM1M3Test(asynctest.TestCase):
         )
 
     async def _raising(self):
-        click.echo(
-            click.style(
-                "Waiting for mirror to be raised", bold=True, fg="green"
-            )
-        )
+        self.printTest("Waiting for mirror to be raised")
 
         currentState = self.m1m3.evt_detailedState.get().detailedState
         if currentState == MTM1M3.DetailedState.PARKED:
@@ -212,13 +204,10 @@ class MTM1M3Test(asynctest.TestCase):
                     raising_rate = (
                         abs(last_raising_ims.zPosition - ims.zPosition) * M2UM
                     ) / mdur
-                    self.max_raising_rate = max(
-                        self.max_raising_rate, raising_rate
-                    )
+                    self.max_raising_rate = max(self.max_raising_rate, raising_rate)
                 last_raising_ims = ims
                 if not (
-                    self.m1m3.evt_detailedState.get().detailedState
-                    == raisingState
+                    self.m1m3.evt_detailedState.get().detailedState == raisingState
                 ):
                     break
 
@@ -271,13 +260,10 @@ class MTM1M3Test(asynctest.TestCase):
                     lowering_rate = (
                         abs(last_lowering_ims.zPosition - ims.zPosition) * M2UM
                     ) / mdur
-                    self.max_lowering_rate = max(
-                        self.max_lowering_rate, lowering_rate
-                    )
+                    self.max_lowering_rate = max(self.max_lowering_rate, lowering_rate)
                 last_lowering_ims = ims
                 if not (
-                    self.m1m3.evt_detailedState.get().detailedState
-                    == loweringState
+                    self.m1m3.evt_detailedState.get().detailedState == loweringState
                 ):
                     break
 
@@ -297,9 +283,7 @@ class MTM1M3Test(asynctest.TestCase):
         target : `int`, MTM1M3.DetailedState
             Transition to this state.
         """
-        with click.progressbar(
-            range(4), label="Starting up..", width=0
-        ) as bar:
+        with click.progressbar(range(4), label="Starting up..", width=0) as bar:
             await self.m1m3.start_task
             bar.update(1)
             if target == MTM1M3.DetailedState.STANDBY:
@@ -311,12 +295,7 @@ class MTM1M3Test(asynctest.TestCase):
                 if startState == target:
                     return
             except AttributeError:
-                click.echo(
-                    click.style(
-                        "State not received. Assuming it's not started.",
-                        fg="red",
-                    )
-                )
+                self.printError("State not received. Assuming it's not started.")
                 startState = MTM1M3.DetailedState.STANDBY
 
             if startState == MTM1M3.DetailedState.STANDBY:
@@ -332,9 +311,7 @@ class MTM1M3Test(asynctest.TestCase):
             if startState == MTM1M3.DetailedState.DISABLED:
                 if target == MTM1M3.DetailedState.DISABLED:
                     return
-                await self.switchM1M3State(
-                    "enable", MTM1M3.DetailedState.PARKED
-                )
+                await self.switchM1M3State("enable", MTM1M3.DetailedState.PARKED)
                 bar.update(1)
                 startState = MTM1M3.DetailedState.PARKED
 
@@ -394,11 +371,7 @@ class MTM1M3Test(asynctest.TestCase):
                 await self.switchM1M3State("enterEngineering", target)
                 return
 
-            click.echo(
-                click.style(
-                    "Waiting for mirror to be lowered", bold=True, fg="green"
-                )
-            )
+            self.printTest("Waiting for mirror to be lowered")
 
             await self._lowering()
 
@@ -454,18 +427,14 @@ class MTM1M3Test(asynctest.TestCase):
             if currentState == MTM1M3.DetailedState.PARKED:
                 if target == MTM1M3.DetailedState.PARKED:
                     return
-                await self.switchM1M3State(
-                    "disable", MTM1M3.DetailedState.DISABLED
-                )
+                await self.switchM1M3State("disable", MTM1M3.DetailedState.DISABLED)
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.DISABLED
 
             if currentState == MTM1M3.DetailedState.DISABLED:
                 if target == MTM1M3.DetailedState.DISABLED:
                     return
-                await self.switchM1M3State(
-                    "standby", MTM1M3.DetailedState.STANDBY
-                )
+                await self.switchM1M3State("standby", MTM1M3.DetailedState.STANDBY)
                 bar.update(1)
                 currentState = MTM1M3.DetailedState.STANDBY
 
@@ -476,22 +445,16 @@ class MTM1M3Test(asynctest.TestCase):
                     MTM1M3.DetailedState.PARKED,
                     MTM1M3.DetailedState.PARKEDENGINEERING,
                 ):
-                    await self.switchM1M3State(
-                        "enable", MTM1M3.DetailedState.PARKED
-                    )
+                    await self.switchM1M3State("enable", MTM1M3.DetailedState.PARKED)
                     if target == MTM1M3.DetailedState.PARKEDENGINEERING:
                         await self.switchM1M3State("enterEngineering", target)
                     return
-                await self.switchM1M3State(
-                    "exitControl", MTM1M3.DetailedState.OFFLINE
-                )
+                await self.switchM1M3State("exitControl", MTM1M3.DetailedState.OFFLINE)
                 bar.update(1)
                 self.printWarning("Called exitControl command")
                 return
 
-            self.fail(
-                f"Unknown shutdown target state {target} - {currentState}."
-            )
+            self.fail(f"Unknown shutdown target state {target} - {currentState}.")
 
     async def sampleData(
         self, topic_name, sampling_time, sampling_size=None, flush=True

@@ -274,23 +274,20 @@ class MTM1M3Movements(MTM1M3Test):
             pos_fac = self.POS_IMS_UNIT.to(pos_unit)
             rot_fac = self.ROT_IMS_UNIT.to(rot_unit)
 
-            click.echo(
-                click.style(
-                    f"IMS referenced at: "
-                    f"X {self.IMS_OFFSETS[0]*pos_fac:.04f} "
-                    f"{pos_unit.to_string()} "
-                    f"Y {self.IMS_OFFSETS[1]*pos_fac:.04f} "
-                    f"{pos_unit.to_string()} "
-                    f"Z {self.IMS_OFFSETS[2]*pos_fac:.04f} "
-                    f"{pos_unit.to_string()} "
-                    f"rX {self.IMS_OFFSETS[3]*rot_fac:.04f} "
-                    f"{rot_unit.to_string()} "
-                    f"rY {self.IMS_OFFSETS[4]*rot_fac:.04f} "
-                    f"{rot_unit.to_string()} "
-                    f"rZ {self.IMS_OFFSETS[5]*rot_fac:.04f} "
-                    f"{rot_unit.to_string()}",
-                    fg="red",
-                )
+            self.printTest(
+                f"IMS referenced at: "
+                f"X {self.IMS_OFFSETS[0]*pos_fac:.04f} "
+                f"{pos_unit.to_string()} "
+                f"Y {self.IMS_OFFSETS[1]*pos_fac:.04f} "
+                f"{pos_unit.to_string()} "
+                f"Z {self.IMS_OFFSETS[2]*pos_fac:.04f} "
+                f"{pos_unit.to_string()} "
+                f"rX {self.IMS_OFFSETS[3]*rot_fac:.04f} "
+                f"{rot_unit.to_string()} "
+                f"rY {self.IMS_OFFSETS[4]*rot_fac:.04f} "
+                f"{rot_unit.to_string()} "
+                f"rZ {self.IMS_OFFSETS[5]*rot_fac:.04f} "
+                f"{rot_unit.to_string()}",
             )
 
         if check_IMS is False:
@@ -305,13 +302,10 @@ class MTM1M3Movements(MTM1M3Test):
                 "(DisplacementSensorSettings.yaml)",
             )
             if abs(value - target) > normal_tol:
-                click.echo(
-                    click.style(
-                        f"IMS out of normal limits - {kind} target "
-                        f"{target:.04f} is {value:.04f}, "
-                        f"difference {target-value:.04f}",
-                        fg="red",
-                    )
+                self.printError(
+                    f"IMS out of normal limits - {kind} target "
+                    f"{target:.04f} is {value:.04f}, "
+                    f"difference {target-value:.04f}",
                 )
 
         ims_check(
@@ -447,12 +441,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         await asyncio.sleep(wait)
 
-        click.echo(
-            click.style(
-                "Moving to reference",
-                fg="green",
-            )
-        )
+        self.printTest("Moving to reference")
 
         # confirm mirror at reference position.
         self.LOG_MOVEMENT = "startup reference"
@@ -482,12 +471,7 @@ class MTM1M3Movements(MTM1M3Test):
                 f"RZ {row[5].to(u.arcsec):.02f}"
             )
 
-            click.echo(
-                click.style(
-                    f"Moving {self.LOG_MOVEMENT}",
-                    fg="bright_blue",
-                )
-            )
+            self.printTest(f"Moving {self.LOG_MOVEMENT}")
 
             position = [row[i] + self.REFERENCE[i] for i in range(len(self.REFERENCE))]
             await self.m1m3.cmd_positionM1M3.set_start(
@@ -521,11 +505,8 @@ class MTM1M3Movements(MTM1M3Test):
         self.hardpointMonitorDataFile = AutoFlush(
             self.openCSV(f"Monitor-{self.hp}-{suffix}")
         )
-        click.echo(
-            click.style(
-                f"Saving data to {os.path.abspath(self.hardpointActuatorDataFile.name)} and {os.path.abspath(self.hardpointMonitorDataFile.name)}",
-                fg="blue",
-            )
+        self.printTest(
+            f"Saving data to {os.path.abspath(self.hardpointActuatorDataFile.name)} and {os.path.abspath(self.hardpointMonitorDataFile.name)}"
         )
         self.hardpointActuatorDataFile.print(
             f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp},HP Test Status",
@@ -561,7 +542,7 @@ class MTM1M3Movements(MTM1M3Test):
         tmp = [0] * 6
         tmp[hpIndex] = step
         await self.m1m3.cmd_moveHardpointActuators.set_start(steps=tmp)
-        click.echo(click.style(f"Moving {self.hp} {step}", fg="green"))
+        self.printTest(f"Moving {self.hp} {step}")
 
         # Wait a bit
         await asyncio.sleep(1)
@@ -587,11 +568,8 @@ class MTM1M3Movements(MTM1M3Test):
             if (hpWarning.limitSwitch1Operated[hpIndex] and step > 0) or (
                 hpWarning.limitSwitch2Operated[hpIndex] and step < 0
             ):
-                click.echo(
-                    click.style(
-                        f"Limit switch on HP {self.hp} reached on {step} command - 1: {hpWarning.limitSwitch1Operated[hpIndex]} 2: {hpWarning.limitSwitch2Operated[hpIndex]}",
-                        fg="yellow",
-                    )
+                self.printTest(
+                    f"Limit switch on HP {self.hp} reached on {step} command - 1: {hpWarning.limitSwitch1Operated[hpIndex]} 2: {hpWarning.limitSwitch2Operated[hpIndex]}"
                 )
                 break
 
@@ -629,8 +607,8 @@ class MTM1M3Movements(MTM1M3Test):
         self._stop_hardpoint_logs()
 
         # Report the start and stop timestamps to the log
-        click.echo(f"Start Timestamp: {startTimestamp:.0f}")
-        click.echo(f"Stop Timestamp: {stopTimestamp:.0f}")
+        self.printTest(f"Start Timestamp: {startTimestamp:.0f}")
+        self.printTest(f"Stop Timestamp: {stopTimestamp:.0f}")
 
     async def hardpointActuatorData(self, data):
         hpIndex = self.hp - 1
@@ -656,7 +634,7 @@ class MTM1M3Movements(MTM1M3Test):
 
     async def hardpoint_test(self, hp):
         self.hp = hp
-        click.echo(click.style(f"Hardpoint Actuator {self.hp}", bold=True, fg="cyan"))
+        self.printTest(f"Testing Hardpoint Actuator {self.hp}")
 
         self.hardpoint_test_state = 0
 
@@ -676,29 +654,17 @@ class MTM1M3Movements(MTM1M3Test):
                 )
                 self.hardpoint_test_state = hardpointTestStatus.testState[self.hp - 1]
                 if self.hardpoint_test_state == MTM1M3.HardpointTest.FAILED:
-                    click.echo(
-                        click.style(
-                            f"Hardpoint {self.hp} test FAILED", bold=True, bg="red"
-                        )
-                    )
+                    self.printError(f"Hardpoint {self.hp} test FAILED")
                     break
                 elif self.hardpoint_test_state == MTM1M3.HardpointTest.PASSED:
-                    click.echo(
-                        click.style(
-                            f"Hardpoint {self.hp} test PASSED", bold=True, bg="green"
-                        )
-                    )
+                    self.printTest(f"Hardpoint {self.hp} test PASSED")
                     break
             except asyncio.TimeoutError:
                 if (
                     self.hardpoint_test_state == 0
                     and (time.monotonic() - start_time) > 300
                 ):
-                    click.echo(
-                        click.style(
-                            f"Hardpoint {self.hp} test TIMEOUTED", bold=True, bg="red"
-                        )
-                    )
+                    self.printError(f"Hardpoint {self.hp} test TIMEOUTED")
                     break
 
             click.echo(
@@ -837,12 +803,7 @@ class MTM1M3Movements(MTM1M3Test):
                 msg=f"Applied zForce for {zIndex} doesn't match measured",
             )
 
-        click.echo(
-            click.style(
-                f"Offsets OK {forces}",
-                fg="green",
-            )
-        )
+        self.printTest(f"Offsets OK {forces}")
 
     async def resetLastOffsetForces(self):
         self.lastXForces = [0] * 12
@@ -853,7 +814,7 @@ class MTM1M3Movements(MTM1M3Test):
         await self.m1m3.cmd_clearOffsetForces.start()
         await self.m1m3.cmd_clearActiveOpticForces.start()
 
-        click.echo(click.style("Clear offsets", fg="bright_blue"))
+        self.printTest("Clear offsets")
 
     async def applyOffsetForces(
         self,
@@ -902,12 +863,7 @@ class MTM1M3Movements(MTM1M3Test):
         await asyncio.sleep(wait)
 
         for row in offsets:
-            click.echo(
-                click.style(
-                    f"Offsets {str(row)}",
-                    fg="bright_blue",
-                )
-            )
+            self.printTest(f"Offsets {str(row)}")
 
             offset = row.getOffsetForces()
             active = row.getActiveOffsets()
