@@ -576,11 +576,11 @@ class MTM1M3Test(asynctest.TestCase):
         enabled : `[bool]`
             Array where true means actuator is enabled.
         """
-        enabledFA = self.m1m3.evt_enabledForceActuators.get()
-        if enabledFA is None:
+        enabled_FA = self.m1m3.evt_enabledForceActuators.get()
+        if enabled_FA is None:
             self.printError("Cannot retrieve enabled actuator list!")
             raise RuntimeError("Cannot retrieve enabled actuator list!")
-        enabled = enabledFA.forceActuatorEnabled
+        enabled = enabled_FA.forceActuatorEnabled
         for index, e in enumerate(enabled):
             if e is False:
                 self.printWarning(f"Actuator with index {index} is disabled.")
