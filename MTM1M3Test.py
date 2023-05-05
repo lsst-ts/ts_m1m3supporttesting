@@ -568,7 +568,25 @@ class MTM1M3Test(asynctest.TestCase):
         for i in range(len(l1)):
             self.assertAlmostEqual(l1[i], l2[i], msg=msg, **kwargs)
 
-    async def runActuators(self, function):
+    def get_enabled_force_actuators(self):
+        """Returns 156-member array, where true means actuator is enabled.
+
+        Returns
+        -------
+        enabled : `[bool]`
+            Array where true means actuator is enabled.
+        """
+        enabledFA = self.m1m3.evt_enabledForceActuators.get()
+        if enabledFA is None:
+            self.printError("Cannot retrieve enabled actuator list!")
+            raise RuntimeError("Cannot retrieve enabled actuator list!")
+        enabled = enabledFA.forceActuatorEnabled
+        for index, e in enumerate(enabled):
+            if e is False:
+                self.printWarning(f"Actuator with index {index} is disabled.")
+        return enabled
+
+    async def run_actuators(self, function):
         """Runs function for all actuators and directions (XYZ).
 
         Parameters
@@ -582,10 +600,15 @@ class MTM1M3Test(asynctest.TestCase):
         x = 0  # X index for data access
         y = 0  # Y index for data access
 
+        enabled = self.get_enabled_force_actuators()
+
         # Iterate through all 156 force actuators
         for row in forceActuatorTable:
             z = row[forceActuatorTableIndexIndex]
             self.id = row[forceActuatorTableIDIndex]
+            if enabled[z] is False:
+                self.printWarning(f"Skipping FA index {z} ID {self.id}")
+                continue
             orientation = row[forceActuatorTableOrientationIndex]
 
             self.printTest(f"Verify Force Actuator {self.id}")

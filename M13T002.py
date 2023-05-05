@@ -145,6 +145,8 @@ class M13T002(MTM1M3Test):
             )
         )
 
+        enabled = self.get_enabled_force_actuators()
+
         with click.progressbar(
             forceActuatorTable,
             label=click.style("Actuators", fg="green"),
@@ -155,6 +157,9 @@ class M13T002(MTM1M3Test):
             for actuator in bar:
                 self._actuator_index = actuator[0]
                 self._actuator_id = actuator[1]
+                if enabled[self._actuator_id] is False:
+                    self.printWarning(f"Skipping FA {self._actuator_index}.")
+                    continue
                 if actuator[5] == "DAA":
                     self._secondary_index = secondary
                     secondary += 1
@@ -172,6 +177,7 @@ class M13T002(MTM1M3Test):
                     testPrimary=True,
                     testSecondary=self._secondary_index is not None,
                 )
+                await asyncio.sleep(1)
                 await self.wait_bump_test()
 
         self.assertEqual(self.failed, self.emptyFailed)

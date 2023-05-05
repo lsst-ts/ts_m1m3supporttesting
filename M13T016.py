@@ -129,6 +129,7 @@ class M13T004(MTM1M3Movements):
             "breakaways",
             moved_callback=self._after_movement,
             end_state=MTM1M3.DetailedState.PARKEDENGINEERING,
+            check_forces=False,
         )
 
         await self.shutdown(MTM1M3.DetailedState.PARKEDENGINEERING)
