@@ -25,6 +25,7 @@ import asynctest
 import click
 import numpy as np
 import shutil
+import sys
 import time
 
 from lsst.ts import salobj
@@ -100,6 +101,18 @@ class MTM1M3Test(asynctest.TestCase):
             String to print with error style.
         """
         click.echo(click.style(err, fg="black", bg="red"))
+
+    def print_progress(self, message: str):
+        """Prints tests progress. Ideal for printing data about test progres.
+        Message isn't stored in any log. Only print if running in terminal.
+
+        Parameters
+        ----------
+        message : `str`
+            Message to print,
+        """
+        if sys.stdout.isatty():
+            click.echo(message + "\033[0K\r", nl=False)
 
     def printValues(self, name: str, values: str) -> None:
         """Print values. Pretty format value name and value.
