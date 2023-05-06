@@ -115,18 +115,13 @@ class M13T004(MTM1M3Movements):
             offset(x=-TRAVEL_POSITION, y=-TRAVEL_POSITION, z=-TRAVEL_POSITION),
             offset(rx=+TRAVEL_ROTATION, ry=+TRAVEL_ROTATION),
             offset(rx=-TRAVEL_ROTATION, ry=-TRAVEL_ROTATION),
-            offset(
-                z=+TRAVEL_POSITION, rx=-TRAVEL_ROTATION, ry=-TRAVEL_ROTATION
-            ),
-            offset(
-                z=-TRAVEL_POSITION, rx=+TRAVEL_ROTATION, ry=+TRAVEL_ROTATION
-            ),
+            offset(z=+TRAVEL_POSITION, rx=-TRAVEL_ROTATION, ry=-TRAVEL_ROTATION),
+            offset(z=-TRAVEL_POSITION, rx=+TRAVEL_ROTATION, ry=+TRAVEL_ROTATION),
         ]
 
         await self.do_movements(
             offsets,
-            "M13T-016: Mirror positioning repeatibility after hardpoint "
-            "breakaways",
+            "M13T-016: Mirror positioning repeatibility after hardpoint " "breakaways",
             moved_callback=self._after_movement,
             end_state=MTM1M3.DetailedState.PARKEDENGINEERING,
             check_forces=False,

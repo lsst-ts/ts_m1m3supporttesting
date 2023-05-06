@@ -90,9 +90,7 @@ class M13T002(MTM1M3Test):
                 await asyncio.sleep(0.1)
 
         if primary != 6:
-            click.echo(
-                click.style(f"Failed primary {self._actuator_id}", bg="red", bold=True)
-            )
+            self.printError(f"Failed primary {self._actuator_id}")
             self.failed["primary"].append(self._actuator_id)
 
         if self._secondary_index is None:
@@ -121,11 +119,7 @@ class M13T002(MTM1M3Test):
                 await asyncio.sleep(0.1)
 
         if secondary != 6:
-            click.echo(
-                click.style(
-                    f"Failed secondary {self._actuator_id}", bg="red", bold=True
-                )
-            )
+            self.printError(f"Failed secondary {self._actuator_id}")
             self.failed["secondary"].append(self._actuator_id)
 
     async def test_bump_test(self):
@@ -166,11 +160,8 @@ class M13T002(MTM1M3Test):
                 else:
                     self._secondary_index = None
 
-                click.echo(
-                    click.style(
-                        f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}",
-                        fg="blue",
-                    )
+                self.printTest(
+                    f"Testing actuator ID {self._actuator_id} primary {self._actuator_index}, secondary {self._secondary_index}"
                 )
                 await self.m1m3.cmd_forceActuatorBumpTest.set_start(
                     actuatorId=self._actuator_id,
