@@ -219,7 +219,7 @@ class M13T018(MTM1M3Test):
         # Disable hardpoint corrections to keep forces good
         await self.m1m3.cmd_disableHardpointCorrections.start()
 
-        await self.runActuators(self._test_actuator)
+        await self.run_actuators(self._test_actuator)
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
 
