@@ -29,6 +29,16 @@
 # - Issue start command
 # - Raise Mirror in Active Engineering Mode
 # - Confirm Mirror in Reference Position
+#
+# For surrogate:
+# +X = 5.00mm, -X = -5.75mm
+# +Y = 4.75mm, -Y = -6.50mm
+# +Z = 4.50mm, -Z = -2.60mm
+# Surrogate has different center of gravity, and different geometry. It cannot
+# reach full motion range, as the mirror will touch static supports on sides
+# before achieving the full motion range.
+
+
 # - Follow the motion matrix below, where
 # +X = 6.13mm, -X = 6.13mm,
 # +Y = 6.13mm, -Y = -6.13mm,
@@ -64,31 +74,43 @@ from MTM1M3Movements import MTM1M3Movements, offset
 
 
 TRAVEL_POSITION = 6.13 * u.mm
+POS_X_TRAVEL_POSITION = TRAVEL_POSITION
+NEG_X_TRAVEL_POSITION = -TRAVEL_POSITION
+POS_Y_TRAVEL_POSITION = TRAVEL_POSITION
+NEG_Y_TRAVEL_POSITION = -TRAVEL_POSITION
 POS_Z_TRAVEL_POSITION = 4.07 * u.mm
-NEG_Z_TRAVEL_POSITION = 5.57 * u.mm
+NEG_Z_TRAVEL_POSITION = -5.57 * u.mm
+
+# surrogate
+POS_X_TRAVEL_POSITION = 5.00 * u.mm
+NEG_X_TRAVEL_POSITION = -5.75 * u.mm
+POS_Y_TRAVEL_POSITION = 4.75 * u.mm
+NEG_Y_TRAVEL_POSITION = -6.50 * u.mm
+POS_Z_TRAVEL_POSITION = 4.50 * u.mm
+NEG_Z_TRAVEL_POSITION = -2.60 * u.mm
 
 
 class M13T009(MTM1M3Movements):
     async def test_movements(self):
         offsets = [
-            offset(x=+TRAVEL_POSITION),
-            offset(x=-TRAVEL_POSITION),
-            offset(y=+TRAVEL_POSITION),
-            offset(y=-TRAVEL_POSITION),
+            offset(x=POS_X_TRAVEL_POSITION),
+            offset(x=NEG_X_TRAVEL_POSITION),
+            offset(y=POS_Y_TRAVEL_POSITION),
+            offset(y=NEG_Y_TRAVEL_POSITION),
             offset(z=POS_Z_TRAVEL_POSITION),
             offset(z=NEG_Z_TRAVEL_POSITION),
-            offset(x=+TRAVEL_POSITION, y=+TRAVEL_POSITION),
-            offset(x=+TRAVEL_POSITION, y=-TRAVEL_POSITION),
-            offset(x=-TRAVEL_POSITION, y=+TRAVEL_POSITION),
-            offset(x=-TRAVEL_POSITION, y=-TRAVEL_POSITION),
-            offset(x=+TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
-            offset(x=+TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
-            offset(x=-TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
-            offset(x=-TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
-            offset(y=+TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
-            offset(y=+TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
-            offset(y=-TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
-            offset(y=-TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
+            offset(x=POS_X_TRAVEL_POSITION, y=POS_Y_TRAVEL_POSITION),
+            offset(x=POS_X_TRAVEL_POSITION, y=NEG_Y_TRAVEL_POSITION),
+            offset(x=NEG_X_TRAVEL_POSITION, y=POS_Y_TRAVEL_POSITION),
+            offset(x=NEG_X_TRAVEL_POSITION, y=NEG_Y_TRAVEL_POSITION),
+            offset(x=POS_X_TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(x=POS_X_TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
+            offset(x=NEG_X_TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(x=NEG_X_TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
+            offset(y=POS_Y_TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(y=POS_Y_TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
+            offset(y=NEG_Y_TRAVEL_POSITION, z=POS_Z_TRAVEL_POSITION),
+            offset(y=NEG_Y_TRAVEL_POSITION, z=NEG_Z_TRAVEL_POSITION),
         ]
 
         for m in range(3):
