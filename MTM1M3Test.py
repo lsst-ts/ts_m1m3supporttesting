@@ -25,6 +25,7 @@ import asynctest
 import click
 import numpy as np
 import shutil
+import sys
 import time
 
 from lsst.ts import salobj
@@ -100,6 +101,18 @@ class MTM1M3Test(asynctest.TestCase):
             String to print with error style.
         """
         click.echo(click.style(err, fg="black", bg="red"))
+
+    def print_progress(self, message: str):
+        """Prints tests progress. Ideal for printing data about test progres.
+        Message isn't stored in any log. Only print if running in terminal.
+
+        Parameters
+        ----------
+        message : `str`
+            Message to print,
+        """
+        if sys.stdout.isatty():
+            click.echo(message + "\033[0K\r", nl=False)
 
     def printValues(self, name: str, values: str) -> None:
         """Print values. Pretty format value name and value.
@@ -191,10 +204,22 @@ class MTM1M3Test(asynctest.TestCase):
         ) as bar:
             startTime = time.monotonic()
             while time.monotonic() - startTime < 360:
-                await asyncio.sleep(0.1)
-                sp = self.m1m3.evt_forceActuatorState.get()
+                if pct == 100:
+                    await asyncio.sleep(0.5)
+                else:
+                    try:
+                        sp = await self.m1m3.evt_raisingLoweringInfo.next(
+                            flush=False, timeout=60
+                        )
+                    except asyncio.TimeoutError:
+                        self.printError(
+                            "Cannot retrieve raisingLowering message after mirror was commanded to raise"
+                        )
+                        continue
                 ims = self.m1m3.tel_imsData.get()
-                pct = sp.supportPercentage
+                pct = sp.weightSupportedPercent
+                if pct == 100.0:
+                    bar.update(100)
                 diff = pct - lastPercents
                 if diff > 0.1:
                     bar.update(diff)
@@ -248,9 +273,9 @@ class MTM1M3Test(asynctest.TestCase):
             startTime = time.monotonic()
             while time.monotonic() - startTime < 300:
                 await asyncio.sleep(0.1)
-                sp = self.m1m3.evt_forceActuatorState.get()
+                sp = self.m1m3.evt_raisingLoweringInfo.get()
                 ims = self.m1m3.tel_imsData.get()
-                pct = sp.supportPercentage
+                pct = sp.weightSupportedPercent
                 diff = lastPercents - pct
                 if diff > 0.1:
                     bar.update(diff)
@@ -414,7 +439,6 @@ class MTM1M3Test(asynctest.TestCase):
             currentState = await self._lowering()
 
         with click.progressbar(range(4), label="Shutdown", width=0) as bar:
-
             if currentState == MTM1M3.DetailedState.PARKEDENGINEERING:
                 if target == MTM1M3.DetailedState.PARKEDENGINEERING:
                     return
