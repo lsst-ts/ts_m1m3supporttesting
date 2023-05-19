@@ -43,16 +43,27 @@
 # - Transition from active engineering state to standby
 ########################################################################
 
-from ForceActuatorTable import *
-from MTM1M3Test import *
-
-from lsst.ts.idl.enums import MTM1M3
-
 import asyncio
+from datetime import datetime, timezone
+import time
+
 import asynctest
 import click
-import time
 import numpy as np
+from lsst.ts.cRIOpy.M1M3FATable import (
+    FATABLE,
+    FATABLE_ID,
+    FATABLE_INDEX,
+    FATABLE_XFA,
+    FATABLE_XINDEX,
+    FATABLE_YFA,
+    FATABLE_YINDEX,
+    FATABLE_ZFA,
+    FATABLE_ZINDEX,
+)
+from lsst.ts.idl.enums import MTM1M3
+
+from MTM1M3Test import MTM1M3Test
 
 TEST_FORCE = 222.0
 TEST_SETTLE_TIME = 3.0
@@ -60,168 +71,271 @@ TEST_TOLERANCE = 5.0
 TEST_SAMPLES_TO_AVERAGE = 10
 
 
+class FATestAttempt:
+    def __init__(self, measured, baseline, expected):
+        self.measured = measured
+        self.baseline = baseline
+        self.error = measured - baseline
+        self.expected = expected
+        self.passed = abs(expected - self.error) < TEST_TOLERANCE
+
+    def __str__(self) -> str:
+        return f"measured: {self.measured:.02f} N baseline: {self.baseline:.02f} N error: {self.error:.02f} N expected: {self.expected:.02f} N"
+
+
+class FATest:
+    def __init__(self, index: int, actuator_id: int, orientation: str) -> None:
+        self.index = index
+        self.actuator_id = actuator_id
+        self.orientation = orientation
+
+        self.tries = []
+
+    def add_test(self, test: FATestAttempt) -> None:
+        self.tries.append(test)
+
+    def print_failed(self) -> None:
+        failed = [tried for tried in self.tries if tried.passed == False]
+        for fail in failed:
+            print(f"{self.actuator_id} ({self.orientation}{self.index}) : {fail}")
+
+    def clear(self) -> None:
+        self.tries = []
+
+
 class M13T018(MTM1M3Test):
     async def _test_actuator(self, fa_type, fa_id):
         # Prepare force data
-        xForces = [0] * 12
-        yForces = [0] * 100
-        zForces = [0] * 156
+        xForces = [0] * FATABLE_XFA
+        yForces = [0] * FATABLE_YFA
+        zForces = [0] * FATABLE_ZFA
 
-        with click.progressbar(
-            length=9,
-            label=f"Bump testing {self.id} ({fa_type}{fa_id})",
-            width=0,
-            item_show_func=lambda i: "Starting"
-            if i is None
-            else [
-                "Collecting baseline",
-                "Push",
-                "Checking push",
-                "Zero after push",
-                "Checking baseline",
-                "Pull",
-                "Checking after pull",
-                "Zero after push",
-                "Checking baseline",
-            ][i],
-        ) as bar:
-            bar.update(1)
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - collecting baseline"
+        )
 
-            # Get pre application force
-            data = await self.sampleData(
-                "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+        await self.m1m3.cmd_clearOffsetForces.start()
+
+        await asyncio.sleep(3)
+
+        # Get pre application force
+        data = await self.sampleData(
+            "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
+        )
+        self.printCode(
+            f"Baseline at {datetime.now(timezone.utc).isoformat()} timestamps: {data[0].timestamp} {data[-1].timestamp}"
+        )
+        baseline = self.average(data, ("xForce", "yForce", "zForce"))
+
+        x_tests = [
+            FATest(row[FATABLE_XINDEX], row[FATABLE_ID], "X")
+            for row in FATABLE
+            if row[FATABLE_XINDEX] is not None
+        ]
+        y_tests = [
+            FATest(row[FATABLE_YINDEX], row[FATABLE_ID], "Y")
+            for row in FATABLE
+            if row[FATABLE_YINDEX] is not None
+        ]
+        z_tests = [
+            FATest(row[FATABLE_ZINDEX], row[FATABLE_ID], "Z")
+            for row in FATABLE
+            if row[FATABLE_ZINDEX] is not None
+        ]
+
+        def print_failed():
+            for test in x_tests:
+                test.print_failed()
+            for test in y_tests:
+                test.print_failed()
+            for test in z_tests:
+                test.print_failed()
+
+        def clear_tests():
+            for test in x_tests:
+                test.clear()
+            for test in y_tests:
+                test.clear()
+            for test in z_tests:
+                test.clear()
+
+        def set_force(force):
+            if fa_type == "X":
+                xForces[fa_id] = force
+            elif fa_type == "Y":
+                yForces[fa_id] = force
+            elif fa_type == "Z":
+                zForces[fa_id] = force
+            else:
+                raise RuntimeError(f"Invalid FA type (only XYZ accepted): {fa_type}")
+
+        async def apply_and_verify(force):
+            set_force(force)
+
+            if force == 0:
+                await self.m1m3.cmd_clearOffsetForces.start()
+            else:
+                # Apply the offset forces
+                await self.m1m3.cmd_applyOffsetForces.set_start(
+                    xForces=xForces, yForces=yForces, zForces=zForces
+                )
+
+            await asyncio.sleep(0.7)
+
+            data = self.m1m3.evt_appliedOffsetForces.get()
+
+            self.assertFalse(
+                data is None, msg="Cannot retrieve evt_appliedOffsetForces"
             )
-            baseline = self.average(data, ("xForce", "yForce", "zForce"))
 
-            def setForce(force):
-                if fa_type == "X":
-                    xForces[fa_id] = force
-                elif fa_type == "Y":
-                    yForces[fa_id] = force
-                elif fa_type == "Z":
-                    zForces[fa_id] = force
-                else:
-                    raise RuntimeError(
-                        f"Invalid FA type (only XYZ accepted): {fa_type}"
-                    )
+            self.assertListAlmostEqual(
+                data.xForces,
+                xForces,
+                delta=TEST_TOLERANCE,
+                msg="Applied X offsets doesn't match.",
+            )
+            self.assertListAlmostEqual(
+                data.yForces,
+                yForces,
+                delta=TEST_TOLERANCE,
+                msg="Applied Y offsets doesn't match.",
+            )
+            self.assertListAlmostEqual(
+                data.zForces,
+                zForces,
+                delta=TEST_TOLERANCE,
+                msg="Applied Z offsets doesn't match.",
+            )
 
-            async def applyAndVerify(force):
-                setForce(force)
+        async def verify_measured():
+            test_started = time.monotonic()
+            failed = 0
+            clear_tests()
+            duration = 0
 
-                if force == 0:
-                    await self.m1m3.cmd_clearOffsetForces.start()
-                else:
-                    # Apply the offset forces
-                    await self.m1m3.cmd_applyOffsetForces.set_start(
-                        xForces=xForces, yForces=yForces, zForces=zForces
-                    )
-
-                await asyncio.sleep(0.3)
-
-                bar.update(1)
-
-                data = self.m1m3.evt_appliedOffsetForces.get()
-
-                self.assertFalse(
-                    data is None, msg="Cannot retrieve evt_appliedOffsetForces"
+            while duration < TEST_SETTLE_TIME * 4:
+                data = await self.sampleData(
+                    "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
                 )
+                duration = time.monotonic() - test_started
+                averages = self.average(data, ("xForce", "yForce", "zForce"))
 
-                self.assertListAlmostEqual(
-                    data.xForces,
-                    xForces,
-                    delta=TEST_TOLERANCE,
-                    msg="Applied X offsets doesn't match.",
-                )
-                self.assertListAlmostEqual(
-                    data.yForces,
-                    yForces,
-                    delta=TEST_TOLERANCE,
-                    msg="Applied Y offsets doesn't match.",
-                )
-                self.assertListAlmostEqual(
-                    data.zForces,
-                    zForces,
-                    delta=TEST_TOLERANCE,
-                    msg="Applied Z offsets doesn't match.",
-                )
+                last_failed = failed
 
-                bar.update(1)
-
-            async def verifyMeasured():
-                test_started = time.monotonic()
-                duration = 0
-                failed = 0
-
-                while duration < TEST_SETTLE_TIME * 4:
-                    data = await self.sampleData(
-                        "tel_forceActuatorData", None, TEST_SAMPLES_TO_AVERAGE
-                    )
-                    duration = time.monotonic() - test_started
-                    averages = self.average(data, ("xForce", "yForce", "zForce"))
-
-                    if (
-                        np.allclose(
-                            np.array(averages["xForce"]) - np.array(baseline["xForce"]),
-                            xForces,
-                            atol=TEST_TOLERANCE,
+                for actuator in FATABLE:
+                    x_index = actuator[FATABLE_XINDEX]
+                    if x_index is not None:
+                        attempt = FATestAttempt(
+                            averages["xForce"][x_index],
+                            baseline["xForce"][x_index],
+                            xForces[x_index],
                         )
-                        and np.allclose(
-                            np.array(averages["yForce"]) - np.array(baseline["yForce"]),
-                            yForces,
-                            atol=TEST_TOLERANCE,
-                        )
-                        and np.allclose(
-                            np.array(averages["zForce"]) - np.array(baseline["zForce"]),
-                            zForces,
-                            atol=TEST_TOLERANCE,
-                        )
-                    ):
-                        if duration > TEST_SETTLE_TIME:
-                            break
-                    else:
-                        failed += 1
+                        if not (attempt.passed):
+                            failed += 1
+                        x_tests[x_index].add_test(attempt)
 
-                self.assertLessEqual(
-                    duration,
-                    TEST_SETTLE_TIME * 4,
-                    msg=f"Actuator {self.id} ({fa_type}{fa_id}) tooks {duration:.02f}s and wasn't settled, failed {failed} times",
+                    y_index = actuator[FATABLE_YINDEX]
+                    if y_index is not None:
+                        attempt = FATestAttempt(
+                            averages["yForce"][y_index],
+                            baseline["yForce"][y_index],
+                            yForces[y_index],
+                        )
+                        if not (attempt.passed):
+                            failed += 1
+                        y_tests[y_index].add_test(attempt)
+
+                    z_index = actuator[FATABLE_ZINDEX]
+                    if z_index is not None:
+                        attempt = FATestAttempt(
+                            averages["zForce"][z_index],
+                            baseline["zForce"][z_index],
+                            zForces[z_index],
+                        )
+                        if not (attempt.passed):
+                            failed += 1
+                        z_tests[z_index].add_test(attempt)
+
+                if failed == last_failed:
+                    break
+
+            if duration > TEST_SETTLE_TIME * 4:
+                self.printError(
+                    f"When testing actuator {self.id} ({fa_type}{fa_id}), it tooks {duration:.02f}s and wasn't settled, noticed {failed} failures listed below:"
                 )
+                self.failedFAs.append(f"{fa_type}{fa_id} - {self.id}")
+                print_failed()
 
-                if duration > TEST_SETTLE_TIME + 1:
-                    self.printWarning(
-                        f"Actuator {self.id} ({fa_type}{fa_id}) tooks {duration:.02f}s to settled down, failed {failed} times"
-                    )
-                elif failed > 0:
-                    self.printTest(
-                        f"Actuator {self.id} ({fa_type}{fa_id}) failed {failed} times before settling down"
-                    )
+            elif duration > TEST_SETTLE_TIME + 1:
+                self.printWarning(
+                    f"When testing actuator {self.id} ({fa_type}{fa_id}), it  tooks {duration:.02f}s to settled down, noticed {failed} failures listed below"
+                )
+                print_failed()
+            elif failed > 0:
+                self.printTest(
+                    f"When testing actuator {self.id} ({fa_type}{fa_id}), noticed {failed} failures before settling down - they are listed below:"
+                )
+                print_failed()
 
-            await applyAndVerify(0)
-            await verifyMeasured()
+        self.print_progress(f"Bump testing {self.id} ({fa_type}{fa_id}) - 1st zero")
+        await apply_and_verify(0)
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - verify 1st zero"
+        )
+        await verify_measured()
 
-            await applyAndVerify(TEST_FORCE)
-            await verifyMeasured()
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - {TEST_FORCE} N"
+        )
+        await apply_and_verify(TEST_FORCE)
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - verify {TEST_FORCE} N"
+        )
+        await verify_measured()
 
-            await applyAndVerify(0)
-            await verifyMeasured()
+        self.print_progress(f"Bump testing {self.id} ({fa_type}{fa_id}) - 2nd zero")
+        await apply_and_verify(0)
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - verify 2nd zero"
+        )
+        await verify_measured()
 
-            await applyAndVerify(-TEST_FORCE)
-            await verifyMeasured()
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - {-TEST_FORCE} N"
+        )
+        await apply_and_verify(-TEST_FORCE)
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - verify {-TEST_FORCE} N"
+        )
+        await verify_measured()
 
-            await applyAndVerify(0)
-            await verifyMeasured()
+        self.print_progress(f"Bump testing {self.id} ({fa_type}{fa_id}) - final zero")
+        await apply_and_verify(0)
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - verify final zero"
+        )
+        await verify_measured()
+        self.print_progress(
+            f"Bump testing {self.id} ({fa_type}{fa_id}) - finished", True
+        )
 
     async def test_bump_raised(self):
         self.printHeader("M13T-018: Bump Test Raised")
+
+        self.failedFAs = []
 
         await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
 
         # Disable hardpoint corrections to keep forces good
         await self.m1m3.cmd_disableHardpointCorrections.start()
 
+        await asyncio.sleep(10)
+
         await self.run_actuators(self._test_actuator)
 
         await self.shutdown(MTM1M3.DetailedState.STANDBY)
+
+        self.assertEqual(self.failedFAs, [])
 
 
 if __name__ == "__main__":

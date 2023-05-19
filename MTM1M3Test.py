@@ -19,24 +19,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import astropy.units as u
 import asyncio
-import asynctest
-import click
-import numpy as np
 import shutil
 import sys
 import time
 
+import astropy.units as u
+import asynctest
+import click
+import numpy as np
 from lsst.ts import salobj
-from lsst.ts.idl.enums import MTM1M3
-
-from ForceActuatorTable import (
-    forceActuatorTable,
-    forceActuatorTableIndexIndex,
-    forceActuatorTableIDIndex,
-    forceActuatorTableOrientationIndex,
+from lsst.ts.cRIOpy.M1M3FATable import (
+    FATABLE,
+    FATABLE_ID,
+    FATABLE_INDEX,
+    FATABLE_XINDEX,
+    FATABLE_YINDEX,
 )
+from lsst.ts.idl.enums import MTM1M3
 
 __all__ = ["MTM1M3Test"]
 
@@ -102,17 +102,19 @@ class MTM1M3Test(asynctest.TestCase):
         """
         click.echo(click.style(err, fg="black", bg="red"))
 
-    def print_progress(self, message: str):
+    def print_progress(self, message: str, final: bool = False) -> None:
         """Prints tests progress. Ideal for printing data about test progres.
         Message isn't stored in any log. Only print if running in terminal.
 
         Parameters
         ----------
         message : `str`
-            Message to print,
+            Message to print.
+        final: `bool`
+            True if that's a final message.
         """
         if sys.stdout.isatty():
-            click.echo(message + "\033[0K\r", nl=False)
+            click.echo(message + "\033[0K\r", nl=final)
 
     def printValues(self, name: str, values: str) -> None:
         """Print values. Pretty format value name and value.
@@ -590,22 +592,20 @@ class MTM1M3Test(asynctest.TestCase):
         enabled = self.get_enabled_force_actuators()
 
         # Iterate through all 156 force actuators
-        for row in forceActuatorTable:
-            z = row[forceActuatorTableIndexIndex]
-            self.id = row[forceActuatorTableIDIndex]
+        for row in FATABLE:
+            z = row[FATABLE_INDEX]
+            self.id = row[FATABLE_ID]
             if enabled[z] is False:
                 self.printWarning(f"Skipping FA index {z} ID {self.id}")
                 continue
-            orientation = row[forceActuatorTableOrientationIndex]
-
             self.printTest(f"Verify Force Actuator {self.id}")
 
             # Run X tests for DDA X
-            if orientation in ["+X", "-X"]:
+            if row[FATABLE_XINDEX] is not None:
                 await function("X", x)
                 x += 1
             # Run Y tests for DDA Y
-            elif orientation in ["+Y", "-Y"]:
+            elif row[FATABLE_YINDEX] is not None:
                 await function("Y", y)
                 y += 1
 

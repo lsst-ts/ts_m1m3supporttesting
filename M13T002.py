@@ -173,7 +173,7 @@ class M13T002(MTM1M3Test):
 
         for actuator in FATABLE:
             if enabled[actuator[FATABLE_INDEX]] is False:
-                self.printWarning(f"Skipping FA {self._actuator_index}.")
+                self.printWarning(f"Skipping FA {actuator[FATABLE_ID]} ({actuator[FATABLE_INDEX]}).")
                 continue
 
             await self._test_actuator(actuator)
