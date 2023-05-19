@@ -159,7 +159,7 @@ class M13T018(MTM1M3Test):
             for test in z_tests:
                 test.clear()
 
-        def setForce(force):
+        def set_force(force):
             if fa_type == "X":
                 xForces[fa_id] = force
             elif fa_type == "Y":
@@ -169,8 +169,8 @@ class M13T018(MTM1M3Test):
             else:
                 raise RuntimeError(f"Invalid FA type (only XYZ accepted): {fa_type}")
 
-        async def applyAndVerify(force):
-            setForce(force)
+        async def apply_and_verify(force):
+            set_force(force)
 
             if force == 0:
                 await self.m1m3.cmd_clearOffsetForces.start()
@@ -207,7 +207,7 @@ class M13T018(MTM1M3Test):
                 msg="Applied Z offsets doesn't match.",
             )
 
-        async def verifyMeasured():
+        async def verify_measured():
             test_started = time.monotonic()
             failed = 0
             clear_tests()
@@ -278,43 +278,43 @@ class M13T018(MTM1M3Test):
                 print_failed()
 
         self.print_progress(f"Bump testing {self.id} ({fa_type}{fa_id}) - 1st zero")
-        await applyAndVerify(0)
+        await apply_and_verify(0)
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - verify 1st zero"
         )
-        await verifyMeasured()
+        await verify_measured()
 
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - {TEST_FORCE} N"
         )
-        await applyAndVerify(TEST_FORCE)
+        await apply_and_verify(TEST_FORCE)
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - verify {TEST_FORCE} N"
         )
-        await verifyMeasured()
+        await verify_measured()
 
         self.print_progress(f"Bump testing {self.id} ({fa_type}{fa_id}) - 2nd zero")
-        await applyAndVerify(0)
+        await apply_and_verify(0)
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - verify 2nd zero"
         )
-        await verifyMeasured()
+        await verify_measured()
 
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - {-TEST_FORCE} N"
         )
-        await applyAndVerify(-TEST_FORCE)
+        await apply_and_verify(-TEST_FORCE)
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - verify {-TEST_FORCE} N"
         )
-        await verifyMeasured()
+        await verify_measured()
 
         self.print_progress(f"Bump testing {self.id} ({fa_type}{fa_id}) - final zero")
-        await applyAndVerify(0)
+        await apply_and_verify(0)
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - verify final zero"
         )
-        await verifyMeasured()
+        await verify_measured()
         self.print_progress(
             f"Bump testing {self.id} ({fa_type}{fa_id}) - finished", True
         )
