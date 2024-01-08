@@ -65,13 +65,12 @@
 # - Transition back to standby
 ########################################################################
 
-import astropy.units as u
-import asynctest
+import unittest
 
+import astropy.units as u
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import MTM1M3Movements, offset
-
 
 TRAVEL_POSITION = 6.13 * u.mm
 POS_X_TRAVEL_POSITION = TRAVEL_POSITION
@@ -124,4 +123,4 @@ class M13T009(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

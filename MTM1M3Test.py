@@ -23,9 +23,9 @@ import asyncio
 import shutil
 import sys
 import time
+import unittest
 
 import astropy.units as u
-import asynctest
 import click
 import numpy as np
 from lsst.ts import salobj
@@ -37,13 +37,13 @@ __all__ = ["MTM1M3Test"]
 M2UM = u.m.to(u.um)
 
 
-class MTM1M3Test(asynctest.TestCase):
+class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
     """Common parent of M1M3 tests.
 
-    Provides setUp and tearDown methods to create connection to M1M3. `startup`
-    and `shutdown` methods can be used to progress mirror to a given state.
-    Also contains functions to collect measurements during tests, and prints
-    tests progress.
+    Provides asyncSetUp and asyncTearDown methods to create connection to M1M3.
+    `startup` and `shutdown` methods can be used to progress mirror to a given
+    state. Also contains functions to collect measurements during tests, and
+    prints tests progress.
     """
 
     def printHeader(self, header):
@@ -122,8 +122,8 @@ class MTM1M3Test(asynctest.TestCase):
         """
         click.echo(click.style(name, fg="green") + values)
 
-    async def setUp(self):
-        """Setup tests. This methods is being called by asynctest.TestCase
+    async def asyncSetUp(self):
+        """Setup tests. This methods is being called by unittest.TestCase
         before any test (test_XX) method is called. Creates connections to
         MTM1M3."""
         self.domain = salobj.Domain()
@@ -132,8 +132,8 @@ class MTM1M3Test(asynctest.TestCase):
         self.max_raising_rate = 0
         self.max_lowering_rate = 0
 
-    async def tearDown(self):
-        """Called by asynctest.TestCase after test is done. Correctly closes
+    async def asyncTearDown(self):
+        """Called by unittest.TestCase after test is done. Correctly closes
         salobj objects."""
         await self.m1m3.close()
         await self.domain.close()

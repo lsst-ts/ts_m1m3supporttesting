@@ -44,13 +44,14 @@
 ########################################################################
 
 import asyncio
-import asynctest
-import click
 import time
+import unittest
+
+import click
+from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.xml.tables.m1m3 import FATable
 
 from MTM1M3Test import MTM1M3Test
-from lsst.ts.xml.tables.m1m3 import FATable
-from lsst.ts.idl.enums import MTM1M3
 
 
 class M13T002(MTM1M3Test):
@@ -58,7 +59,7 @@ class M13T002(MTM1M3Test):
     # 20 sec nominal
     TIMEOUT = 40
 
-    async def setUp(self):
+    async def asyncSetUp(self):
         await super().setUp()
         self.failed = {"primary": [], "secondary": []}
         self.emptyFailed = self.failed
@@ -168,7 +169,9 @@ class M13T002(MTM1M3Test):
 
         for actuator in FATable:
             if enabled[actuator.index] is False:
-                self.printWarning(f"Skipping FA {actuator.actuator_id} ({actuator.index}).")
+                self.printWarning(
+                    f"Skipping FA {actuator.actuator_id} ({actuator.index})."
+                )
                 continue
 
             await self._test_actuator(actuator)
@@ -177,4 +180,4 @@ class M13T002(MTM1M3Test):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

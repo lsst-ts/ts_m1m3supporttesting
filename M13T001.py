@@ -33,10 +33,11 @@
 # - Transition back to standby
 ########################################################################
 
-from MTM1M3Test import *
+import unittest
+
 from lsst.ts.idl.enums import MTM1M3
 
-import asynctest
+from MTM1M3Test import *
 
 
 class M13T001(MTM1M3Test):
@@ -86,4 +87,4 @@ class M13T001(MTM1M3Test):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

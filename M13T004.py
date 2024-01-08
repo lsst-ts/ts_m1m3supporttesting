@@ -40,8 +40,8 @@
 ########################################################################
 
 import asyncio
+import unittest
 
-import asynctest
 import click
 from lsst.ts.idl.enums import MTM1M3
 
@@ -65,4 +65,4 @@ class M13T004(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

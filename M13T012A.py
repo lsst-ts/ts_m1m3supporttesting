@@ -46,10 +46,10 @@
 # - Transition back to standby
 ########################################################################
 
-import astropy.units as u
-import asynctest
 import random
+import unittest
 
+import astropy.units as u
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import MTM1M3Movements, offset
@@ -119,4 +119,4 @@ class M13T012A(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

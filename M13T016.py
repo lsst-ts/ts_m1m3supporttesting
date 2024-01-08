@@ -40,10 +40,10 @@
 # - Repeat 3x
 ########################################################################
 
+import unittest
 from datetime import datetime
 
 import astropy.units as u
-import asynctest
 import click
 from lsst.ts.idl.enums import MTM1M3
 
@@ -54,7 +54,7 @@ TRAVEL_ROTATION = 5 * u.arcsec
 
 
 class M13T004(MTM1M3Movements):
-    async def setUp(self):
+    async def asyncSetUp(self):
         await super().setUp()
         self.step = 1
 
@@ -146,4 +146,4 @@ class M13T004(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

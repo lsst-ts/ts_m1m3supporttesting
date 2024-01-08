@@ -161,7 +161,7 @@ class MTM1M3Movements(MTM1M3Test):
 
     IMS_OFFSETS = [0] * 6
 
-    async def tearDown(self):
+    async def asyncTearDown(self):
         if self.LOG_FILE is not None:
             self.close_log_file()
         await super().tearDown()

@@ -48,18 +48,17 @@
 ########################################################################
 
 import asyncio
-import asynctest
+import unittest
 
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Test import MTM1M3Test
 from ForceActuatorTable import (
-    forceActuatorTable,
-    forceActuatorTableIndexIndex,
-    forceActuatorTableIDIndex,
     actuatorIDToIndex,
+    forceActuatorTable,
+    forceActuatorTableIDIndex,
+    forceActuatorTableIndexIndex,
 )
-
+from MTM1M3Test import MTM1M3Test
 
 MIRROR_WEIGHT = 170000.0
 TEST_FORCE = (MIRROR_WEIGHT / 156) + 50
@@ -228,8 +227,7 @@ NEIGHBOR_TABLE = [
 class M13T028(MTM1M3Test):
     async def test_nearest_neighbors(self):
         self.printHeader(
-            "M13T-028: Actuator to Actuator Force Delta for 6 nearest "
-            "neighbors"
+            "M13T-028: Actuator to Actuator Force Delta for 6 nearest " "neighbors"
         )
 
         self.printError(
@@ -394,4 +392,4 @@ running the CSC.
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

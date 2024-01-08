@@ -56,15 +56,15 @@
 ########################################################################
 
 import asyncio
-import asynctest
-import astropy.units as u
+import unittest
 from datetime import datetime
 
+import astropy.units as u
 from lsst.ts import salobj
+from lsst.ts.criopy.VMS import Collector
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import MTM1M3Movements, offset
-from lsst.ts.criopy.VMS import Collector
 
 TRAVEL_POSITION = 1 * u.mm
 SETTLE_TIME = 3.0
@@ -97,7 +97,8 @@ class M13T011(MTM1M3Movements):
                 imsData.zRotation,
                 ", ".join(imsData.rawSensorData),
                 ", ".join(position),
-                file=self.IMS_FILE, sep=","
+                file=self.IMS_FILE,
+                sep=",",
             )
             self.IMS_FILE.flush()
 
@@ -128,9 +129,7 @@ class M13T011(MTM1M3Movements):
         ]
 
         # Start collector
-        self.tasks.append(
-            asyncio.create_task(self.collector.collect_data(False))
-        )
+        self.tasks.append(asyncio.create_task(self.collector.collect_data(False)))
 
         # The matrix need to be tested 3 times
         for i in range(3):
@@ -153,16 +152,13 @@ class M13T011(MTM1M3Movements):
         self.IMS_FILE = self.openCSV("M13T012-IMS")
 
         print(
-            "Timestamp,xPosition,yPosition,zPosition,"
-            "xRotation,yRotation,zRotation",
+            "Timestamp,xPosition,yPosition,zPosition," "xRotation,yRotation,zRotation",
             file=self.IMS_FILE,
         )
 
         self.collector = Collector(
             1,
-            "M13T012-VMS-"
-            + datetime.now().strftime("%Y-%m-%dT%T")
-            + ".${ext}",
+            "M13T012-VMS-" + datetime.now().strftime("%Y-%m-%dT%T") + ".${ext}",
         )
 
         self.tasks = []
@@ -175,4 +171,4 @@ class M13T011(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

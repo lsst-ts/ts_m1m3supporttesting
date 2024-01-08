@@ -44,14 +44,14 @@
 ########################################################################
 
 import asyncio
-from datetime import datetime, timezone
 import time
+import unittest
+from datetime import datetime, timezone
 
-import asynctest
 import click
 import numpy as np
-from lsst.ts.xml.tables.m1m3 import FATable, FATABLE_XFA, FATABLE_YFA, FATABLE_ZFA
 from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.xml.tables.m1m3 import FATABLE_XFA, FATABLE_YFA, FATABLE_ZFA, FATable
 
 from MTM1M3Test import MTM1M3Test
 
@@ -329,4 +329,4 @@ class M13T018(MTM1M3Test):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

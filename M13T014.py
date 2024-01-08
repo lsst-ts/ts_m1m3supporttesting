@@ -28,12 +28,13 @@
 # Steps:
 ########################################################################
 
-from MTM1M3Movements import *
-from lsst.ts.idl.enums import MTM1M3
-import CalculateBendingModeForces
-
 import asyncio
-import asynctest
+import unittest
+
+from lsst.ts.idl.enums import MTM1M3
+
+import CalculateBendingModeForces
+from MTM1M3Movements import *
 
 TEST_SETTLE_TIME = 3.0
 TEST_TOLERANCE = 0.1  # N
@@ -177,4 +178,4 @@ class M13T014(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()
