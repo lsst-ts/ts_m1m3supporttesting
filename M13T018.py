@@ -333,7 +333,7 @@ class M13T018(MTM1M3Test):
 
         await self.run_actuators(self._test_actuator)
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedState.ACTIVE)
 
         self.assertEqual(self.failedFAs, [])
 

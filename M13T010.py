@@ -126,9 +126,7 @@ class M13T010(MTM1M3Movements):
             await self.do_movements(
                 offsets,
                 "M13T-010: Position System Requirements",
-                end_state=MTM1M3.DetailedState.PARKED
-                if m == 3
-                else MTM1M3.DetailedState.ACTIVEENGINEERING,
+                end_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
                 check_forces=False,
             )
 
