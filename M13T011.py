@@ -64,7 +64,7 @@ from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import MTM1M3Movements, offset
-from lsst.ts.cRIOpy.VMS import Collector
+from lsst.ts.criopy.VMS import Collector
 
 TRAVEL_POSITION = 1 * u.mm
 SETTLE_TIME = 3.0

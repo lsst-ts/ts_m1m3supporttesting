@@ -49,12 +49,7 @@ import click
 import time
 
 from MTM1M3Test import MTM1M3Test
-from lsst.ts.cRIOpy.M1M3FATable import (
-    FATABLE,
-    FATABLE_ID,
-    FATABLE_INDEX,
-    FATABLE_SINDEX,
-)
+from lsst.ts.xml.tables.m1m3 import FATable
 from lsst.ts.idl.enums import MTM1M3
 
 
@@ -142,9 +137,9 @@ class M13T002(MTM1M3Test):
         self.failed["primary" if primary else "secondary"].append(actuator_id)
 
     async def _test_actuator(self, actuator):
-        actuator_index = actuator[FATABLE_INDEX]
-        actuator_id = actuator[FATABLE_ID]
-        secondary_index = actuator[FATABLE_SINDEX]
+        actuator_index = actuator.index
+        actuator_id = actuator.actuator_id
+        secondary_index = actuator.s_index
 
         self.printHeader(
             f"Testing {'SAA' if secondary_index is None else 'DAA'} actuator {actuator_id} ({actuator_index})"
@@ -155,7 +150,7 @@ class M13T002(MTM1M3Test):
             await self._test_cylinder(actuator_id, secondary_index, False)
 
     async def test_bump_test(self):
-        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         with click.progressbar(range(200), label="Waiting for mirror", width=0) as bar:
             for b in bar:
@@ -171,9 +166,9 @@ class M13T002(MTM1M3Test):
 
         enabled = self.get_enabled_force_actuators()
 
-        for actuator in FATABLE:
-            if enabled[actuator[FATABLE_INDEX]] is False:
-                self.printWarning(f"Skipping FA {actuator[FATABLE_ID]} ({actuator[FATABLE_INDEX]}).")
+        for actuator in FATable:
+            if enabled[actuator.index] is False:
+                self.printWarning(f"Skipping FA {actuator.actuator_id} ({actuator.index}).")
                 continue
 
             await self._test_actuator(actuator)

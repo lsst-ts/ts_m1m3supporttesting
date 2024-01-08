@@ -50,17 +50,7 @@ import time
 import asynctest
 import click
 import numpy as np
-from lsst.ts.cRIOpy.M1M3FATable import (
-    FATABLE,
-    FATABLE_ID,
-    FATABLE_INDEX,
-    FATABLE_XFA,
-    FATABLE_XINDEX,
-    FATABLE_YFA,
-    FATABLE_YINDEX,
-    FATABLE_ZFA,
-    FATABLE_ZINDEX,
-)
+from lsst.ts.xml.tables.m1m3 import FATable, FATABLE_XFA, FATABLE_YFA, FATABLE_ZFA
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Test import MTM1M3Test
@@ -128,19 +118,19 @@ class M13T018(MTM1M3Test):
         baseline = self.average(data, ("xForce", "yForce", "zForce"))
 
         x_tests = [
-            FATest(row[FATABLE_XINDEX], row[FATABLE_ID], "X")
-            for row in FATABLE
-            if row[FATABLE_XINDEX] is not None
+            FATest(row.x_index, row.actuator_id, "X")
+            for row in FATable
+            if row.x_index is not None
         ]
         y_tests = [
-            FATest(row[FATABLE_YINDEX], row[FATABLE_ID], "Y")
-            for row in FATABLE
-            if row[FATABLE_YINDEX] is not None
+            FATest(row.y_index, row.actuator_id, "Y")
+            for row in FATable
+            if row.y_index is not None
         ]
         z_tests = [
-            FATest(row[FATABLE_ZINDEX], row[FATABLE_ID], "Z")
-            for row in FATABLE
-            if row[FATABLE_ZINDEX] is not None
+            FATest(row.z_index, row.actuator_id, "Z")
+            for row in FATable
+            if row.z_index is not None
         ]
 
         def print_failed():
@@ -222,8 +212,8 @@ class M13T018(MTM1M3Test):
 
                 last_failed = failed
 
-                for actuator in FATABLE:
-                    x_index = actuator[FATABLE_XINDEX]
+                for actuator in FATable:
+                    x_index = actuator.x_index
                     if x_index is not None:
                         attempt = FATestAttempt(
                             averages["xForce"][x_index],
@@ -234,7 +224,7 @@ class M13T018(MTM1M3Test):
                             failed += 1
                         x_tests[x_index].add_test(attempt)
 
-                    y_index = actuator[FATABLE_YINDEX]
+                    y_index = actuator.y_index
                     if y_index is not None:
                         attempt = FATestAttempt(
                             averages["yForce"][y_index],
@@ -245,7 +235,7 @@ class M13T018(MTM1M3Test):
                             failed += 1
                         y_tests[y_index].add_test(attempt)
 
-                    z_index = actuator[FATABLE_ZINDEX]
+                    z_index = actuator.z_index
                     if z_index is not None:
                         attempt = FATestAttempt(
                             averages["zForce"][z_index],
@@ -324,7 +314,7 @@ class M13T018(MTM1M3Test):
 
         self.failedFAs = []
 
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         # Disable hardpoint corrections to keep forces good
         await self.m1m3.cmd_disableHardpointCorrections.start()
@@ -333,7 +323,7 @@ class M13T018(MTM1M3Test):
 
         await self.run_actuators(self._test_actuator)
 
-        await self.shutdown(MTM1M3.DetailedState.ACTIVE)
+        await self.shutdown(MTM1M3.DetailedStates.ACTIVE)
 
         self.assertEqual(self.failedFAs, [])
 
