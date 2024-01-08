@@ -34,14 +34,14 @@ import unittest
 from lsst.ts.idl.enums import MTM1M3
 
 import CalculateBendingModeForces
-from MTM1M3Movements import *
+from MTM1M3Movements import MTM1M3Movements
 
 TEST_SETTLE_TIME = 3.0
 TEST_TOLERANCE = 0.1  # N
 
 
 class M13T014(MTM1M3Movements):
-    async def test_active_forces(self):
+    async def test_active_forces(self) -> None:
         self.printHeader("M13T-014: Active Optic Force Offsets")
 
         await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)

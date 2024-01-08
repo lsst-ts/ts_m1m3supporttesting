@@ -90,7 +90,7 @@ NEG_Z_TRAVEL_POSITION = -2.60 * u.mm
 
 
 class M13T009(MTM1M3Movements):
-    async def test_movements(self):
+    async def test_movements(self) -> None:
         offsets = [
             offset(x=POS_X_TRAVEL_POSITION),
             offset(x=NEG_X_TRAVEL_POSITION),

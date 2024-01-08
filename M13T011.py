@@ -56,13 +56,16 @@
 ########################################################################
 
 import asyncio
+import time
 import unittest
 from datetime import datetime
+from typing import Iterable
 
 import astropy.units as u
 from lsst.ts import salobj
 from lsst.ts.criopy.VMS import Collector
 from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.salobj import BaseMsgType
 
 from MTM1M3Movements import MTM1M3Movements, offset
 
@@ -74,38 +77,40 @@ M2MM = u.m.to(u.mm)
 
 
 class M13T011(MTM1M3Movements):
-    def _log_data(self, position, data, imsData):
-        self.m1m3.tel_imsData.flush()
+    def _log_data(
+        self, position: Iterable[float], data: BaseMsgType, ims_data: BaseMsgType
+    ) -> None:
+        self.m1m3.tel_ims_data.flush()
         self.vms.data.flush()
 
         startTimestamp = None
 
         while True:
-            imsData = self.m1m3.tel_imsData.next()
+            ims_data = self.m1m3.tel_ims_data.next()
 
             if startTimestamp is None:
-                startTimestamp = imsData.timestamp
-            elif (imsData.timestamp - startTimestamp) > SAMPLE_TIME:
+                startTimestamp = ims_data.timestamp
+            elif (ims_data.timestamp - startTimestamp) > SAMPLE_TIME:
                 break
 
             print(
-                imsData.timestamp,
-                imsData.xPosition,
-                imsData.zPosition,
-                imsData.xRotation,
-                imsData.yRotation,
-                imsData.zRotation,
-                ", ".join(imsData.rawSensorData),
-                ", ".join(position),
+                ims_data.timestamp,
+                ims_data.xPosition,
+                ims_data.zPosition,
+                ims_data.xRotation,
+                ims_data.yRotation,
+                ims_data.zRotation,
+                ", ".join(ims_data.rawSensorData),
+                ", ".join(map(str, position)),
                 file=self.IMS_FILE,
                 sep=",",
             )
             self.IMS_FILE.flush()
 
-            def convert(raw, sensitivity):
+            def convert(raw: float, sensitivity: float) -> float:
                 return (raw * M2MM) / sensitivity
 
-    async def _run(self):
+    async def _run(self) -> None:
         offsets = [
             offset(),
             offset(x=+TRAVEL_POSITION),
@@ -143,11 +148,11 @@ class M13T011(MTM1M3Movements):
         for t in self.tasks:
             t.cancel()
 
-    async def test_movements(self):
+    async def test_movements(self) -> None:
         # Setup VMS
         self.vms = salobj.Remote(self.domain, "MTVMS", index=1)
 
-        start = datetime.now()
+        start = time.monotonic()
 
         self.IMS_FILE = self.openCSV("M13T012-IMS")
 
@@ -161,13 +166,15 @@ class M13T011(MTM1M3Movements):
             "M13T012-VMS-" + datetime.now().strftime("%Y-%m-%dT%T") + ".${ext}",
         )
 
-        self.tasks = []
+        self.tasks: list[asyncio.Task] = []
 
         try:
             await self._run()
         finally:
             await asyncio.gather(*self.tasks)
             self.collector.close()
+
+        print(f"Test executed in {time.monotonic() - start}")
 
 
 if __name__ == "__main__":

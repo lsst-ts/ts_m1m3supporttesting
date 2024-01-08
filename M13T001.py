@@ -37,11 +37,11 @@ import unittest
 
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Test import *
+from MTM1M3Test import MTM1M3Test
 
 
 class M13T001(MTM1M3Test):
-    async def test_M1M3(self):
+    async def test_M1M3(self) -> None:
         await self.startup(MTM1M3.DetailedStates.STANDBY)
 
         await self.switchM1M3State(
@@ -63,27 +63,36 @@ class M13T001(MTM1M3Test):
         # Check SAL Event
         # result, data = m1m3.GetEventDetailedState()
         # eventTimestamp = data.Timestamp
-        # Equal("SAL m1m3_logevent_DetailedState.DetailedState", data.DetailedState, m1m3_shared_DetailedS
+        # Equal("SAL m1m3_logevent_DetailedState.DetailedState",
+        #     data.DetailedState, m1m3_shared_DetailedS
 
         # Check EFD Command
-        # row = efd.QueryOne("SELECT Start, SettingsToApply FROM m1m3_command_Start ORDER BY date_time DES
+        # row = efd.QueryOne("SELECT Start, SettingsToApply "
+        #     "FROM m1m3_command_Start ORDER BY date_time DES
         # Equal("EFD m1m3_command_Start.Start", int(row[0]), 1)
         # Equal("EFD m1m3_command_Start.SettingsToApply", row[1], "Default")
 
         # Check EFD Event
-        # row = efd.QueryOne("SELECT Timestamp, DetailedState FROM m1m3_logevent_DetailedState WHERE Times
-        # InTolerance("EFD m1m3_logevent_DetailedState.Timestamp", float(row[0]), data.Timestamp, 0.001)
-        # Equal("EFD m1m3_logevent_DetailedState.DetailedState", int(row[1]), data.DetailedState)
+        # row = efd.QueryOne("SELECT Timestamp, DetailedState "
+        #    "FROM m1m3_logevent_DetailedState WHERE Times
+        # InTolerance("EFD m1m3_logevent_DetailedState.Timestamp",
+        #    float(row[0]), data.Timestamp, 0.001)
+        # Equal("EFD m1m3_logevent_DetailedState.DetailedState",
+        #    int(row[1]), data.DetailedState)
 
         # Check SAL Telemetry
         # result, data = m1m3.GetSampleInclinometerData()
         # telemetryTimestamp = data.Timestamp
-        # GreaterThan("SAL m1m3_InclinometerData.Timestamp", data.Timestamp, eventTimestamp)
+        # GreaterThan("SAL m1m3_InclinometerData.Timestamp",
+        #     data.Timestamp, eventTimestamp)
 
         # Check EFD Telemetry
-        # row = efd.QueryOne("SELECT Timestamp, InclinometerAngle FROM m1m3_InclinometerData WHERE Timesta
-        # InTolerance("EFD m1m3_InclinometerData.Timestamp", float(row[0]), data.Timestamp, 0.001)
-        # InTolerance("EFD m1m3_InclinometerData.InclinometerAngle", float(row[1]), data.InclinometerAngle
+        # row = efd.QueryOne("SELECT Timestamp, InclinometerAngle "
+        #     "FROM m1m3_InclinometerData WHERE Timesta
+        # InTolerance("EFD m1m3_InclinometerData.Timestamp", float(row[0]),
+        #     data.Timestamp, 0.001)
+        # InTolerance("EFD m1m3_InclinometerData.InclinometerAngle",
+        #     float(row[1]), data.InclinometerAngle
 
 
 if __name__ == "__main__":

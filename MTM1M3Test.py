@@ -24,12 +24,14 @@ import shutil
 import sys
 import time
 import unittest
+from typing import Any, Callable, Coroutine
 
 import astropy.units as u
 import click
 import numpy as np
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.salobj import BaseMsgType
 from lsst.ts.xml.tables.m1m3 import FATable
 
 __all__ = ["MTM1M3Test"]
@@ -46,7 +48,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
     prints tests progress.
     """
 
-    def printHeader(self, header):
+    def printHeader(self, header:str) -> None:
         """Prints header text.
 
         Parameters
@@ -56,7 +58,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
         """
         click.echo(click.style(header, bold=True, fg="cyan"))
 
-    def printCode(self, text):
+    def printCode(self, text:str) -> None:
         click.echo(click.style(text, fg="blue"))
 
     def printTest(self, test: str, centerfill: str | None = None) -> None:
@@ -76,7 +78,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
         else:
             click.echo(click.style(test, fg="blue"))
 
-    def printWarning(self, warn):
+    def printWarning(self, warn:str) -> None:
         """Prints test warning.
 
         Parameters
@@ -86,7 +88,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
         """
         click.echo(click.style(warn, fg="yellow", bg="black"))
 
-    def printError(self, err):
+    def printError(self, err:str) -> None:
         """Prints test error or another important message.
 
         Parameters
@@ -122,7 +124,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
         """
         click.echo(click.style(name, fg="green") + values)
 
-    async def asyncSetUp(self):
+    async def asyncSetUp(self) -> None:
         """Setup tests. This methods is being called by unittest.TestCase
         before any test (test_XX) method is called. Creates connections to
         MTM1M3."""
@@ -132,13 +134,13 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
         self.max_raising_rate = 0
         self.max_lowering_rate = 0
 
-    async def asyncTearDown(self):
+    async def asyncTearDown(self) -> None:
         """Called by unittest.TestCase after test is done. Correctly closes
         salobj objects."""
         await self.m1m3.close()
         await self.domain.close()
 
-    async def switchM1M3State(self, command, state, wait=5, **kwargs):
+    async def switchM1M3State(self, command:str, state: MTM1M3.DetailedStates, wait:float=5, **kwargs:Any) -> None:
         """Switch M1M3 state by executing a command and make sure M1M3 reaches
         given state.
 
@@ -167,7 +169,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
             click.style("M1M3 SS is in wrong state", bold=True, bg="red"),
         )
 
-    async def _raising(self):
+    async def _raising(self) -> None:
         self.printTest("Waiting for mirror to be raised")
 
         currentState = self.m1m3.evt_detailedState.get().detailedState
@@ -296,7 +298,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
 
         return parkedState
 
-    async def startup(self, target=MTM1M3.DetailedStates.PARKED):
+    async def startup(self, target: MTM1M3.DetailedStates=MTM1M3.DetailedStates.PARKED) -> None:
         """Starts MTM1M3, up to given target state.
 
         Parameters
@@ -400,7 +402,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
 
         self.fail(f"Unknown/unsupported target startup state: {target}")
 
-    async def shutdown(self, target=MTM1M3.DetailedStates.STANDBY):
+    async def shutdown(self, target:MTM1M3.DetailedStates=MTM1M3.DetailedStates.STANDBY) -> None:
         """Closes mirror test cycle, commands its state to the given state.
 
         Parameters
@@ -477,8 +479,8 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
             self.fail(f"Unknown shutdown target state {target} - {currentState}.")
 
     async def sampleData(
-        self, topic_name, sampling_time, sampling_size=None, flush=True
-    ):
+        self, topic_name:str, sampling_time:float, sampling_size:int | None=None, flush:bool=True
+    ) -> list[BaseMsgType]:
         """Samples given M1M3 data for given seconds.
 
         Parameters
@@ -488,7 +490,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
            evt_detailedState).
         sampling_time : `float`
            Sample time (seconds).
-        sampling_size : `float`, optional
+        sampling_size : `int`, optional
            Size of collected samples. When None (the default), sampling size is
            unlimited.
         flush : `bool`, optional
@@ -524,7 +526,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
 
         return ret
 
-    def average(self, data, topics_names, axis=0):
+    def average(self, data: BaseMsgType, topics_names: list[str], axis:int=0) -> dict[str, Any]:
         """Calculate averages from given data.
 
         Parameters
@@ -546,12 +548,12 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
             ret[n] = np.average([getattr(d, n) for d in data], axis=axis)
         return ret
 
-    def assertListAlmostEqual(self, l1, l2, msg=None, **kwargs):
+    def assertListAlmostEqual(self, l1:list[Any], l2:list[Any], msg:str|None=None, **kwargs:Any) -> None:
         self.assertEqual(len(l1), len(l2), msg=msg)
         for i in range(len(l1)):
             self.assertAlmostEqual(l1[i], l2[i], msg=msg, **kwargs)
 
-    def get_enabled_force_actuators(self):
+    def get_enabled_force_actuators(self) -> list[bool]:
         """Returns 156-member array, where true means actuator is enabled.
 
         Returns
@@ -569,7 +571,7 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
                 self.printWarning(f"Actuator with index {index} is disabled.")
         return enabled
 
-    async def run_actuators(self, function):
+    async def run_actuators(self, function: Callable[[str, int], Coroutine[Any, Any, None]]) -> None:
         """Runs function for all actuators and directions (XYZ).
 
         Parameters
@@ -588,11 +590,11 @@ class MTM1M3Test(unittest.IsolatedAsyncioTestCase):
         # Iterate through all 156 force actuators
         for row in FATable:
             z = row.z_index
-            self.id = row.actuator_id
+            self.actuator_id = row.actuator_id
             if enabled[z] is False:
-                self.printWarning(f"Skipping FA index {z} ID {self.id}")
+                self.printWarning(f"Skipping FA index {z} ID {self.actuator_id}")
                 continue
-            self.printTest(f"Verify Force Actuator {self.id}")
+            self.printTest(f"Verify Force Actuator {self.actuator_id}")
 
             # Run X tests for DDA X
             if row.x_index is not None:

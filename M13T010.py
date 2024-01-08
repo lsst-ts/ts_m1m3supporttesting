@@ -82,7 +82,7 @@ TRAVEL_ROTATION = 50.4 * u.arcsec
 
 
 class M13T010(MTM1M3Movements):
-    async def test_movements(self):
+    async def test_movements(self) -> None:
         offsets = [
             offset(x=+TRAVEL_POSITION),
             offset(x=-TRAVEL_POSITION),

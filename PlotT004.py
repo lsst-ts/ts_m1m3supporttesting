@@ -21,10 +21,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-import pandas as pd
-import matplotlib.pyplot as plt
 import argparse
 import math
+
+import matplotlib.pyplot as plt
+import pandas as pd
 
 parser = argparse.ArgumentParser(
     description="Plot Hardpoints data", usage="%(prog)s [files..]"

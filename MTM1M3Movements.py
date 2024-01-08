@@ -20,13 +20,16 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import asyncio
+import io
 import os
-from datetime import datetime
 import time
+from datetime import datetime
+from typing import Any, Callable, Coroutine, Iterable
 
 import astropy.units as u
 import click
 from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.salobj import BaseMsgType
 
 from AutoFlush import AutoFlush
 from MTM1M3Test import MTM1M3Test
@@ -37,7 +40,14 @@ ZERO_M = 0 * u.m
 ZERO_DEG = 0 * u.deg
 
 
-def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
+def offset(
+    x: float = ZERO_M,
+    y: float = ZERO_M,
+    z: float = ZERO_M,
+    rx: float = ZERO_DEG,
+    ry: float = ZERO_DEG,
+    rz: float = ZERO_DEG,
+) -> list[float]:
     """Generate offset vector for MTM1M3Movements.do_movements method.
 
     Note
@@ -76,39 +86,49 @@ def offset(x=ZERO_M, y=ZERO_M, z=ZERO_M, rx=ZERO_DEG, ry=ZERO_DEG, rz=ZERO_DEG):
 
 
 class ForceOffsets:
-    def __init__(self, xForces=None, yForces=None, zForces=None, zActiveForces=None):
+    def __init__(
+        self,
+        xForces: list[float] | None = None,
+        yForces: list[float] | None = None,
+        zForces: list[float] | None = None,
+        zActiveForces: list[float] | None = None,
+    ):
         self.xForces = xForces
         self.yForces = yForces
         self.zForces = zForces
         self.zActiveForces = zActiveForces
 
-    def getOffsetForces(self):
+    def getOffsetForces(self) -> dict[str, list[float]] | None:
         if self.xForces is None and self.yForces is None and self.zForces is None:
             return None
+        assert self.xForces is not None
+        assert self.yForces is not None
+        assert self.zForces is not None
         return {
             "xForces": self.xForces,
             "yForces": self.yForces,
             "zForces": self.zForces,
         }
 
-    def getActiveOffsets(self):
+    def getActiveOffsets(self) -> dict[str, list[float]] | None:
         if self.zActiveForces is None:
             return None
+        assert self.zActiveForces is not None
         return {"zForces": self.zActiveForces}
 
-    def getXForce(self, xIndex, default=0):
+    def getXForce(self, xIndex: int, default: float = 0) -> float:
         return default if self.xForces is None else self.xForces[xIndex]
 
-    def getYForce(self, yIndex, default=0):
+    def getYForce(self, yIndex: int, default: float = 0) -> float:
         return default if self.yForces is None else self.yForces[yIndex]
 
-    def getZOffsetForce(self, zIndex, default=0):
+    def getZOffsetForce(self, zIndex: int, default: float = 0) -> float:
         return default if self.zForces is None else self.zForces[zIndex]
 
-    def getZActiveForce(self, zIndex, default=0):
+    def getZActiveForce(self, zIndex: int, default: float = 0) -> float:
         return default if self.zActiveForces is None else self.zActiveForces[zIndex]
 
-    def __str__(self):
+    def __str__(self) -> str:
         ret = ""
         if not (self.xForces is None and self.yForces is None and self.zForces is None):
             ret += "OffsetsForces:"
@@ -120,7 +140,7 @@ class ForceOffsets:
                 ret += f" Z {sum(self.zForces):.2f}"
             ret += " "
 
-        if not (self.zActiveForces is None):
+        if self.zActiveForces is not None:
             ret += f"ActiveOffsets: Z {sum(self.zActiveForces):.2f}"
 
         return ret
@@ -161,18 +181,18 @@ class MTM1M3Movements(MTM1M3Test):
 
     IMS_OFFSETS = [0] * 6
 
-    async def asyncTearDown(self):
+    async def asyncTearDown(self) -> None:
         if self.LOG_FILE is not None:
             self.close_log_file()
-        await super().tearDown()
+        await super().asyncTearDown()
 
     async def _check_position(
         self,
-        position,
-        position_tolerance=POSITION_TOLERANCE,
-        rotation_tolerance=ROTATION_TOLERANCE,
-        pos_ims_tolerance=POS_IMS_TOLERANCE,
-        rot_ims_tolerance=ROT_IMS_TOLERANCE,
+        position: list[u.Quantity],
+        position_tolerance: float = POSITION_TOLERANCE,
+        rotation_tolerance: float = ROTATION_TOLERANCE,
+        pos_ims_tolerance: float = POS_IMS_TOLERANCE,
+        rot_ims_tolerance: float = ROT_IMS_TOLERANCE,
         check_forces: bool = False,
         check_IMS: bool = True,
         reference_IMS: bool = False,
@@ -293,7 +313,9 @@ class MTM1M3Movements(MTM1M3Test):
         if check_IMS is False:
             return
 
-        def ims_check(kind, value, target, ims_tol, normal_tol):
+        def ims_check(
+            kind: str, value: float, target: float, ims_tol: float, normal_tol: float
+        ) -> None:
             self.assertAlmostEqual(
                 value,
                 target,
@@ -368,10 +390,12 @@ class MTM1M3Movements(MTM1M3Test):
             rotation_tolerance,
         )
 
-    async def waitHP(self):
+    async def waitHP(self) -> None:
         """Wait for HP to go through Moving to Idle states."""
 
-        async def wait_for(states, timeout=100):
+        async def wait_for(
+            states: list[MTM1M3.DetailedStates], timeout: float = 100
+        ) -> None:
             while True:
                 data = self.m1m3.evt_hardpointActuatorState.get()
                 not_met = 0
@@ -384,31 +408,32 @@ class MTM1M3Movements(MTM1M3Test):
                 timeout -= 0.1
 
         await wait_for(
-            (
+            [
                 MTM1M3.HardpointActuatorMotionState.STEPPING,
                 MTM1M3.HardpointActuatorMotionState.CHASING,
                 MTM1M3.HardpointActuatorMotionState.QUICKPOSITIONING,
                 MTM1M3.HardpointActuatorMotionState.FINEPOSITIONING,
-            ),
+            ],
             1,
         )
-        await wait_for((MTM1M3.HardpointActuatorMotionState.STANDBY,))
+        await wait_for([MTM1M3.HardpointActuatorMotionState.STANDBY])
 
     async def do_movements(
         self,
-        offsets,
-        header,
-        start_state=MTM1M3.DetailedStates.ACTIVEENGINEERING,
-        end_state=MTM1M3.DetailedStates.PARKED,
+        offsets: list[list[u.Quantity]],
+        header: str,
+        start_state: MTM1M3.DetailedStates = MTM1M3.DetailedStates.ACTIVEENGINEERING,
+        end_state: MTM1M3.DetailedStates = MTM1M3.DetailedStates.PARKED,
         check_forces: bool = True,
-        moved_callback: bool = None,
+        moved_callback: Callable[[Iterable[float], Any, Any], Coroutine[Any, Any, None]]
+        | None = None,
         wait: float = 4.0,
     ) -> None:
         """Run tests movements.
 
         Parameters
         ----------
-        offsets : array of 6 members float tuples
+        offsets : [float]
             Movements (from 0 position) as X, Y, Z and Rx, Ry and Rz
             (rotation). Position shall be specified in u.m or similar, rotation
             as u.deg or similar.
@@ -497,7 +522,7 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.moved_callback = None
 
-    def _start_hardpoint_logs(self, suffix):
+    def _start_hardpoint_logs(self, suffix: str) -> None:
         self.hardpointActuatorDataFile = AutoFlush(
             self.openCSV(f"HP-{self.hp}-{suffix}")
         )
@@ -506,25 +531,31 @@ class MTM1M3Movements(MTM1M3Test):
             self.openCSV(f"Monitor-{self.hp}-{suffix}")
         )
         self.printTest(
-            f"Saving data to {os.path.abspath(self.hardpointActuatorDataFile.name)} and {os.path.abspath(self.hardpointMonitorDataFile.name)}"
+            "Saving data to "
+            + os.path.abspath(self.hardpointActuatorDataFile.name)
+            + " and "
+            + os.path.abspath(self.hardpointMonitorDataFile.name)
         )
         self.hardpointActuatorDataFile.print(
-            f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},Encoder {self.hp},Displacement {self.hp},Lower Limit Switch {self.hp},Upper Limit Switch {self.hp},HP Test Status",
+            f"Timestamp,Steps Queued {self.hp},Measured Force {self.hp},"
+            f"Encoder {self.hp},Displacement {self.hp},"
+            f"Lower Limit Switch {self.hp},Upper Limit Switch {self.hp},HP Test Status",
         )
         self.m1m3.tel_hardpointActuatorData.callback = self.hardpointActuatorData
 
         self.hardpointMonitorDataFile.print(
-            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},BreakawayPressure {self.hp},HP Test Status",
+            f"Timestamp,BreakawayLVDT {self.hp},DisplacementLVDT {self.hp},"
+            f"BreakawayPressure {self.hp},HP Test Status",
         )
         self.m1m3.tel_hardpointMonitorData.callback = self.hardpointMonitorData
 
-    def _stop_hardpoint_logs(self):
+    def _stop_hardpoint_logs(self) -> None:
         self.m1m3.tel_hardpointActuatorData.callback = None
         self.m1m3.tel_hardpointMonitorData.callback = None
 
-    async def hardpoint_move(self, step):
+    async def hardpoint_move(self, step: int) -> None:
         self.hardpoint_test_state = step
-        self._start_hardpoint_logs(step)
+        self._start_hardpoint_logs(f"HP moving by {step}")
 
         # Give time for a sample
         await asyncio.sleep(1)
@@ -554,7 +585,7 @@ class MTM1M3Movements(MTM1M3Test):
         )
 
         # Wait for moving to complete or a limit switch is hit
-        loopCount = 0
+        # loopCount = 0
         while True:
             # Check if moving is complete
             if (
@@ -569,11 +600,13 @@ class MTM1M3Movements(MTM1M3Test):
                 hpWarning.limitSwitch2Operated[hpIndex] and step < 0
             ):
                 self.printTest(
-                    f"Limit switch on HP {self.hp} reached on {step} command - 1: {hpWarning.limitSwitch1Operated[hpIndex]} 2: {hpWarning.limitSwitch2Operated[hpIndex]}"
+                    f"Limit switch on HP {self.hp} reached on {step} command "
+                    f"- 1: {hpWarning.limitSwitch1Operated[hpIndex]} "
+                    f"2: {hpWarning.limitSwitch2Operated[hpIndex]}"
                 )
                 break
 
-            status = 0
+            # status = 0
 
             # For simulation testing toggle a limit switch after 10 seconds
             # hpData = self.m1m3.tel_hardpointActuatorData.get()
@@ -610,7 +643,7 @@ class MTM1M3Movements(MTM1M3Test):
         self.printTest(f"Start Timestamp: {startTimestamp:.0f}")
         self.printTest(f"Stop Timestamp: {stopTimestamp:.0f}")
 
-    async def hardpointActuatorData(self, data):
+    async def hardpointActuatorData(self, data: BaseMsgType) -> None:
         hpIndex = self.hp - 1
 
         warnings = self.m1m3.evt_hardpointActuatorWarning.get()
@@ -622,17 +655,23 @@ class MTM1M3Movements(MTM1M3Test):
             s_high = warnings.limitSwitch1Operated[hpIndex]
 
         self.hardpointActuatorDataFile.print(
-            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},{data.displacement[hpIndex]:.09f},{s_low},{s_high},{self.hardpoint_test_state}",
+            f"{data.timestamp:.03f},{data.stepsQueued[hpIndex]:.09f},"
+            f"{data.measuredForce[hpIndex]:.09f},{data.encoder[hpIndex]:d},"
+            f"{data.displacement[hpIndex]:.09f},{s_low},{s_high},"
+            f"{self.hardpoint_test_state}",
         )
 
-    async def hardpointMonitorData(self, data):
+    async def hardpointMonitorData(self, data: BaseMsgType) -> None:
         hpIndex = self.hp - 1
 
         self.hardpointMonitorDataFile.print(
-            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},{data.displacementLVDT[hpIndex]:.09f},{data.breakawayPressure[hpIndex]:.03f},{self.hardpoint_test_state}",
+            f"{data.timestamp:.03f},{data.breakawayLVDT[hpIndex]:.09f},"
+            f"{data.displacementLVDT[hpIndex]:.09f},"
+            f"{data.breakawayPressure[hpIndex]:.03f},"
+            f"{self.hardpoint_test_state}",
         )
 
-    async def hardpoint_test(self, hp):
+    async def hardpoint_test(self, hp: int) -> None:
         self.hp = hp
         self.printTest(f"Testing Hardpoint Actuator {self.hp}")
 
@@ -668,13 +707,17 @@ class MTM1M3Movements(MTM1M3Test):
                     break
 
             click.echo(
-                f"HP {self.hp} {self.m1m3.tel_hardpointActuatorData.get().encoder[self.hp-1]} {self.hardpoint_test_state}\033[0K\r",
+                f"HP {self.hp} "
+                + self.m1m3.tel_hardpointActuatorData.get().encoder[self.hp - 1]
+                + " "
+                + self.hardpoint_test_state
+                + "\033[0K\r",
                 nl=False,
             )
 
         self._stop_hardpoint_logs()
 
-    async def _check_forces_sum(self, forces):
+    async def _check_forces_sum(self, forces: ForceOffsets) -> None:
         elevationForces = self.m1m3.tel_appliedElevationForces.get()
         staticForces = self.m1m3.evt_appliedStaticForces.get()
         offsetForces = self.m1m3.evt_appliedOffsetForces.get()
@@ -805,11 +848,11 @@ class MTM1M3Movements(MTM1M3Test):
 
         self.printTest(f"Offsets OK {forces}")
 
-    async def resetLastOffsetForces(self):
-        self.lastXForces = [0] * 12
-        self.lastYForces = [0] * 100
-        self.lastZForces = [0] * 156
-        self.lastZActiveForces = [0] * 156
+    async def resetLastOffsetForces(self) -> None:
+        self.lastXForces = [0.0] * 12
+        self.lastYForces = [0.0] * 100
+        self.lastZForces = [0.0] * 156
+        self.lastZActiveForces = [0.0] * 156
 
         await self.m1m3.cmd_clearOffsetForces.start()
         await self.m1m3.cmd_clearActiveOpticForces.start()
@@ -818,19 +861,20 @@ class MTM1M3Movements(MTM1M3Test):
 
     async def applyOffsetForces(
         self,
-        offsets: hash,
+        offsets: list[ForceOffsets],
         header: str,
-        start_state=MTM1M3.DetailedStates.ACTIVEENGINEERING,
-        end_state=MTM1M3.DetailedStates.PARKED,
+        start_state: MTM1M3.DetailedStates = MTM1M3.DetailedStates.ACTIVEENGINEERING,
+        end_state: MTM1M3.DetailedStates = MTM1M3.DetailedStates.PARKED,
         check_forces: bool = True,
-        moved_callback: bool = None,
+        moved_callback: Callable[[Iterable[float], Any, Any], Coroutine[Any, Any, None]]
+        | None = None,
         wait: float = 8.0,
     ) -> None:
         """Run tests movements.
 
         Parameters
         ----------
-        offsets : `map`
+        offsets : `dict`
             Map of xForces, yForces and zForces offsets and zActiveForces for
             active optics forces.
         header : `str`
@@ -879,11 +923,15 @@ class MTM1M3Movements(MTM1M3Test):
             await self._check_forces_sum(row)
 
             if offset is not None:
+                assert row.xForces is not None
+                assert row.yForces is not None
+                assert row.zForces is not None
                 self.lastXForces = row.xForces
                 self.lastYForces = row.yForces
                 self.lastZForces = row.zForces
 
             if active is not None:
+                assert row.zActiveForces is not None
                 self.lastZActiveForces = row.zActiveForces
 
         #######################
@@ -893,7 +941,7 @@ class MTM1M3Movements(MTM1M3Test):
         if end_state is not None:
             await self.shutdown(end_state)
 
-    def openCSV(self, name):
+    def openCSV(self, name: str) -> io.TextIOWrapper:
         """Opens CVS log file.
 
         Parameters
@@ -916,11 +964,12 @@ class MTM1M3Movements(MTM1M3Test):
 
         return f
 
-    def close_log_file(self):
+    def close_log_file(self) -> None:
         self.moved_callback = None
         if isinstance(self.LOG_FILE, list):
             for f in self.LOG_FILE:
                 f.close()
         else:
+            assert self.LOG_FILE is not None
             self.LOG_FILE.close()
         self.LOG_FILE = None

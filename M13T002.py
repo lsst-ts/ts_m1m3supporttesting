@@ -49,7 +49,8 @@ import unittest
 
 import click
 from lsst.ts.idl.enums import MTM1M3
-from lsst.ts.xml.tables.m1m3 import FATable
+from lsst.ts.salobj import BaseMsgType
+from lsst.ts.xml.tables.m1m3 import FATable, ForceActuatorData
 
 from MTM1M3Test import MTM1M3Test
 
@@ -59,22 +60,22 @@ class M13T002(MTM1M3Test):
     # 20 sec nominal
     TIMEOUT = 40
 
-    async def asyncSetUp(self):
-        await super().setUp()
-        self.failed = {"primary": [], "secondary": []}
+    async def asyncSetUp(self) -> None:
+        await super().asyncSetUp()
+        self.failed: dict[str, list[int]] = {"primary": [], "secondary": []}
         self.emptyFailed = self.failed
 
     async def _test_cylinder(self, actuator_id: int, index: int, primary: bool) -> None:
         start_time = time.monotonic()
         primary_str = "Primary" if primary else "Secondary"
 
-        def get_bump_test_state(bump_test_status):
+        def get_bump_test_state(bump_test_status: BaseMsgType) -> int:
             if primary:
                 return bump_test_status.primaryTest[index]
             return bump_test_status.secondaryTest[index]
 
         # last_test_state becomes None once a change in test status is detected
-        last_test_state = get_bump_test_state(
+        last_test_state: None | int = get_bump_test_state(
             self.m1m3.evt_forceActuatorBumpTestStatus.get()
         )
 
@@ -84,7 +85,7 @@ class M13T002(MTM1M3Test):
             testSecondary=not primary,
         )
 
-        def get_test_state_str(state):
+        def get_test_state_str(state: int) -> str:
             return [
                 "Not tested/Unknown",
                 "Testing start zero",
@@ -128,7 +129,9 @@ class M13T002(MTM1M3Test):
                 applied_force = applied.secondaryCylinderForces[index] / 1000.0
                 measured_force = measured.secondaryCylinderForce[index]
             self.print_progress(
-                f"{primary_str} FA {actuator_id}  ({index}) test: {test_state} ({get_test_state_str(test_state)}) {applied_force:.02f} {measured_force:.02f} {abs(applied_force - measured_force):.02f}"
+                f"{primary_str} FA {actuator_id}  ({index}) test: {test_state} "
+                f"({get_test_state_str(test_state)}) {applied_force:.02f} "
+                f"{measured_force:.02f} {abs(applied_force - measured_force):.02f}"
             )
 
         if test_state == MTM1M3.BumpTest.PASSED and last_test_state is None:
@@ -137,7 +140,7 @@ class M13T002(MTM1M3Test):
 
         self.failed["primary" if primary else "secondary"].append(actuator_id)
 
-    async def _test_actuator(self, actuator):
+    async def _test_actuator(self, actuator: ForceActuatorData) -> None:
         actuator_index = actuator.index
         actuator_id = actuator.actuator_id
         secondary_index = actuator.s_index
@@ -150,7 +153,7 @@ class M13T002(MTM1M3Test):
         if secondary_index is not None:
             await self._test_cylinder(actuator_id, secondary_index, False)
 
-    async def test_bump_test(self):
+    async def test_bump_test(self) -> None:
         await self.startup(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         with click.progressbar(range(200), label="Waiting for mirror", width=0) as bar:

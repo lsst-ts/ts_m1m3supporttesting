@@ -21,6 +21,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+import io
+
+
 class AutoFlush:
     """Automatic file flusher.
 
@@ -32,15 +35,15 @@ class AutoFlush:
         Fliush after this number of lines. Default to 10.
     """
 
-    def __init__(self, file, flushAfter=10):
+    def __init__(self, file: io.TextIOWrapper, flushAfter:int=10):
         self._file = file
         self._flushAfter = flushAfter
         self._counter = 0
 
-    def __getattr__(self, name):
+    def __getattr__(self, name:str) -> str:
         return getattr(self._file, name)
 
-    def print(self, message):
+    def print(self, message: str) -> None:
         print(message, file=self._file)
 
         self._counter += 1

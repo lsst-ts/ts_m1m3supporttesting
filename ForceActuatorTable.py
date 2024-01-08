@@ -435,7 +435,7 @@ def actuatorIDToIndex(actuatorId):
     Parameters
     ----------
     actuatorId: `int`
-        Actuator ID (101-443). 
+        Actuator ID (101-443).
 
     Returns
     -------

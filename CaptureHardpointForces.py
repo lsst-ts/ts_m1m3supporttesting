@@ -24,24 +24,27 @@
 # - Transition from parked engineering state to standby
 ########################################################################
 
-import time
 import math
-from Utilities import *
+import time
+
 from SALPY_m1m3 import *
+
 from ForceActuatorTable import *
 from HardpointActuatorTable import *
 from Setup import *
+from Utilities import *
 
 TEST_PRE_FALL_WAIT = 10.0
+
 
 class CaptureHardpointForces:
     def Run(self, m1m3, sim, efd):
         Header("Capture Hardpoint Forces")
-        
+
         # Get start timestamp
         result, data = m1m3.GetSampleHardpointActuatorData()
         startTimestamp = data.Timestamp
-        
+
         # Write the file
         path = GetFilePath("%d-CaptureHardpoint.csv" % (int(startTimestamp)))
         Log("File path: %s" % path)
@@ -50,8 +53,26 @@ class CaptureHardpointForces:
         while True:
             rtn, data = m1m3.GetSampleHardpointActuatorData()
             if rtn >= 0:
-                file.write("%0.6f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n" % (data.Timestamp, data.MeasuredForce[0], data.MeasuredForce[1], data.MeasuredForce[2], data.MeasuredForce[3], data.MeasuredForce[4], data.MeasuredForce[5], data.Fx, data.Fy, data.Fz, data.Mx, data.My, data.Mz))
-        
+                file.write(
+                    "%0.6f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f,%0.3f\r\n"
+                    % (
+                        data.Timestamp,
+                        data.MeasuredForce[0],
+                        data.MeasuredForce[1],
+                        data.MeasuredForce[2],
+                        data.MeasuredForce[3],
+                        data.MeasuredForce[4],
+                        data.MeasuredForce[5],
+                        data.Fx,
+                        data.Fy,
+                        data.Fz,
+                        data.Mx,
+                        data.My,
+                        data.Mz,
+                    )
+                )
+
+
 if __name__ == "__main__":
     m1m3, sim, efd = Setup()
     CaptureHardpointForces().Run(m1m3, sim, efd)

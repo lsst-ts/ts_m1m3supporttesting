@@ -39,17 +39,16 @@
 # - Transition from parked engineering to standby state
 ########################################################################
 
-import asyncio
 import unittest
 
 import click
 from lsst.ts.idl.enums import MTM1M3
 
-from MTM1M3Movements import *
+from MTM1M3Movements import MTM1M3Movements
 
 
 class M13T004(MTM1M3Movements):
-    async def test_hardpoints(self):
+    async def test_hardpoints(self) -> None:
         await self.startup(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         # Iterate through the 6 hardpoint actuators
