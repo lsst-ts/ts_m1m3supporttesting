@@ -385,14 +385,14 @@ class MTM1M3Movements(MTM1M3Test):
 
         await wait_for(
             (
-                MTM1M3.HardpointActuatorMotionStates.STEPPING,
-                MTM1M3.HardpointActuatorMotionStates.CHASING,
-                MTM1M3.HardpointActuatorMotionStates.QUICKPOSITIONING,
-                MTM1M3.HardpointActuatorMotionStates.FINEPOSITIONING,
+                MTM1M3.HardpointActuatorMotionState.STEPPING,
+                MTM1M3.HardpointActuatorMotionState.CHASING,
+                MTM1M3.HardpointActuatorMotionState.QUICKPOSITIONING,
+                MTM1M3.HardpointActuatorMotionState.FINEPOSITIONING,
             ),
             1,
         )
-        await wait_for((MTM1M3.HardpointActuatorMotionStates.STANDBY,))
+        await wait_for((MTM1M3.HardpointActuatorMotionState.STANDBY,))
 
     async def do_movements(
         self,
@@ -550,7 +550,7 @@ class MTM1M3Movements(MTM1M3Test):
         # Verify the commanded actuator is moving
         self.assertEqual(
             self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex],
-            MTM1M3.HardpointActuatorMotionStates.STEPPING,
+            MTM1M3.HardpointActuatorMotionState.STEPPING,
         )
 
         # Wait for moving to complete or a limit switch is hit
@@ -559,7 +559,7 @@ class MTM1M3Movements(MTM1M3Test):
             # Check if moving is complete
             if (
                 self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex]
-                == MTM1M3.HardpointActuatorMotionStates.STANDBY
+                == MTM1M3.HardpointActuatorMotionState.STANDBY
             ):
                 break
 
@@ -598,7 +598,7 @@ class MTM1M3Movements(MTM1M3Test):
         # Verify hardpoint motion has stopped
         self.assertEqual(
             self.m1m3.evt_hardpointActuatorState.get().motionState[hpIndex],
-            MTM1M3.HardpointActuatorMotionStates.STANDBY,
+            MTM1M3.HardpointActuatorMotionState.STANDBY,
         )
 
         # Get the stop timestamp for collecting data from the EFD
