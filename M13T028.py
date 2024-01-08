@@ -306,7 +306,7 @@ running the CSC.
 """
         )
 
-        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         data = await self.m1m3.evt_forceSetpointWarning.next(
             flush=False, timeout=TEST_SETTLE_TIME
@@ -361,7 +361,7 @@ running the CSC.
 
                 self.assertNotEqual(
                     self.m1m3.evt_detailedState.get().detailedState,
-                    MTM1M3.DetailedState.FAULT,
+                    MTM1M3.DetailedStates.FAULT,
                     msg=f"Mirror faulted when force applied for {id}. Most "
                     f"probably configuration error - were "
                     f"FaultOnNearNeighborCheck and FaultOnFarNeighborCheck "
@@ -390,7 +390,7 @@ running the CSC.
             await apply_z_offset(TEST_FORCE, NEIGHBOR_TABLE[z][1:])
             await apply_z_offset(-TEST_FORCE, NEIGHBOR_TABLE[z][1:])
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":

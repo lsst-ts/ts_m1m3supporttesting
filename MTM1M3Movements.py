@@ -398,8 +398,8 @@ class MTM1M3Movements(MTM1M3Test):
         self,
         offsets,
         header,
-        start_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
-        end_state=MTM1M3.DetailedState.PARKED,
+        start_state=MTM1M3.DetailedStates.ACTIVEENGINEERING,
+        end_state=MTM1M3.DetailedStates.PARKED,
         check_forces: bool = True,
         moved_callback: bool = None,
         wait: float = 4.0,
@@ -414,13 +414,13 @@ class MTM1M3Movements(MTM1M3Test):
             as u.deg or similar.
         header : `str`
             Test header. Echoed at test startup.
-        start_state : `int`, MTM1M3.DetailedState, optional
+        start_state : `int`, MTM1M3.DetailedStates, optional
             Starts tests at this state. Defaults to ACTIVEENGINEERING. None =
             no transition.
-        end_state : `int`, MTM1M3.DetailedState, optional
+        end_state : `int`, MTM1M3.DetailedStates, optional
             When tests are successfully finished, transition mirror to this
             state. None = no transition. Defaults to
-            MTM1M3.DetailedState.PARKED
+            MTM1M3.DetailedStates.PARKED
         moved_callback : `function`, optional
             If not None, called after mirror moved to new position. Its three
             arguments are target position, hardpoint data and IMS data.
@@ -820,8 +820,8 @@ class MTM1M3Movements(MTM1M3Test):
         self,
         offsets: hash,
         header: str,
-        start_state=MTM1M3.DetailedState.ACTIVEENGINEERING,
-        end_state=MTM1M3.DetailedState.PARKED,
+        start_state=MTM1M3.DetailedStates.ACTIVEENGINEERING,
+        end_state=MTM1M3.DetailedStates.PARKED,
         check_forces: bool = True,
         moved_callback: bool = None,
         wait: float = 8.0,
@@ -835,13 +835,13 @@ class MTM1M3Movements(MTM1M3Test):
             active optics forces.
         header : `str`
             Test header. Echoed at test startup.
-        start_state : `int`, MTM1M3.DetailedState, optional
+        start_state : `int`, MTM1M3.DetailedStates, optional
             Starts tests at this state. Defaults to ACTIVEENGINEERING. None =
             no transition.
-        end_state : `int`, MTM1M3.DetailedState, optional
+        end_state : `int`, MTM1M3.DetailedStates, optional
             When tests are successfully finished, transition mirror to this
             state. None = no transition. Defaults to
-            MTM1M3.DetailedState.PARKED
+            MTM1M3.DetailedStates.PARKED
         moved_callback : `function`, optional
             If not None, called after mirror moved to new position. Its three
             arguments are target position, hardpoint data and IMS data.

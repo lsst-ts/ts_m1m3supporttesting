@@ -88,7 +88,7 @@ class M13T032(MTM1M3Movements):
         self.HP_FILE.flush()
 
     async def test_ims(self):
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         offsets = [
             offset(x=+TRAVEL_POSITION),
@@ -119,7 +119,7 @@ class M13T032(MTM1M3Movements):
 
         self.close_log_file()
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":

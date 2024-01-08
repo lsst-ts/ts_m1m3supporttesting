@@ -30,7 +30,7 @@ import click
 import numpy as np
 from lsst.ts import salobj
 from lsst.ts.idl.enums import MTM1M3
-from lsst.ts.xml.m1m3.tables import FATable
+from lsst.ts.xml.tables.m1m3 import FATable
 
 __all__ = ["MTM1M3Test"]
 

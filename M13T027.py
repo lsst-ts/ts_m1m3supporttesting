@@ -623,12 +623,12 @@ running the CSC.
 """
         )
 
-        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         await self.run_actuators(self._test_actuator)
 
         # Transition to standby state
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":

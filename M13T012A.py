@@ -111,11 +111,11 @@ class M13T012A(MTM1M3Movements):
             await self.do_movements(
                 offsets,
                 "M13T-012: Position Repeatability After Parking",
-                end_state=MTM1M3.DetailedState.PARKED,
+                end_state=MTM1M3.DetailedStates.PARKED,
                 moved_callback=self._log_data_ims,
             )
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":

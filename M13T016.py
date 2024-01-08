@@ -103,7 +103,7 @@ class M13T004(MTM1M3Movements):
         self.step += 1
 
     async def _run(self):
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         data = await self.m1m3.tel_hardpointActuatorData.next(flush=True)
         imsData = await self.m1m3.tel_imsData.next(flush=True)
@@ -123,11 +123,11 @@ class M13T004(MTM1M3Movements):
             offsets,
             "M13T-016: Mirror positioning repeatibility after hardpoint " "breakaways",
             moved_callback=self._after_movement,
-            end_state=MTM1M3.DetailedState.PARKEDENGINEERING,
+            end_state=MTM1M3.DetailedStates.PARKEDENGINEERING,
             check_forces=False,
         )
 
-        await self.shutdown(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.shutdown(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         # Iterate through the 6 hardpoint actuators
         for hp in range(1, 7):

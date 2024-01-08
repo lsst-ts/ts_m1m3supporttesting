@@ -117,9 +117,9 @@ class M13T009(MTM1M3Movements):
             await self.do_movements(
                 offsets,
                 "M13T-009: Mirror Support System Active Motion Range",
-                end_state=MTM1M3.DetailedState.PARKED
+                end_state=MTM1M3.DetailedStates.PARKED
                 if m == 3
-                else MTM1M3.DetailedState.ACTIVEENGINEERING,
+                else MTM1M3.DetailedStates.ACTIVEENGINEERING,
             )
 
 

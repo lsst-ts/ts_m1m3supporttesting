@@ -137,7 +137,7 @@ class M13T011(MTM1M3Movements):
             await self.do_movements(
                 offsets,
                 "M13T-011: Position Stability During Active Mode Operation",
-                end_state=MTM1M3.DetailedState.STANDBY,
+                end_state=MTM1M3.DetailedStates.STANDBY,
                 moved_callback=self._log_data,
             )
 

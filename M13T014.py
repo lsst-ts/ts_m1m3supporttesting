@@ -43,7 +43,7 @@ class M13T014(MTM1M3Movements):
     async def test_active_forces(self):
         self.printHeader("M13T-014: Active Optic Force Offsets")
 
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         # Wait a bit
         await asyncio.sleep(2.0)
@@ -173,7 +173,7 @@ class M13T014(MTM1M3Movements):
         )
 
         # Lower mirror.
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":

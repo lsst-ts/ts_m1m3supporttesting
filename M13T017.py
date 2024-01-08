@@ -52,7 +52,7 @@ class M13T017(MTM1M3Test):
     async def test_active_optics_updates(self):
         self.printHeader("M13T-017: Active Optic Actuator Force Updates")
 
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         await asyncio.sleep(5.0)
 
@@ -93,7 +93,7 @@ class M13T017(MTM1M3Test):
 
         self.printTest("Shutting down")
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":

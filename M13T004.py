@@ -50,7 +50,7 @@ from MTM1M3Movements import *
 
 class M13T004(MTM1M3Movements):
     async def test_hardpoints(self):
-        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         # Iterate through the 6 hardpoint actuators
         for hp in range(1, 7):

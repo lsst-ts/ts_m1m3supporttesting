@@ -95,7 +95,7 @@ class M13T013(MTM1M3Movements):
     async def test_zero_coordinates_determination(self):
         self.printHeader("M13T-013: Determination of X, Y, Z, Zero Coordinate")
 
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         # Disable hardpoint corrections
         await self.m1m3.cmd_disableHardpointCorrections.start()
@@ -421,7 +421,7 @@ class M13T013(MTM1M3Movements):
 
         await self._reset_position()
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":
