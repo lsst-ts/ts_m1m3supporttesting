@@ -65,13 +65,12 @@
 # - Transition back to standby
 ########################################################################
 
-import astropy.units as u
-import asynctest
+import unittest
 
+import astropy.units as u
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import MTM1M3Movements, offset
-
 
 TRAVEL_POSITION = 6.13 * u.mm
 POS_X_TRAVEL_POSITION = TRAVEL_POSITION
@@ -91,7 +90,7 @@ NEG_Z_TRAVEL_POSITION = -2.60 * u.mm
 
 
 class M13T009(MTM1M3Movements):
-    async def test_movements(self):
+    async def test_movements(self) -> None:
         offsets = [
             offset(x=POS_X_TRAVEL_POSITION),
             offset(x=NEG_X_TRAVEL_POSITION),
@@ -117,11 +116,11 @@ class M13T009(MTM1M3Movements):
             await self.do_movements(
                 offsets,
                 "M13T-009: Mirror Support System Active Motion Range",
-                end_state=MTM1M3.DetailedState.PARKED
+                end_state=MTM1M3.DetailedStates.PARKED
                 if m == 3
-                else MTM1M3.DetailedState.ACTIVEENGINEERING,
+                else MTM1M3.DetailedStates.ACTIVEENGINEERING,
             )
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

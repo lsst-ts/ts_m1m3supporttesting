@@ -43,10 +43,12 @@
 # - Transition back to standby
 ########################################################################
 
-import astropy.units as u
-import asynctest
+import unittest
+from typing import Iterable
 
+import astropy.units as u
 from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.salobj import BaseMsgType
 
 from MTM1M3Movements import MTM1M3Movements, offset
 
@@ -57,7 +59,9 @@ ROTATION_TOLERANCE = 0.4 * u.arcsec.to(u.deg)
 
 
 class M13T012(MTM1M3Movements):
-    async def _log_data_ims(self, position, data, imsData):
+    async def _log_data_ims(
+        self, position: Iterable[float], data: BaseMsgType, ims_data: BaseMsgType
+    ) -> None:
         print(
             self.LOG_MOVEMENT,
             data.xPosition,
@@ -66,20 +70,20 @@ class M13T012(MTM1M3Movements):
             data.xRotation,
             data.yRotation,
             data.zRotation,
-            imsData.xPosition,
-            imsData.yPosition,
-            imsData.zPosition,
-            imsData.xRotation,
-            imsData.yRotation,
-            imsData.zRotation,
-            ",".join(map(str, imsData.rawSensorData)),
+            ims_data.xPosition,
+            ims_data.yPosition,
+            ims_data.zPosition,
+            ims_data.xRotation,
+            ims_data.yRotation,
+            ims_data.zRotation,
+            ",".join(map(str, ims_data.rawSensorData)),
             ",".join(map(str, position)),
             file=self.IMS_FILE,
             sep=",",
         )
         self.IMS_FILE.flush()
 
-    async def test_repeatibility(self):
+    async def test_repeatibility(self) -> None:
         offsets = [
             offset(),
             offset(x=+TRAVEL_POSITION),
@@ -104,17 +108,17 @@ class M13T012(MTM1M3Movements):
         )
 
         for i in range(7):
-            await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+            await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
             await self.do_movements(
                 offsets,
                 "M13T-012: Position Repeatability After Parking",
-                end_state=MTM1M3.DetailedState.PARKED,
+                end_state=MTM1M3.DetailedStates.PARKED,
                 moved_callback=self._log_data_ims,
-                check_forces=False
+                check_forces=False,
             )
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

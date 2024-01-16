@@ -38,13 +38,13 @@
 # - Transition from active engineering state to standby
 ########################################################################
 
-from MTM1M3Movements import *
-from lsst.ts.idl.enums import MTM1M3
+import asyncio
+import unittest
 
 import astropy.units as u
+from lsst.ts.idl.enums import MTM1M3
 
-import asyncio
-import asynctest
+from MTM1M3Movements import *
 
 TRAVEL_POSITION = 1 * u.mm
 SAMPLE_TIME = 1
@@ -88,7 +88,7 @@ class M13T032(MTM1M3Movements):
         self.HP_FILE.flush()
 
     async def test_ims(self):
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         offsets = [
             offset(x=+TRAVEL_POSITION),
@@ -119,8 +119,8 @@ class M13T032(MTM1M3Movements):
 
         self.close_log_file()
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

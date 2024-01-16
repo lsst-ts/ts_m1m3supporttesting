@@ -39,10 +39,14 @@
 # - Transition from parked engineering to standby state
 ########################################################################
 
-from Setup import *
-from M13T004 import *
-        
+import unittest
+
+from M13T004 import M13T004
+
+
+class M13T003(M13T004):
+    pass
+
+
 if __name__ == "__main__":
-    m1m3, sim, efd = Setup()
-    M13T004().Run(m1m3, sim, efd, "M13T-003: Individual Hardpoint Displacement Test")       
-    Shutdown(m1m3, sim, efd)
+    unittest.main()

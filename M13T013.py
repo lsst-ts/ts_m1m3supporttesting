@@ -45,9 +45,9 @@
 ########################################################################
 
 import asyncio
-import asynctest
-import astropy.units as u
+import unittest
 
+import astropy.units as u
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import MTM1M3Movements
@@ -60,7 +60,7 @@ class M13T013(MTM1M3Movements):
     SETTLE_TIME = 3.0
     SAMPLE_TIME = 1.0
 
-    detailsFile = None
+    details_file = None
 
     HARDPOINT_TOPICS = [
         "fx",
@@ -80,7 +80,7 @@ class M13T013(MTM1M3Movements):
     HARDPOINT_POSITIONS = HARDPOINT_TOPICS[6:]
     HARDPOINT_FORCES = HARDPOINT_TOPICS[:6]
 
-    async def _reset_position(self):
+    async def _reset_position(self) -> None:
         # Reset position
         await self.m1m3.cmd_positionM1M3.set_start(
             xPosition=0,
@@ -92,10 +92,10 @@ class M13T013(MTM1M3Movements):
         )
         await self.waitHP()
 
-    async def test_zero_coordinates_determination(self):
+    async def test_zero_coordinates_determination(self) -> None:
         self.printHeader("M13T-013: Determination of X, Y, Z, Zero Coordinate")
 
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         # Disable hardpoint corrections
         await self.m1m3.cmd_disableHardpointCorrections.start()
@@ -283,28 +283,25 @@ class M13T013(MTM1M3Movements):
             file=resultFile,
         )
 
-        detailsFile = self.openCSV("M13T013-details")
+        details_file = self.openCSV("M13T013-details")
         print(
             "Test, From, To, X, Y, Z, R X, R Y, R Z, Fx, Fy, Fz, Mx, My, Mz",
-            file=detailsFile,
+            file=details_file,
         )
 
         for row in testTable:
-
             await self._reset_position()
 
             # Settle for a bit before taking a baseline
             await asyncio.sleep(self.SETTLE_TIME)
 
             # Get baseline data
-            data = await self.sampleData(
-                "tel_hardpointActuatorData", self.SAMPLE_TIME
-            )
+            data = await self.sampleData("tel_hardpointActuatorData", self.SAMPLE_TIME)
             baseline = self.average(data, self.HARDPOINT_TOPICS)
 
-            diffs = {n: 0 for n in self.HARDPOINT_FORCES}
+            diffs = {n: 0.0 for n in self.HARDPOINT_FORCES}
 
-            def triggers_hit(diffs, triggers):
+            def triggers_hit(diffs: dict[str, float], triggers: list[int]) -> bool:
                 for i, n in enumerate(self.HARDPOINT_FORCES):
                     if abs(diffs[n]) >= triggers[i]:
                         return True
@@ -337,9 +334,7 @@ class M13T013(MTM1M3Movements):
                 else:
                     current = (current * u.deg).to(u.arcsec)
 
-                self.printTest(
-                    f"Changing {self.LOG_MOVEMENT} current {current:.04f}"
-                )
+                self.printTest(f"Changing {self.LOG_MOVEMENT} current {current:.04f}")
 
                 # Make a step
                 await self.m1m3.cmd_translateM1M3.set_start(
@@ -362,9 +357,7 @@ class M13T013(MTM1M3Movements):
                 averages = self.average(
                     data, self.HARDPOINT_POSITIONS + self.HARDPOINT_FORCES
                 )
-                diffs = {
-                    n: averages[n] - baseline[n] for n in self.HARDPOINT_FORCES
-                }
+                diffs = {n: averages[n] - baseline[n] for n in self.HARDPOINT_FORCES}
 
                 self.printTest(
                     "Measured forces: "
@@ -380,24 +373,26 @@ class M13T013(MTM1M3Movements):
                     f"{self.LOG_MOVEMENT}, "
                     f"{data[0].timestamp:.03f}, {data[-1].timestamp:.03f}, "
                     + ", ".join(map(str, averages.values())),
-                    file=detailsFile,
+                    file=details_file,
                 )
-                detailsFile.flush()
+                details_file.flush()
 
             self.printTest("Forces exceeded, recording data.")
 
             # Get position data
-            data = await self.sampleData(
-                "tel_hardpointActuatorData", self.SAMPLE_TIME
-            )
+            data = await self.sampleData("tel_hardpointActuatorData", self.SAMPLE_TIME)
             averages = self.average(data, self.HARDPOINT_POSITIONS)
             averages_encoders = self.average(data, ["encoder"])
 
             # Add position data to results
             v = list(averages.values())
+
+            def _format_arr(m: float) -> str:
+                return f"{m:.1f}"
+
             print(
-                self.LOG_MOVEMENT
-                + ","
+                self.LOG_MOVEMENT,
+                ","
                 + ",".join(
                     map(
                         lambda m: f"{m * u.m.to(u.mm):.04f}",
@@ -412,17 +407,15 @@ class M13T013(MTM1M3Movements):
                     )
                 )
                 + ","
-                + ",".join(
-                    map(lambda m: f"{m:.1f}", averages_encoders["encoder"])
-                ),
+                + ",".join(map(_format_arr, averages_encoders["encoder"])),
                 file=resultFile,
             )
             resultFile.flush()
 
         await self._reset_position()
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

@@ -45,12 +45,12 @@
 # - Transition back to standby
 ########################################################################
 
-import astropy.units as u
-import asynctest
 import asyncio
+import unittest
 
-from lsst.ts.salobj import State
+import astropy.units as u
 from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.salobj import State
 
 from MTM1M3Movements import MTM1M3Movements, offset
 
@@ -65,11 +65,11 @@ ROTATION_TOLERANCE = 2000 * u.arcsec.to(u.deg)
 class M13T021(MTM1M3Movements):
     async def _raise_lower(self, engmode):
         if engmode is True:
-            state_parked = MTM1M3.DetailedState.PARKEDENGINEERING
-            state_active = MTM1M3.DetailedState.ACTIVEENGINEERING
+            state_parked = MTM1M3.DetailedStates.PARKEDENGINEERING
+            state_active = MTM1M3.DetailedStates.ACTIVEENGINEERING
         else:
-            state_parked = MTM1M3.DetailedState.PARKED
-            state_active = MTM1M3.DetailedState.ACTIVE
+            state_parked = MTM1M3.DetailedStates.PARKED
+            state_active = MTM1M3.DetailedStates.ACTIVE
 
         await self.startup(state_parked)
 
@@ -80,14 +80,10 @@ class M13T021(MTM1M3Movements):
 
         # Raise mirror (therefore entering the Raised [Engineering] State).
         await self.startup(state_active)
-        self.assertEqual(
-            self.m1m3.evt_summaryState.get().summaryState, State.ENABLED
-        )
+        self.assertEqual(self.m1m3.evt_summaryState.get().summaryState, State.ENABLED)
 
         # Get stop time
-        raising_time = (
-            self.m1m3.tel_hardpointActuatorData.get().timestamp - startTime
-        )
+        raising_time = self.m1m3.tel_hardpointActuatorData.get().timestamp - startTime
 
         # Verify raise time
         self.assertLessEqual(
@@ -114,9 +110,7 @@ class M13T021(MTM1M3Movements):
         # Lower mirror
         await self.shutdown(state_parked)
 
-        lowering_time = (
-            self.m1m3.tel_hardpointActuatorData.get().timestamp - startTime
-        )
+        lowering_time = self.m1m3.tel_hardpointActuatorData.get().timestamp - startTime
 
         # Verify lower time
         self.assertLessEqual(
@@ -150,12 +144,10 @@ class M13T021(MTM1M3Movements):
         statistics = []
 
         for engmode in [True, False]:
-            self.printTest(
-                ("Engineering" if engmode else "Automatic") + " pass"
-            )
+            self.printTest(("Engineering" if engmode else "Automatic") + " pass")
             statistics.append(await self._raise_lower(engmode))
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
         self.printTest(" Results ", "=")
 
@@ -178,4 +170,4 @@ class M13T021(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

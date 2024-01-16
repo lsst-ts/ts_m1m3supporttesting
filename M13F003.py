@@ -1,9 +1,11 @@
-import time
 import math
-from Utilities import *
+import time
+
 from SALPY_m1m3 import *
+
 from ForceActuatorTable import *
 from HardpointActuatorTable import *
+from Utilities import *
 
 ########################################################################
 # Test Numbers: M13F-003
@@ -11,14 +13,21 @@ from HardpointActuatorTable import *
 # Description:  Verify ILC communications
 ########################################################################
 
+
 class M13F003:
     def Run(self, m1m3, sim):
         Header("M13F-003: Communications Tests")
         m1m3.Start("Default")
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_DisabledState)
+        Equal(
+            "DetailedState",
+            data.DetailedState,
+            m1m3_shared_DetailedStates_DisabledState,
+        )
         result, data = m1m3.GetEventSummaryState()
-        Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState)
+        Equal(
+            "SummaryState", data.SummaryState, m1m3_shared_SummaryStates_DisabledState
+        )
         result, data = m1m3.GetEventForceActuatorInfo()
         forceActuatorInfo = data
         for index in range(156):
@@ -37,7 +46,8 @@ class M13F003:
             NotEqual("HM ILC %d UniqueId Not 0" % refId, uniqueId, 0)
         m1m3.Standby()
         result, data = m1m3.GetEventDetailedState()
-        Equal("DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState)
+        Equal(
+            "DetailedState", data.DetailedState, m1m3_shared_DetailedStates_StandbyState
+        )
         result, data = m1m3.GetEventSummaryState()
         Equal("SummaryState", data.SummaryState, m1m3_shared_SummaryStates_StandbyState)
-        

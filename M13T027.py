@@ -60,15 +60,14 @@
 # - Transition from parked engineering state to standby
 ########################################################################
 
-import asynctest
 import asyncio
-import numpy as np
 import time
+import unittest
 
+import numpy as np
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Test import MTM1M3Test
-
 
 TEST_PERCENTAGE = 1.15
 TEST_SETTLE_TIME = 3.0
@@ -449,15 +448,9 @@ class M13T027(MTM1M3Test):
 
                 duration = time.monotonic() - test_start
                 if (
-                    np.allclose(
-                        averages["xForce"], xApplied, atol=TEST_TOLERANCE
-                    )
-                    and np.allclose(
-                        averages["yForce"], yApplied, atol=TEST_TOLERANCE
-                    )
-                    and np.allclose(
-                        averages["zForce"], zApplied, atol=TEST_TOLERANCE
-                    )
+                    np.allclose(averages["xForce"], xApplied, atol=TEST_TOLERANCE)
+                    and np.allclose(averages["yForce"], yApplied, atol=TEST_TOLERANCE)
+                    and np.allclose(averages["zForce"], zApplied, atol=TEST_TOLERANCE)
                 ):
                     if duration > TEST_SETTLE_TIME:
                         break
@@ -491,15 +484,11 @@ class M13T027(MTM1M3Test):
                 Scale. 1 for maximum force, -1 for minimum force, 0 for no
                 force.
             """
-            minMax = (
-                forceActuatorLimitMax if scale > 0 else forceActuatorLimitMin
-            )
+            minMax = forceActuatorLimitMax if scale > 0 else forceActuatorLimitMin
             use = abs(scale)
 
             if fa_type == "X":
-                xApplied[fa_index] = (
-                    use * forceActuatorXLimitTable[fa_index][minMax]
-                )
+                xApplied[fa_index] = use * forceActuatorXLimitTable[fa_index][minMax]
                 xForces[fa_index] = xApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
                     f"FA {self.id} X {fa_index}: will apply "
@@ -507,9 +496,7 @@ class M13T027(MTM1M3Test):
                     f"{xApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Y":
-                yApplied[fa_index] = (
-                    use * forceActuatorYLimitTable[fa_index][minMax]
-                )
+                yApplied[fa_index] = use * forceActuatorYLimitTable[fa_index][minMax]
                 yForces[fa_index] = yApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
                     f"FA {self.id} Y {fa_index}: will apply "
@@ -517,9 +504,7 @@ class M13T027(MTM1M3Test):
                     f"{yApplied[fa_index]:.02f}N"
                 )
             elif fa_type == "Z":
-                zApplied[fa_index] = (
-                    use * forceActuatorZLimitTable[fa_index][minMax]
-                )
+                zApplied[fa_index] = use * forceActuatorZLimitTable[fa_index][minMax]
                 zForces[fa_index] = zApplied[fa_index] * TEST_PERCENTAGE
                 self.printTest(
                     f"FA {self.id} Z {fa_index}: will apply "
@@ -527,9 +512,7 @@ class M13T027(MTM1M3Test):
                     f"{zApplied[fa_index]:.02f}N"
                 )
             else:
-                raise ValueError(
-                    f"Invalid FA type (only XYZ accepted): {fa_type}"
-                )
+                raise ValueError(f"Invalid FA type (only XYZ accepted): {fa_type}")
 
             if run_test is False:
                 return
@@ -623,13 +606,13 @@ running the CSC.
 """
         )
 
-        await self.startup(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         await self.run_actuators(self._test_actuator)
 
         # Transition to standby state
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

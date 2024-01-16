@@ -36,12 +36,11 @@
 ########################################################################
 
 import asyncio
-import asynctest
+import unittest
 
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Test import MTM1M3Test
-
 
 TEST_FORCE = [1.2] * 156
 TEST_TOLERANCE = 0.1
@@ -52,7 +51,7 @@ class M13T017(MTM1M3Test):
     async def test_active_optics_updates(self):
         self.printHeader("M13T-017: Active Optic Actuator Force Updates")
 
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         await asyncio.sleep(5.0)
 
@@ -80,9 +79,7 @@ class M13T017(MTM1M3Test):
         self.printTest("Apply test forces")
 
         # Apply active optic force and verify
-        await self.m1m3.cmd_applyActiveOpticForces.set_start(
-            zForces=TEST_FORCE
-        )
+        await self.m1m3.cmd_applyActiveOpticForces.set_start(zForces=TEST_FORCE)
 
         await asyncio.sleep(1.0)
         verifyForces(TEST_FORCE)
@@ -93,8 +90,8 @@ class M13T017(MTM1M3Test):
 
         self.printTest("Shutting down")
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

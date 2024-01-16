@@ -1,12 +1,14 @@
-import M1M3
+import time
+
 import CellSimulator
+import M1M3
+from ForceActuatorTable import *
 from HardpointActuatorTable import *
 from HardpointMonitorTable import *
-from ForceActuatorTable import *
-import time
 
 simulatorIP = "140.252.32.153"
 runSimulator = False
+
 
 def SetupAndy():
     m1m3 = M1M3.M1M3()
@@ -16,7 +18,7 @@ def SetupAndy():
     sim.setDisplacement(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     sim.setAccelerometerVoltage(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
     sim.setAngularVelocity(0.0, 0.0, 0.0, 7, 20)
-        
+
     for row in hardpointActuatorTable:
         id = row[hardpointActuatorTableIDIndex]
         sim.setILCID(id, id, 1, 1, 0, 0, 8, 2, "Mock-HP")
@@ -24,8 +26,8 @@ def SetupAndy():
         sim.setILCMode(id, 0)
         sim.setHPForceAndStatus(id, 0, 0, 0.0)
         sim.setADCSampleRate(id, 8)
-        #sim.setCalibrationData(id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-       
+        # sim.setCalibrationData(id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
     for row in hardpointMonitorTable:
         id = row[hardpointMonitorTableIDIndex]
         sim.setILCID(id, id, 7, 7, 0, 0, 8, 2, "Mock-HM")
@@ -35,11 +37,11 @@ def SetupAndy():
         sim.setMezzanineStatus(id, 0)
         sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
         sim.setLVDT(id, 0.0, 0.0)
-        
+
     for row in forceActuatorTable:
         id = row[forceActuatorTableIDIndex]
         type = row[forceActuatorTableTypeIndex]
-        if type == 'SAA':
+        if type == "SAA":
             sim.setILCID(id, id, 2, 2, 0, 0, 8, 2, "Mock-FA")
         else:
             sim.setILCID(id, id, 2, 2, 2, 2, 8, 2, "Mock-FA")
@@ -48,13 +50,14 @@ def SetupAndy():
         sim.setBoostValveGains(id, 1.0, 1.0)
         sim.setFAForceAndStatus(id, 0, 0.0, 0.0)
         sim.setADCSampleRate(id, 8)
-        #sim.setCalibrationData(id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        # sim.setCalibrationData(id, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         sim.setMezzanineID(id, id + 1000, 52, 0x0802)
         sim.setMezzanineStatus(id, 0)
         sim.setPressure(id, 0.0, 0.0, 0.0, 0.0)
-    
+
     return m1m3, sim
-    
+
+
 def Shutdown(m1m3, sim):
     m1m3.Close()
     return 0

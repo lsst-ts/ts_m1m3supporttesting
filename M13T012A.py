@@ -46,10 +46,10 @@
 # - Transition back to standby
 ########################################################################
 
-import astropy.units as u
-import asynctest
 import random
+import unittest
 
+import astropy.units as u
 from lsst.ts.idl.enums import MTM1M3
 
 from MTM1M3Movements import MTM1M3Movements, offset
@@ -111,12 +111,12 @@ class M13T012A(MTM1M3Movements):
             await self.do_movements(
                 offsets,
                 "M13T-012: Position Repeatability After Parking",
-                end_state=MTM1M3.DetailedState.PARKED,
+                end_state=MTM1M3.DetailedStates.PARKED,
                 moved_callback=self._log_data_ims,
             )
 
-        await self.shutdown(MTM1M3.DetailedState.STANDBY)
+        await self.shutdown(MTM1M3.DetailedStates.STANDBY)
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

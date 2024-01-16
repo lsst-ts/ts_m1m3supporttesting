@@ -40,12 +40,13 @@
 # - Repeat 3x
 ########################################################################
 
-from datetime import datetime
+import unittest
+from typing import Iterable
 
 import astropy.units as u
-import asynctest
 import click
 from lsst.ts.idl.enums import MTM1M3
+from lsst.ts.salobj import BaseMsgType
 
 from MTM1M3Movements import MTM1M3Movements, offset
 
@@ -53,12 +54,10 @@ TRAVEL_POSITION = 1 * u.mm
 TRAVEL_ROTATION = 5 * u.arcsec
 
 
-class M13T004(MTM1M3Movements):
-    async def setUp(self):
-        await super().setUp()
+class M13T016(MTM1M3Movements):
+    async def asyncSetUp(self) -> None:
+        await super().asyncSetUp()
         self.step = 1
-
-        start = datetime.now()
 
         self.IMS_FILE = self.openCSV("M13T016")
         print(
@@ -73,7 +72,7 @@ class M13T004(MTM1M3Movements):
             file=self.IMS_FILE,
         )
 
-    def _logIMS(self, message, data, imsData):
+    def _logIMS(self, message: str, data: BaseMsgType, ims_data: BaseMsgType) -> None:
         print(
             message,
             data.timestamp,
@@ -85,30 +84,32 @@ class M13T004(MTM1M3Movements):
             data.zRotation,
             ",".join(map(str, data.encoder)),
             ",".join(map(str, data.measuredForce)),
-            imsData.timestamp,
-            imsData.xPosition,
-            imsData.zPosition,
-            imsData.xRotation,
-            imsData.yRotation,
-            imsData.zRotation,
-            imsData.zRotation,
-            ",".join(map(str, imsData.rawSensorData)),
+            ims_data.timestamp,
+            ims_data.xPosition,
+            ims_data.zPosition,
+            ims_data.xRotation,
+            ims_data.yRotation,
+            ims_data.zRotation,
+            ims_data.zRotation,
+            ",".join(map(str, ims_data.rawSensorData)),
             file=self.IMS_FILE,
             sep=",",
         )
         self.IMS_FILE.flush()
 
-    async def _after_movement(self, position, data, imsData):
-        self._logIMS(f"Step {self.step}", data, imsData)
+    async def _after_movement(
+        self, position: Iterable[float], data: BaseMsgType, ims_data: BaseMsgType
+    ) -> None:
+        self._logIMS(f"Step {self.step}", data, ims_data)
         self.step += 1
 
-    async def _run(self):
-        await self.startup(MTM1M3.DetailedState.ACTIVEENGINEERING)
+    async def _run(self) -> None:
+        await self.startup(MTM1M3.DetailedStates.ACTIVEENGINEERING)
 
         data = await self.m1m3.tel_hardpointActuatorData.next(flush=True)
-        imsData = await self.m1m3.tel_imsData.next(flush=True)
+        ims_data = await self.m1m3.tel_ims_data.next(flush=True)
 
-        self._logIMS("Raised", data, imsData)
+        self._logIMS("Raised", data, ims_data)
 
         offsets = [
             offset(x=+TRAVEL_POSITION, y=+TRAVEL_POSITION, z=+TRAVEL_POSITION),
@@ -123,11 +124,11 @@ class M13T004(MTM1M3Movements):
             offsets,
             "M13T-016: Mirror positioning repeatibility after hardpoint " "breakaways",
             moved_callback=self._after_movement,
-            end_state=MTM1M3.DetailedState.PARKEDENGINEERING,
+            end_state=MTM1M3.DetailedStates.PARKEDENGINEERING,
             check_forces=False,
         )
 
-        await self.shutdown(MTM1M3.DetailedState.PARKEDENGINEERING)
+        await self.shutdown(MTM1M3.DetailedStates.PARKEDENGINEERING)
 
         # Iterate through the 6 hardpoint actuators
         for hp in range(1, 7):
@@ -140,10 +141,10 @@ class M13T004(MTM1M3Movements):
             )
         )
 
-    async def test_hardpoints(self):
+    async def test_hardpoints(self) -> None:
         for repeat in range(3):
             await self._run()
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()

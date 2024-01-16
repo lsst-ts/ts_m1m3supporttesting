@@ -34,12 +34,12 @@
 # - Lower mirror
 ########################################################################
 
-import asynctest
-from numpy.random import normal, random
+import unittest
 
 from lsst.ts.idl.enums import MTM1M3
+from numpy.random import normal, random
 
-from MTM1M3Movements import MTM1M3Movements, ForceOffsets
+from MTM1M3Movements import ForceOffsets, MTM1M3Movements
 
 
 class M13T015(MTM1M3Movements):
@@ -56,15 +56,9 @@ class M13T015(MTM1M3Movements):
                 yForces=random(100) * 78.2,
                 zForces=random(156) * 167.78,
             ),
-            ForceOffsets(
-                xForces=[1] * 12, yForces=[-1] * 100, zForces=[1] * 156
-            ),
-            ForceOffsets(
-                xForces=[100] * 12, yForces=[-100] * 100, zForces=[100] * 156
-            ),
-            ForceOffsets(
-                xForces=[35] * 12, yForces=[-75] * 100, zForces=[85] * 156
-            ),
+            ForceOffsets(xForces=[1] * 12, yForces=[-1] * 100, zForces=[1] * 156),
+            ForceOffsets(xForces=[100] * 12, yForces=[-100] * 100, zForces=[100] * 156),
+            ForceOffsets(xForces=[35] * 12, yForces=[-75] * 100, zForces=[85] * 156),
             ForceOffsets(
                 xForces=normal(0, 80, 12),
                 yForces=normal(0, 45, 100),
@@ -104,4 +98,4 @@ class M13T015(MTM1M3Movements):
 
 
 if __name__ == "__main__":
-    asynctest.main()
+    unittest.main()
